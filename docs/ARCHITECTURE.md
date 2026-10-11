@@ -4,7 +4,7 @@
 
 `ssdl` 是 **Smart Social Downloader** 的縮寫，作為 Python 套件名稱，方便使用 `from ssdl import media` 等匯入。它不代表下載媒體的分類資料夾；平台分類仍使用 `youtube/`、`twitter/` 等名稱。中英文 README 均提供目錄結構及用途。
 
-這份文件描述目前結構。下一階段的 AppContext、初始化生命週期、引擎 adapter、前端控制器與測試 fixture 拆分尚未實作，見 [Roadmap：架構與檔案結構](../ROADMAP.md#架構與檔案結構)。目前 `app` 匯入不啟動 HTTP／worker，但會建立管理器並嘗試恢復登入資料；不應將它視為完全沒有副作用的匯入。
+這份文件描述目前結構。AppContext 與明確初始化生命週期已實作；引擎 adapter、前端控制器與共用測試 fixture 拆分仍列於 [Roadmap：架構與檔案結構](../ROADMAP.md#架構與檔案結構)。匯入 `ssdl.app` 不會建立管理器、恢復登入／歷史或啟動 HTTP／worker。
 
 ```text
 smart-social-downloader/
@@ -25,7 +25,8 @@ smart-social-downloader/
 ├── THIRD_PARTY_NOTICES.md
 ├── ssdl/                     # Python 後端套件
 │   ├── version.py            # 唯一應用程式版本來源
-│   ├── app.py                # 狀態擁有者、組裝與啟動
+│   ├── app.py                # create_app factory、組裝與啟動入口
+│   ├── app_context.py        # AppState、實例擁有的服務及 start／close
 │   ├── http_api.py           # HTTP 路由與本機來源檢查
 │   ├── http_server.py        # HTTP 連線上限、讀取期限與 socket 清理
 │   ├── scheduler.py          # 排程、額度及生命週期
@@ -78,7 +79,7 @@ smart-social-downloader/
 
 ## 路徑與匯入規則
 
-- `ssdl.app.ROOT` 固定指向專案根目錄，不取決於呼叫時的工作目錄。整理套件後，既有 `data/`、下載位置及 Chrome 連接器位置保持一致。
+- `ssdl.app.ROOT` 固定指向專案根目錄，不取決於呼叫時的工作目錄。`create_app()` 沿用此預設根目錄；測試可明確傳入隔離 root。既有 `data/`、下載位置及 Chrome 連接器位置保持一致。
 - 後端模組採套件內相對匯入；測試使用 `from ssdl import media` 等明確匯入。
 - 啟動入口只呼叫 `ssdl.app.main()`；匯入模組不會自動開啟 HTTP 服務或啟動下載 worker。
 - `tools/manage.py` 檢查／安裝第三方環境，不讀取正式登入 Cookie 或下載歷史。
@@ -99,7 +100,7 @@ node --test tests/frontend.test.cjs
 .\.venv\Scripts\python.exe tools/package_source.py --check
 ```
 
-測試使用暫存資料夾與本機 HTTP fixture，不需要 X 登入或真實平台下載。API 測試會阻止恢復作者的登入資料。
+測試使用暫存資料夾與本機 HTTP fixture，不需要 X 登入或真實平台下載。API 測試明確建立獨立 AppContext，不須為了匯入 app 預先 mock 登入恢復。
 
 已拆出共用設定、環境診斷、保存、manifest、程序監督、網路政策、遮蔽及瀏覽器 API 客戶端。`ssdl/app.py` 的 HTTP 路由、排程與保存現已拆出獨立元件；`ssdl/media.py` 的引擎調度仍可視未來需求進一步拆分。
 
@@ -117,7 +118,16 @@ Windows Job Object 在傳入工作前綁定子程序，其啟動的 FFmpeg／JS 
 
 ## P2 模組邊界（2026-10-11）
 
-後端元件明確注入同一 app context，不反向匯入 app；既有入口與回呼保留綁定別名。前端將狀態、列表呈現、X 登入、播放器選擇分離，固定語系 key 放在 `static/locales.js`，焦點管理放在 `ui_accessibility.js`。仍是漸進拆分，沒有切換框架。完整規則與驗收狀態見 [P2_COMPLETION.md](P2_COMPLETION.md)。
+後端元件明確注入具型別的 AppContext，不再以 `sys.modules` 注入 app 模組，也不反向匯入入口。AppState 明列佇列、Rate、設定及 worker 狀態；API／scheduler／repository 共用同一實例的狀態與鎖。前端將狀態、列表呈現、X 登入、播放器選擇分離，固定語系 key 放在 `static/locales.js`，焦點管理放在 `ui_accessibility.js`。仍是漸進拆分，沒有切換框架。完整規則與驗收狀態見 [P2_COMPLETION.md](P2_COMPLETION.md)。
+
+## AppContext 與生命週期（N06）
+
+- `create_app(root, **services)` 明確建立一個 AppContext。建構時只配置記憶體與服務物件，不讀取歷史／登入檔、不開 listener、不啟動背景執行緒；可注入保存、登入、診斷、容量、縮圖及 request policy 的實作。每個實例具有獨立 Handler、鎖、condition、佇列、保存位置與服務；沒有共用 app 模組的可變全域。
+- `main()` 先綁定 HTTP port，成功後才呼叫 `start()`：完整恢復歷史與 pacing，再明確恢復 X 登入，刷新診斷並啟動單一 worker。重複 start 不會再次恢復或啟動 worker；綁定失敗不遷移、不保存歷史。
+- `AppContext.condition` 使用同一把 RLock，保護 AppState 與關鍵落盤操作。repository 先重建完整候選 AppState／policy，再於 condition 內交換，保留損壞主檔／有效備份的處理。保存仍同步進行，N07 的成本量測與 writer 調整尚未完成。
+- HTTP 服務先關閉 listener／所屬連線。`close()` 發出 shutdown 並喚醒 condition，停止登入配對，等待 worker 結束，再關閉縮圖、容量掃描及環境診斷，最後保存已停止的佇列。登入 callback 在 shutdown 後不會新增重試工作。各服務使用自己的鎖與停止事件；shutdown 阻止新 helper 被啟動。
+- worker、登入、縮圖、容量、診斷的 join 期限分別為 10／8／5／5／15 秒；遇到阻塞的作業系統 I/O 不保證執行緒立即消失。worker 尚存活時不額外保存競爭中的狀態；它原有的取消、重新排隊與 terminal save 流程仍保留。這些期限不取代下載子程序的監督與清理。
+- close 可重複呼叫；已關閉的 context 不可重新 start，需建立新實例。關閉未啟動的 context 不會讀寫歷史／登入檔；關閉其中一個實例不會停止另一個。
 
 ## 發布文件與版本
 

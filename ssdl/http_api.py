@@ -1,17 +1,16 @@
 """Local HTTP routes and origin validation, with an injected application context."""
 from __future__ import annotations
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .app_context import AppContext
 import json
 import io
 import mimetypes
 import os
-import math
-import random
-import socket
-import threading
 import time
 import uuid
-from collections import deque
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from http.server import BaseHTTPRequestHandler
 from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlparse
 from .http_server import DeadlineReader, READ_SECONDS, WRITE_SECONDS
@@ -22,7 +21,7 @@ class RequestFormatError(ValueError):
 
 
 class ApiHandler(BaseHTTPRequestHandler):
-    app = None  # Bound by the composition root before serving requests.
+    app: AppContext  # Bound by the composition root before serving requests.
     server_version = "SmartSocialDownloader/1.0"
 
     def setup(self):
@@ -157,10 +156,10 @@ class ApiHandler(BaseHTTPRequestHandler):
             return self._json(403, {"error": "僅允許本機操作"})
         if path.startswith("/api/jobs/") and path.endswith("/thumbnail"):
             job_id = path.removeprefix("/api/jobs/").removesuffix("/thumbnail")
-            with self.app._lock:
-                stored = self.app._jobs.get(job_id)
+            with self.app.lock:
+                stored = self.app.state.jobs.get(job_id)
                 job = dict(stored) if stored else None
-                directory = self.app._download_dir
+                directory = self.app.state.download_dir
             if not job:
                 return self._json(404, {"error": "找不到這個下載項目"})
             preview = self.app.THUMBNAILS.snapshot(job, directory)
@@ -178,8 +177,8 @@ class ApiHandler(BaseHTTPRequestHandler):
             return self._json(200, self.app._state(summary_only=True))
         if path.startswith("/api/jobs/") and path.endswith(("/files", "/details")):
             job_id, kind = path.removeprefix("/api/jobs/").rsplit("/", 1)
-            with self.app._lock:
-                job = self.app._jobs.get(job_id)
+            with self.app.lock:
+                job = self.app.state.jobs.get(job_id)
                 if not job:
                     return self._json(404, {"error": "找不到這個下載項目"})
                 if kind == "details":
@@ -239,7 +238,7 @@ class ApiHandler(BaseHTTPRequestHandler):
             return self._json(202, self.app.ENVIRONMENT.refresh())
 
         if path == "/api/storage/rescan":
-            self.app.STORAGE.rescan(self.app._download_dir)
+            self.app.STORAGE.rescan(self.app.state.download_dir)
             return self._json(202, self._state())
 
         if path == "/api/thumbnails/clear":
@@ -247,7 +246,7 @@ class ApiHandler(BaseHTTPRequestHandler):
             return self._json(202, self._state())
 
         if path == "/api/state/save":
-            with self.app._lock:
+            with self.app.lock:
                 self.app._save_locked()
             return self._json(200, self._state())
 
@@ -293,9 +292,9 @@ class ApiHandler(BaseHTTPRequestHandler):
                 self.app.X_AUTH.disconnect()
             except self.app.AuthError as exc:
                 return self._json(400, {"error": str(exc)})
-            with self.app._lock:
+            with self.app.lock:
                 # Stopping login also stops a legacy Cookie-file login if one was selected.
-                self.app._x_cookie_file = ""
+                self.app.state.x_cookie_file = ""
                 self.app._save_locked()
             return self._json(200, self._state())
 
@@ -343,8 +342,8 @@ class ApiHandler(BaseHTTPRequestHandler):
                     continue
                 seen.add(identity)
                 accepted.append((result, account))
-            with self.app._condition:
-                pending_accounts = {job.get("account") for job in self.app._jobs.values()
+            with self.app.condition:
+                pending_accounts = {job.get("account") for job in self.app.state.jobs.values()
                     if job.get("mode") == "x_profile" and job["status"] in {"queued", "active"}}
                 ready = []
                 already_pending = []
@@ -354,19 +353,19 @@ class ApiHandler(BaseHTTPRequestHandler):
                         continue
                     identity = self.app.media.source_key(url)
                     preference = "best" if account or self.app.media.original_image_url(url) else requested_quality
-                    matches = sorted((job for job in self.app._jobs.values()
+                    matches = sorted((job for job in self.app.state.jobs.values()
                         if self.app.media.source_key(job["url"]) == identity and job.get("video_quality", "best") == preference),
                         key=lambda item: item["created_at"], reverse=True)
                     pending = next((job for job in matches if job["status"] in {"queued", "selecting"}
-                        or (job["status"] == "active" and self.app.media._same_output_directory(job, self.app._download_dir))), None)
+                        or (job["status"] == "active" and self.app.media._same_output_directory(job, self.app.state.download_dir))), None)
                     if pending:
                         already_pending.append(pending["id"])
                         continue
                     reusable = next((job for job in matches if job["status"] in {"completed", "failed"}
-                        and self.app.media._same_output_directory(job, self.app._download_dir)), None)
+                        and self.app.media._same_output_directory(job, self.app.state.download_dir)), None)
                     ready.append((url, account, reusable, preference))
                 accepted = ready
-                if len(self.app._jobs) + sum(existing is None for _, _, existing, _ in accepted) > self.app.MAX_JOBS:
+                if len(self.app.state.jobs) + sum(existing is None for _, _, existing, _ in accepted) > self.app.MAX_JOBS:
                     return self._json(429, {"error": f"佇列最多保留 {self.app.MAX_JOBS} 個項目，請先清除已完成項目"})
                 created, reused = [], []
                 for url, account, existing, preference in accepted:
@@ -412,11 +411,11 @@ class ApiHandler(BaseHTTPRequestHandler):
                         job.update(profile_posts=0, profile_skipped=0, profile_downloaded_posts=0,
                                    profile_stage="queued", profile_wait_seconds=0, stop_requested=False)
                         job.update(self.app._PROFILE_COUNT_DEFAULTS)
-                    self.app._jobs[job_id] = job
-                    self.app._queue.append(job_id)
+                    self.app.state.jobs[job_id] = job
+                    self.app.state.queue.append(job_id)
                     created.append(job_id)
                 self.app._save_locked()
-                self.app._condition.notify_all()
+                self.app.condition.notify_all()
             return self._json(201, {"added": created, "reused": reused,
                 "already_pending": already_pending, "rejected": rejected, "state": self._state()})
 
@@ -424,16 +423,16 @@ class ApiHandler(BaseHTTPRequestHandler):
             paused = data.get("paused")
             if type(paused) is not bool:
                 return self._json(400, {"error": "暫停設定必須是 true 或 false。"})
-            with self.app._condition:
-                self.app._paused = paused
+            with self.app.condition:
+                self.app.state.paused = paused
                 self.app._save_locked()
-                self.app._condition.notify_all()
+                self.app.condition.notify_all()
             return self._json(200, self._state())
 
         if path.startswith("/api/jobs/") and path.endswith("/select-media"):
             job_id = path.removeprefix("/api/jobs/").removesuffix("/select-media")
-            with self.app._condition:
-                job = self.app._jobs.get(job_id)
+            with self.app.condition:
+                job = self.app.state.jobs.get(job_id)
                 if not job:
                     return self._json(404, {"error": "找不到這個下載項目"})
                 if job["status"] != "selecting":
@@ -445,20 +444,20 @@ class ApiHandler(BaseHTTPRequestHandler):
                 job.pop("selection_options", None)
                 self.app._retry_locked(job)
                 self.app._save_locked()
-                self.app._condition.notify_all()
+                self.app.condition.notify_all()
             return self._json(200, self._state())
 
         if path == "/api/rate/reset":
-            with self.app._condition:
+            with self.app.condition:
                 previous_used = self.app._quota_locked()["used"]
-                self.app._job_starts.clear()
+                self.app.state.job_starts.clear()
                 self.app._save_locked()
-                self.app._condition.notify_all()
+                self.app.condition.notify_all()
             return self._json(200, {"reset": True, "previous_used": previous_used, "state": self._state()})
 
         if path == "/api/downloads/open":
-            with self.app._lock:
-                directory = self.app._download_dir
+            with self.app.lock:
+                directory = self.app.state.download_dir
             try:
                 directory.mkdir(parents=True, exist_ok=True)
                 if os.name != "nt":
@@ -469,7 +468,7 @@ class ApiHandler(BaseHTTPRequestHandler):
             return self._json(200, {"opened": True})
 
         if path == "/api/settings":
-            dynamic_capture = data.get("dynamic_capture", self.app._dynamic_capture)
+            dynamic_capture = data.get("dynamic_capture", self.app.state.dynamic_capture)
             if type(dynamic_capture) is not bool:
                 return self._json(400, {"error": "動態媒體捕捉設定不正確。"})
             if dynamic_capture and not self.app.browser_capture_available():
@@ -480,13 +479,13 @@ class ApiHandler(BaseHTTPRequestHandler):
             raw_dir = data.get("download_dir")
             if not isinstance(raw_dir, str) or not raw_dir.strip() or len(raw_dir) > 2000:
                 return self._json(400, {"error": "請輸入有效的下載資料夾路徑"})
-            raw_limit = data.get("hourly_job_limit", self.app._hourly_job_limit)
-            raw_timeout = data.get("no_progress_timeout", self.app._no_progress_timeout)
+            raw_limit = data.get("hourly_job_limit", self.app.state.hourly_job_limit)
+            raw_timeout = data.get("no_progress_timeout", self.app.state.no_progress_timeout)
             if type(raw_timeout) is not int or not 30 <= raw_timeout <= 3600:
                 return self._json(400, {"error": "無進度期限必須是 30～3600 秒的整數。"})
             if type(raw_limit) is not int or not 1 <= raw_limit <= 1000:
                 return self._json(400, {"error": "每小時工作上限請輸入 1～1000 的整數"})
-            raw_cookie = data.get("x_cookie_file", self.app._x_cookie_file)
+            raw_cookie = data.get("x_cookie_file", self.app.state.x_cookie_file)
             if not isinstance(raw_cookie, str) or len(raw_cookie) > 2000:
                 return self._json(400, {"error": "X Cookie 路徑格式不正確"})
             cookie_file = raw_cookie.strip()
@@ -503,44 +502,44 @@ class ApiHandler(BaseHTTPRequestHandler):
                     raise ValueError("指定路徑不是資料夾")
             except (OSError, RuntimeError, ValueError) as exc:
                 return self._json(400, {"error": f"無法使用此資料夾：{exc}"})
-            with self.app._condition:
-                self.app._download_dir = target_dir
-                self.app._x_cookie_file = cookie_file
-                self.app._hourly_job_limit = raw_limit
-                self.app._no_progress_timeout = raw_timeout
-                self.app._dynamic_capture = dynamic_capture
+            with self.app.condition:
+                self.app.state.download_dir = target_dir
+                self.app.state.x_cookie_file = cookie_file
+                self.app.state.hourly_job_limit = raw_limit
+                self.app.state.no_progress_timeout = raw_timeout
+                self.app.state.dynamic_capture = dynamic_capture
                 self.app.POLICY.configure(cooldown_mode)
                 self.app._save_locked()
-                self.app._condition.notify_all()
+                self.app.condition.notify_all()
             return self._json(200, self._state())
 
         if path == "/api/jobs/clear-done":
-            with self.app._lock:
-                removed = [job_id for job_id, job in self.app._jobs.items() if job["status"] == "completed"]
+            with self.app.lock:
+                removed = [job_id for job_id, job in self.app.state.jobs.items() if job["status"] == "completed"]
                 for job_id in removed:
-                    self.app._jobs.pop(job_id, None)
+                    self.app.state.jobs.pop(job_id, None)
                 self.app._save_locked()
             return self._json(200, {"removed": len(removed), "state": self._state()})
 
         if path == "/api/jobs/clear-all":
-            with self.app._condition:
-                removed = [job_id for job_id in self.app._jobs if job_id != self.app._active_id]
+            with self.app.condition:
+                removed = [job_id for job_id in self.app.state.jobs if job_id != self.app.state.active_id]
                 for job_id in removed:
-                    self.app._jobs.pop(job_id, None)
-                self.app._queue.clear()
-                active = self.app._jobs.get(self.app._active_id)
+                    self.app.state.jobs.pop(job_id, None)
+                self.app.state.queue.clear()
+                active = self.app.state.jobs.get(self.app.state.active_id)
                 if active:
                     active["remove_when_finished"] = True
                 self.app._save_locked()
-                self.app._condition.notify_all()
+                self.app.condition.notify_all()
             return self._json(200, {"removed": len(removed), "pending_active": bool(active), "state": self._state()})
 
         if path == "/api/jobs/retry-failed":
-            with self.app._condition:
-                failed = [job for job in self.app._jobs.values() if job["status"] == "failed"]
+            with self.app.condition:
+                failed = [job for job in self.app.state.jobs.values() if job["status"] == "failed"]
                 retried = sum(self.app._retry_locked(job) for job in sorted(failed, key=lambda item: item["created_at"]))
                 self.app._save_locked()
-                self.app._condition.notify_all()
+                self.app.condition.notify_all()
             return self._json(200, {"retried": retried, "state": self._state()})
 
         if path.startswith("/api/jobs/") and path.endswith(("/open-file", "/open-folder")):
@@ -549,12 +548,12 @@ class ApiHandler(BaseHTTPRequestHandler):
                 return self._json(404, {"error": "找不到這個下載項目"})
             job_id, action = parts
             index = data.get("file_index", 0)
-            with self.app._lock:
-                job = self.app._jobs.get(job_id)
+            with self.app.lock:
+                job = self.app.state.jobs.get(job_id)
                 if not job:
                     return self._json(404, {"error": "找不到這個下載項目"})
                 files = list(job.get("files", []))
-                directory = job.get("output_dir") or str(self.app._download_dir)
+                directory = job.get("output_dir") or str(self.app.state.download_dir)
             if type(index) is not int or not 0 <= index < len(files):
                 return self._json(400, {"error": "此項目尚無檔案，或選擇的檔案已更新"})
             if data.get("filename") != files[index]:
@@ -577,8 +576,8 @@ class ApiHandler(BaseHTTPRequestHandler):
 
         if path.startswith("/api/jobs/") and path.endswith("/retry"):
             job_id = path.removeprefix("/api/jobs/").removesuffix("/retry")
-            with self.app._condition:
-                job = self.app._jobs.get(job_id)
+            with self.app.condition:
+                job = self.app.state.jobs.get(job_id)
                 if not job:
                     return self._json(404, {"error": "找不到這個項目"})
                 if job["status"] not in {"failed", "completed"}:
@@ -586,37 +585,37 @@ class ApiHandler(BaseHTTPRequestHandler):
                 if not self.app._retry_locked(job, force=True):
                     return self._json(409, {"error": "此 X 帳號已有等待中或下載中的工作。"})
                 self.app._save_locked()
-                self.app._condition.notify_all()
+                self.app.condition.notify_all()
             return self._json(200, self._state())
 
         if path.startswith("/api/jobs/") and path.endswith("/stop"):
             job_id = path.removeprefix("/api/jobs/").removesuffix("/stop")
-            with self.app._condition:
-                job = self.app._jobs.get(job_id)
+            with self.app.condition:
+                job = self.app.state.jobs.get(job_id)
                 if not job:
                     return self._json(404, {"error": "找不到這個下載項目"})
                 if job["status"] != "active":
                     return self._json(409, {"error": "只有進行中的下載可以停止。"})
                 job.update(stop_requested=True, status_text="正在停止，保留已下載檔案", updated_at=time.time())
                 self.app._save_locked()
-                self.app._condition.notify_all()
+                self.app.condition.notify_all()
             return self._json(200, self._state())
 
         if path.startswith("/api/jobs/") and path.removeprefix("/api/jobs/") and "/" not in path.removeprefix("/api/jobs/"):
             job_id = path.removeprefix("/api/jobs/")
-            with self.app._condition:
-                job = self.app._jobs.get(job_id)
+            with self.app.condition:
+                job = self.app.state.jobs.get(job_id)
                 if not job:
                     return self._json(404, {"error": "找不到這個項目"})
                 if job["status"] == "active":
                     return self._json(409, {"error": "下載進行中，完成後才能移除此項目"})
-                self.app._jobs.pop(job_id, None)
+                self.app.state.jobs.pop(job_id, None)
                 try:
-                    self.app._queue.remove(job_id)
+                    self.app.state.queue.remove(job_id)
                 except ValueError:
                     pass
                 self.app._save_locked()
-                self.app._condition.notify_all()
+                self.app.condition.notify_all()
             return self._json(200, self._state())
 
         return self._json(404, {"error": "找不到 API"})

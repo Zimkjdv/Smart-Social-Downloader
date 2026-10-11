@@ -27,6 +27,8 @@ class DownloadStats:
         self._files = {}
         self._scan_updates = {}
         self._checked_at = 0
+        self._stop = threading.Event()
+        self._thread = None
 
     @staticmethod
     def _empty():
@@ -52,11 +54,12 @@ class DownloadStats:
                 self._files = {}
                 self._scan_updates = {}
                 self._checked_at = 0
-            if not self._refreshing and (not self._refreshed or time.monotonic() - self._refreshed >= self.RESCAN_SECONDS):
+            if not self._stop.is_set() and not self._refreshing and (not self._refreshed or time.monotonic() - self._refreshed >= self.RESCAN_SECONDS):
                 self._refreshing = True
                 self._scan_updates = {}
-                threading.Thread(target=self._scan, args=(directory, self._generation),
-                                 name="download-folder-stats", daemon=True).start()
+                self._thread = threading.Thread(target=self._scan, args=(directory, self._generation),
+                                                name="download-folder-stats", daemon=True)
+                self._thread.start()
             return {**self._stats, "refreshing": self._refreshing, "checked_at": self._checked_at,
                     "rescan_seconds": self.RESCAN_SECONDS}
 
@@ -104,6 +107,8 @@ class DownloadStats:
         partial = False
         pending = [directory]
         while pending:
+            if self._stop.is_set():
+                return
             # Discard a scan if the user changes the download directory.
             with self._lock:
                 stale = generation != self._generation
@@ -117,6 +122,8 @@ class DownloadStats:
             try:
                 with os.scandir(current) as entries:
                     for entry in entries:
+                        if self._stop.is_set():
+                            return
                         try:
                             if entry.is_symlink():
                                 continue
@@ -151,6 +158,13 @@ class DownloadStats:
             stale = generation != self._generation
         if stale:
             self.snapshot(directory)
+
+    def shutdown(self):
+        with self._lock:
+            self._stop.set()
+            thread = self._thread
+        if thread and thread is not threading.current_thread():
+            thread.join(timeout=5)
 
 
 STORAGE = DownloadStats()

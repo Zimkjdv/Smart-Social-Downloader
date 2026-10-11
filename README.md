@@ -73,6 +73,7 @@ smart-social-downloader/
 ├── ssdl/                          Python backend
 │   ├── version.py                 Single application version
 │   ├── app.py                     Composition root
+│   ├── app_context.py             Typed state, owned services and lifecycle
 │   ├── browser_media.py           Optional temporary Chrome discovery
 │   └── *.py                       API, scheduling, persistence and downloads
 ├── static/                        Browser UI, styles and locale keys
@@ -88,7 +89,7 @@ smart-social-downloader/
 └── data/ downloads/ .venv/ dist/   Local/generated; excluded from source packages
 ```
 
-`ssdl` abbreviates **Smart Social Downloader** and names the Python package. Runtime data stays relative to the project root; the media destination can be changed in settings. Full module responsibilities are in [Architecture](docs/ARCHITECTURE.md).
+`ssdl` abbreviates **Smart Social Downloader** and names the Python package. Runtime data stays relative to the project root; the media destination can be changed in settings. Importing the entry module does not restore login/history or start workers. Each explicit AppContext owns its queue and services. Full module responsibilities and lifecycle are in [Architecture](docs/ARCHITECTURE.md).
 
 ## Updates, reporting and releases
 

@@ -19,7 +19,7 @@
 
 上述測試先在修正前失敗以確認可重現，修正後再通過。用到的資料、網址、Cookie、API 與影片均為隔離測試資料。
 
-程式：[狀態保存](../ssdl/persistence.py)、[靜態解析](../ssdl/web_media.py)、[動態捕捉](../ssdl/browser_media.py)、[API](../ssdl/http_api.py)、[X 登入](../ssdl/x_auth.py)、[狀態快照](../ssdl/app.py)、[鍵盤](../static/ui_accessibility.js)、[介面呈現](../static/app.js)。
+程式：[狀態保存](../ssdl/persistence.py)、[靜態解析](../ssdl/web_media.py)、[動態捕捉](../ssdl/browser_media.py)、[API](../ssdl/http_api.py)、[X 登入](../ssdl/x_auth.py)、[狀態快照](../ssdl/app_context.py)、[鍵盤](../static/ui_accessibility.js)、[介面呈現](../static/app.js)。
 
 ## 複查範圍
 

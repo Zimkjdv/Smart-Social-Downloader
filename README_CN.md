@@ -73,6 +73,7 @@ smart-social-downloader/
 ├── ssdl/                          Python 後端套件
 │   ├── version.py                 唯一應用程式版本來源
 │   ├── app.py                     組裝入口
+│   ├── app_context.py             具型別的狀態、服務與生命週期
 │   ├── browser_media.py           選配臨時 Chrome 捕捉
 │   └── *.py                       API、排程、保存及下載模組
 ├── static/                        網頁介面、樣式及語系 key
@@ -88,7 +89,7 @@ smart-social-downloader/
 └── data/ downloads/ .venv/ dist/   本機／生成內容，排除於原始碼包
 ```
 
-`ssdl` 是 **Smart Social Downloader** 的縮寫，作為 Python 套件名稱。執行資料仍相對於專案根目錄保存，媒體下載位置可在設定中修改。完整模組用途見 [架構文件](docs/ARCHITECTURE.md)。
+`ssdl` 是 **Smart Social Downloader** 的縮寫，作為 Python 套件名稱。執行資料仍相對於專案根目錄保存，媒體下載位置可在設定中修改。匯入入口模組不會恢復登入／歷史或啟動 worker；每個明確建立的 AppContext 各自擁有佇列與服務。完整模組用途與生命週期見 [架構文件](docs/ARCHITECTURE.md)。
 
 ## 更新、回報與發布
 

@@ -3,23 +3,19 @@
 The injected app context owns shared state; this module never imports app.
 """
 from __future__ import annotations
-import json
-import mimetypes
-import os
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .app_context import AppContext
 import math
 import random
-import socket
-import threading
 import time
-import uuid
-from collections import deque
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import parse_qs, unquote, urlparse
+from urllib.parse import urlparse
 
 
 class QueueScheduler:
-    def __init__(self, app):
+    def __init__(self, app: AppContext):
         self.app = app
 
     def known_jobs(self, job, output_dir, profile):
@@ -29,7 +25,7 @@ class QueueScheduler:
         identity = self.app.media.source_key(job["url"])
         preference = job.get("video_quality", "best")
         selection = job.get("selected_media", "")
-        candidates = (stored for stored in self.app._jobs.values()
+        candidates = (stored for stored in self.app.state.jobs.values()
                       if stored["status"] == "completed" and stored.get("mode") != "x_profile")
         result = []
         for stored in (*candidates, job.get("last_success")):
@@ -61,15 +57,15 @@ class QueueScheduler:
 
     def quota_locked(self) -> dict:
         now = time.time()
-        while self.app._job_starts and self.app._job_starts[0] <= now - self.app.JOB_RATE_WINDOW:
-            self.app._job_starts.popleft()
-        used = len(self.app._job_starts)
-        limited = used >= self.app._hourly_job_limit
-        release_index = used - self.app._hourly_job_limit if limited else 0
-        reset_at = self.app._job_starts[release_index] + self.app.JOB_RATE_WINDOW if self.app._job_starts else 0
+        while self.app.state.job_starts and self.app.state.job_starts[0] <= now - self.app.JOB_RATE_WINDOW:
+            self.app.state.job_starts.popleft()
+        used = len(self.app.state.job_starts)
+        limited = used >= self.app.state.hourly_job_limit
+        release_index = used - self.app.state.hourly_job_limit if limited else 0
+        reset_at = self.app.state.job_starts[release_index] + self.app.JOB_RATE_WINDOW if self.app.state.job_starts else 0
         reset_in = max(0, math.ceil(reset_at - now))
-        return {"used": used, "limit": self.app._hourly_job_limit, "window_seconds": self.app.JOB_RATE_WINDOW,
-                "remaining": max(0, self.app._hourly_job_limit - used), "limited": limited,
+        return {"used": used, "limit": self.app.state.hourly_job_limit, "window_seconds": self.app.JOB_RATE_WINDOW,
+                "remaining": max(0, self.app.state.hourly_job_limit - used), "limited": limited,
                 "wait_seconds": reset_in if limited else 0,
                 "reset_in": reset_in, "reset_at": reset_at}
 
@@ -79,8 +75,8 @@ class QueueScheduler:
             nonlocal stats_file_count
             stats_files = []
             stats_directory = None
-            with self.app._lock:
-                job = self.app._jobs.get(job_id)
+            with self.app.lock:
+                job = self.app.state.jobs.get(job_id)
                 if not job:
                     return
                 title = data.get("title")
@@ -122,13 +118,13 @@ class QueueScheduler:
                         job["size_bytes"] = data["aggregate_bytes"]
                         job["size"] = self.app._format_bytes(data["aggregate_bytes"])
                     if data.get("profile_post_finished") or (data.get("profile_scan_finished") and data.get("profile_files_to_download")):
-                        self.app._next_job_at = time.time() + random.uniform(self.app.JOB_DELAY_MIN, self.app.JOB_DELAY_MAX)
+                        self.app.state.next_job_at = time.time() + random.uniform(self.app.JOB_DELAY_MIN, self.app.JOB_DELAY_MAX)
                         self.app._save_locked()
                     if data.get("profile_post_finished"):
                         files = job.get("files") or []
                         stats_files = files[stats_file_count:] if len(files) >= stats_file_count else files[:]
                         stats_file_count = len(files)
-                        stats_directory = Path(job.get("output_dir") or self.app._download_dir)
+                        stats_directory = Path(job.get("output_dir") or self.app.state.download_dir)
                     if job.get("stop_requested"):
                         job["status_text"] = "正在停止，保留已下載檔案"
                 job["updated_at"] = time.time()
@@ -138,98 +134,98 @@ class QueueScheduler:
 
     def profile_gate(self, job_id: str, *, start_post=False) -> None:
         """Wait at a post boundary; every new account post consumes shared hourly quota."""
-        with self.app._condition:
+        with self.app.condition:
             while True:
-                job = self.app._jobs.get(job_id)
-                if self.app._shutdown.is_set() or not job or job.get("stop_requested") or job.get("remove_when_finished"):
+                job = self.app.state.jobs.get(job_id)
+                if self.app.state.shutdown.is_set() or not job or job.get("stop_requested") or job.get("remove_when_finished"):
                     raise self.app.media.DownloadError("帳號下載已停止；已保存的檔案保留，可按同步繼續。", code="profile_stopped")
                 quota = self.app._quota_locked()
                 cooling = self.app.POLICY.snapshot(self.app.platform_key(job["url"]))["cooldown_seconds"] if start_post else 0
-                wait = max(0, math.ceil(self.app._next_job_at - time.time()), cooling, quota["wait_seconds"]) if start_post else 0
-                if not self.app._paused and not wait:
+                wait = max(0, math.ceil(self.app.state.next_job_at - time.time()), cooling, quota["wait_seconds"]) if start_post else 0
+                if not self.app.state.paused and not wait:
                     downloading = start_post or job.get("profile_scan_complete", False)
                     job["profile_stage"] = "downloading" if downloading else "scanning"
                     job["profile_wait_seconds"] = 0
                     job["status_text"] = "下載帳號媒體中" if downloading else "正在掃描 X 帳號媒體清單"
                     if start_post:
-                        self.app._job_starts.append(time.time())
+                        self.app.state.job_starts.append(time.time())
                         self.app._save_locked()
                     return
-                stage = "paused" if self.app._paused else "cooldown" if cooling else "quota" if quota["limited"] else "waiting"
+                stage = "paused" if self.app.state.paused else "cooldown" if cooling else "quota" if quota["limited"] else "waiting"
                 job.update(profile_stage=stage, profile_wait_seconds=wait, speed="", eta="",
-                           status_text="帳號下載已暫停" if self.app._paused else "帳號下載等待每小時額度" if stage == "quota" else
+                           status_text="帳號下載已暫停" if self.app.state.paused else "帳號下載等待每小時額度" if stage == "quota" else
                            f"限流冷卻，等待 {wait} 秒" if stage == "cooldown" else f"安全延時，等待 {wait} 秒")
-                self.app._condition.wait(timeout=.5)
+                self.app.condition.wait(timeout=.5)
 
     def job_cancelled(self, job_id):
-        with self.app._lock:
-            job = self.app._jobs.get(job_id)
-            return self.app._shutdown.is_set() or not job or bool(job.get("stop_requested"))
+        with self.app.lock:
+            job = self.app.state.jobs.get(job_id)
+            return self.app.state.shutdown.is_set() or not job or bool(job.get("stop_requested"))
 
     def worker_health(self, value):
-        with self.app._lock:
-            self.app._worker_status.update(value)
+        with self.app.lock:
+            self.app.state.worker_status.update(value)
 
     def worker(self) -> None:
         """Recover the scheduler itself if preparation fails outside a job try/finally."""
-        while not self.app._shutdown.is_set():
+        while not self.app.state.shutdown.is_set():
             try:
                 self.app._worker_health({"phase": "idle", "pid": None, "no_progress_seconds": 0})
                 self.app._worker_loop()
             except Exception as exc:
-                with self.app._condition:
-                    current = self.app._jobs.get(self.app._active_id)
+                with self.app.condition:
+                    current = self.app.state.jobs.get(self.app.state.active_id)
                     if current:
                         current.update(status="failed", status_text="下載失敗",
                                        **self.app.media.error_info(exc), finished_at=time.time())
-                    self.app._active_id = self.app._active_started_monotonic = None
-                    self.app._worker_status.update(phase="recovering", pid=None)
+                    self.app.state.active_id = self.app.state.active_started_monotonic = None
+                    self.app.state.worker_status.update(phase="recovering", pid=None)
                     self.app._save_locked()
-                    self.app._condition.notify_all()
+                    self.app.condition.notify_all()
                 time.sleep(.5)
 
     def worker_loop(self) -> None:
-        while not self.app._shutdown.is_set():
-            with self.app._condition:
-                while self.app._paused or not self.app._queue:
-                    if self.app._shutdown.is_set():
+        while not self.app.state.shutdown.is_set():
+            with self.app.condition:
+                while self.app.state.paused or not self.app.state.queue:
+                    if self.app.state.shutdown.is_set():
                         return
-                    self.app._condition.wait(timeout=.5)
-                if not self.app._next_job_at:
-                    self.app._next_job_at = time.time() + random.uniform(self.app.JOB_DELAY_MIN, self.app.JOB_DELAY_MAX)
+                    self.app.condition.wait(timeout=.5)
+                if not self.app.state.next_job_at:
+                    self.app.state.next_job_at = time.time() + random.uniform(self.app.JOB_DELAY_MIN, self.app.JOB_DELAY_MAX)
                     self.app._save_locked()
                 # Preserve order within a platform; let other platforms proceed during its cooldown.
-                eligible = next((key for key in self.app._queue if key in self.app._jobs and not
-                    self.app.POLICY.snapshot(self.app.platform_key(self.app._jobs[key]["url"]))["cooldown_seconds"]), None)
+                eligible = next((key for key in self.app.state.queue if key in self.app.state.jobs and not
+                    self.app.POLICY.snapshot(self.app.platform_key(self.app.state.jobs[key]["url"]))["cooldown_seconds"]), None)
                 if eligible is None:
-                    self.app._condition.wait(timeout=.5)
+                    self.app.condition.wait(timeout=.5)
                     continue
-                head = self.app._jobs.get(eligible, {})
+                head = self.app.state.jobs.get(eligible, {})
                 profile_head = self.app.account_from_url(head.get("url", "")) is not None
-                wait_seconds = max(self.app._next_job_at - time.time(), self.app.POLICY.snapshot(self.app.platform_key(head["url"]))["cooldown_seconds"],
+                wait_seconds = max(self.app.state.next_job_at - time.time(), self.app.POLICY.snapshot(self.app.platform_key(head["url"]))["cooldown_seconds"],
                                    0 if profile_head else self.app._quota_locked()["wait_seconds"])
                 if wait_seconds > 0:
-                    self.app._condition.wait(timeout=min(wait_seconds, .5))
+                    self.app.condition.wait(timeout=min(wait_seconds, .5))
                     continue
                 job_id = eligible
-                self.app._queue.remove(job_id)
-                job = self.app._jobs.get(job_id)
+                self.app.state.queue.remove(job_id)
+                job = self.app.state.jobs.get(job_id)
                 if not job:
                     continue
-                self.app._active_id = job_id
+                self.app.state.active_id = job_id
                 job["status"] = "active"
                 job["status_text"] = "正在連線"
                 job["updated_at"] = time.time()
                 job["attempts"] = job.get("attempts", 0) + 1
                 job["started_at"] = time.time()
-                self.app._active_started_monotonic = time.monotonic()
+                self.app.state.active_started_monotonic = time.monotonic()
                 job.update(finished_at=None, elapsed_seconds=0, size_bytes=None,
                            downloaded_bytes=0, total_bytes=None, size="")
-                output_dir = self.app._download_dir
-                cookie_file = self.app._x_cookie_file
+                output_dir = self.app.state.download_dir
+                cookie_file = self.app.state.x_cookie_file
                 force = job.get("force_download", False)
-                timeout = self.app._no_progress_timeout
-                dynamic_capture = self.app._dynamic_capture
+                timeout = self.app.state.no_progress_timeout
+                dynamic_capture = self.app.state.dynamic_capture
                 job["stop_requested"] = False
                 profile = self.app.account_from_url(job["url"])
                 known_jobs = self.known_jobs(job, output_dir, profile)
@@ -242,7 +238,7 @@ class QueueScheduler:
                                profile_downloaded_posts=0, profile_wait_seconds=0, progress=None)
                     job.update(self.app._PROFILE_COUNT_DEFAULTS)
                 else:
-                    self.app._job_starts.append(job["started_at"])
+                    self.app.state.job_starts.append(job["started_at"])
                 self.app._save_locked()
 
             try:
@@ -261,8 +257,8 @@ class QueueScheduler:
                 final_size = self.app._file_total_bytes(result["files"], output_dir)
                 if profile and not result["files"]:
                     final_size = 0
-                with self.app._lock:
-                    current = self.app._jobs.get(job_id)
+                with self.app.lock:
+                    current = self.app.state.jobs.get(job_id)
                     if current:
                         if result.get("title"):
                             current["title"] = str(result["title"])[:180]
@@ -285,8 +281,8 @@ class QueueScheduler:
                         current["updated_at"] = time.time()
                 self.app.POLICY.job_completed(platform=self.app.platform_key(job["url"]))
             except self.app.SelectionRequired as exc:
-                with self.app._lock:
-                    current = self.app._jobs.get(job_id)
+                with self.app.lock:
+                    current = self.app.state.jobs.get(job_id)
                     if current:
                         current.update(status="selecting", status_text="請選擇要下載的媒體", selection_options=exc.options,
                                        error="", error_code="", error_detail="", progress=0, speed="", eta="",
@@ -295,11 +291,11 @@ class QueueScheduler:
                 failure = self.app.media.error_info(exc)
                 if failure["error_code"] == "rate_limited":
                     self.app.POLICY.ensure_cooldown(platform=self.app.platform_key(job["url"]))
-                with self.app._lock:
+                with self.app.lock:
                     saved_files = list(getattr(exc, "files", None) or job.get("files", []))
                 saved_size = self.app._file_total_bytes(saved_files, output_dir)
-                with self.app._lock:
-                    current = self.app._jobs.get(job_id)
+                with self.app.lock:
+                    current = self.app.state.jobs.get(job_id)
                     if current:
                         current["status"] = "failed"
                         stopped = failure["error_code"] in {"profile_stopped", "download_cancelled"}
@@ -315,24 +311,24 @@ class QueueScheduler:
                             current.update(profile_stage="stopped" if stopped else "failed",
                                            profile_wait_seconds=0)
                         current["updated_at"] = time.time()
-                        if self.app._shutdown.is_set() and not current.get("stop_requested"):
+                        if self.app.state.shutdown.is_set() and not current.get("stop_requested"):
                             current.update(status="queued", status_text="服務重啟，等待重試",
                                            error="", error_detail="", error_code="")
-                            if job_id not in self.app._queue:
-                                self.app._queue.appendleft(job_id)
+                            if job_id not in self.app.state.queue:
+                                self.app.state.queue.appendleft(job_id)
             finally:
                 # Update only this job's saved files, rather than traversing the whole tree.
                 self.app.STORAGE.record_files(output_dir, list(job.get("files") or []))
-                with self.app._condition:
-                    current = self.app._jobs.get(job_id)
-                    if current and self.app._active_started_monotonic is not None:
-                        current["elapsed_seconds"] = round(max(0, time.monotonic() - self.app._active_started_monotonic), 2)
+                with self.app.condition:
+                    current = self.app.state.jobs.get(job_id)
+                    if current and self.app.state.active_started_monotonic is not None:
+                        current["elapsed_seconds"] = round(max(0, time.monotonic() - self.app.state.active_started_monotonic), 2)
                         current["finished_at"] = time.time()
                     if current and current.get("remove_when_finished"):
-                        self.app._jobs.pop(job_id, None)
-                    if self.app._active_id == job_id:
-                        self.app._active_id = None
-                        self.app._active_started_monotonic = None
-                    self.app._next_job_at = time.time() + random.uniform(self.app.JOB_DELAY_MIN, self.app.JOB_DELAY_MAX)
+                        self.app.state.jobs.pop(job_id, None)
+                    if self.app.state.active_id == job_id:
+                        self.app.state.active_id = None
+                        self.app.state.active_started_monotonic = None
+                    self.app.state.next_job_at = time.time() + random.uniform(self.app.JOB_DELAY_MIN, self.app.JOB_DELAY_MAX)
                     self.app._save_locked()
-                    self.app._condition.notify_all()
+                    self.app.condition.notify_all()

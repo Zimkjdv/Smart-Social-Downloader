@@ -1,5 +1,4 @@
 import http.client
-import importlib
 import json
 from pathlib import Path
 import threading
@@ -7,15 +6,15 @@ import unittest
 from unittest.mock import patch
 from http.server import ThreadingHTTPServer
 
-from ssdl import x_auth
+from ssdl.app import create_app
+import tempfile
 
 
 class ApiSourceTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        # Importing the server must not restore the developer's real cookies.
-        with patch.object(x_auth.XAuthManager, "_restore"):
-            cls.app = importlib.import_module("ssdl.app")
+        cls.temporary = tempfile.TemporaryDirectory(prefix="ssdl-api-")
+        cls.app = create_app(Path(cls.temporary.name))
         cls.server = ThreadingHTTPServer(("127.0.0.1", 0), cls.app.Handler)
         cls.port_patch = patch.object(cls.app, "PORT", cls.server.server_port)
         cls.port_patch.start()
@@ -34,6 +33,8 @@ class ApiSourceTests(unittest.TestCase):
         cls.state_patch.stop()
         cls.log_patch.stop()
         cls.port_patch.stop()
+        cls.app.close()
+        cls.temporary.cleanup()
 
     def request(self, path, headers=None, *, method="GET", body=None):
         connection = http.client.HTTPConnection("127.0.0.1", self.server.server_port, timeout=5)

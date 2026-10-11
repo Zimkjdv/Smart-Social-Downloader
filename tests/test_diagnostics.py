@@ -1,10 +1,11 @@
-import importlib
 import json
 import unittest
 from unittest.mock import patch
 
-from ssdl import x_auth
 from ssdl.diagnostics import redact_text, redact_fields
+from ssdl.app import create_app
+from pathlib import Path
+import tempfile
 
 
 class DiagnosticTests(unittest.TestCase):
@@ -29,12 +30,14 @@ class DiagnosticTests(unittest.TestCase):
         self.assertNotIn("SYNTHETIC", safe["error"] + safe["warnings"][0])
 
     def test_export_omits_history_urls_paths_and_auth_values(self):
-        with patch.object(x_auth.XAuthManager, "_restore"):
-            app = importlib.import_module("ssdl.app")
+        temporary = tempfile.TemporaryDirectory(prefix="ssdl-diagnostic-")
+        self.addCleanup(temporary.cleanup)
+        app = create_app(Path(temporary.name))
+        self.addCleanup(app.close)
         job = {"id": "fixture", "platform": "Web", "status": "failed", "url": "https://private.example/SENTINEL_SOURCE",
                "files": ["SENTINEL_FILE.mp4"], "output_dir": "SENTINEL_DIRECTORY",
                "error": "auth_token=SENTINEL_SECRET"}
-        with patch.object(app, "_jobs", {"fixture": job}), patch.object(app.X_AUTH, "status", return_value={"connected": False, "phase": "idle", "cookies": "SENTINEL_COOKIE"}):
+        with patch.object(app.state, "jobs", {"fixture": job}), patch.object(app.X_AUTH, "status", return_value={"connected": False, "phase": "idle", "cookies": "SENTINEL_COOKIE"}):
             output = json.dumps(app._diagnostics())
         for value in ("SENTINEL_SOURCE", "SENTINEL_FILE", "SENTINEL_DIRECTORY", "SENTINEL_SECRET", "SENTINEL_COOKIE"):
             self.assertNotIn(value, output)

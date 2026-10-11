@@ -133,7 +133,7 @@ def _existing_chrome_session() -> tuple[dict, float]:
 
 
 class XAuthManager:
-    def __init__(self, directory: Path, *, port=8765):
+    def __init__(self, directory: Path, *, port=8765, restore=True):
         self.directory = directory
         self.secret_file = directory / "x-auth.bin"
         self.origin = f"http://127.0.0.1:{port}"
@@ -148,7 +148,19 @@ class XAuthManager:
         self._expires = 0
         self._state = {"phase": "idle", "connected": False, "busy": False,
                        "message": "尚未連接 X 登入", "source": ""}
-        self._restore()
+        self._restored = False
+        self._closed = False
+        if restore:
+            self.restore()
+
+    def restore(self):
+        """Restore once, explicitly called during application startup."""
+        with self._lock:
+            if self._closed:
+                raise AuthError("登入連接已關閉，請重新啟動下載工具。")
+            if not self._restored:
+                self._restore()
+                self._restored = True
 
     def _restore(self):
         if not self.secret_file.is_file():
@@ -183,6 +195,8 @@ class XAuthManager:
 
     def connect(self) -> dict:
         with self._lock:
+            if self._closed:
+                raise AuthError("登入連接已關閉，請重新啟動下載工具。")
             if self._thread and self._thread.is_alive():
                 return self.status()
             if not chrome_executable():
@@ -221,9 +235,14 @@ class XAuthManager:
                                message="已停用 X 登入連接", source="")
 
     def shutdown(self):
-        self._stop.set()
-        if self._thread and self._thread.is_alive():
-            self._thread.join(timeout=8)
+        with self._lock:
+            self._closed = True
+            self._stop.set()
+            self._challenge = ""
+            self._challenge_expires = 0
+            thread = self._thread
+        if thread and thread is not threading.current_thread():
+            thread.join(timeout=8)
 
     def _open_chrome(self, url: str):
         executable = chrome_executable()
@@ -240,6 +259,8 @@ class XAuthManager:
 
     def prepare_extension(self, *, stop=None) -> str:
         with self._lock:
+            if self._closed:
+                raise AuthError("登入連接已關閉，請重新啟動下載工具。")
             if stop is not None:
                 if stop is not self._stop or stop.is_set():
                     raise AuthError("連接已取消。")

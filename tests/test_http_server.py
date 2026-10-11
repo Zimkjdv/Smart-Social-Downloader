@@ -16,10 +16,10 @@ from ssdl.x_auth import AuthError, EXTENSION_ID, EXTENSION_ORIGIN
 class HttpServerTests(unittest.TestCase):
     def setUp(self):
         self.app = SimpleNamespace(PORT=0, EXTENSION_ID=EXTENSION_ID, EXTENSION_ORIGIN=EXTENSION_ORIGIN,
-                                   AuthError=AuthError, X_AUTH=Mock(), _paused=False,
-                                   _condition=threading.Condition(), _save_locked=Mock(),
+                                   AuthError=AuthError, X_AUTH=Mock(), state=SimpleNamespace(paused=False),
+                                   condition=threading.Condition(), _save_locked=Mock(),
                                    redact_text=lambda value: value, redact_fields=lambda value: value)
-        self.app._state = Mock(side_effect=lambda *args, **kwargs: {"paused": self.app._paused})
+        self.app._state = Mock(side_effect=lambda *args, **kwargs: {"paused": self.app.state.paused})
         handler = type("FixtureHandler", (ApiHandler,), {"app": self.app, "log_message": Mock()})
         self.server = BoundedHTTPServer(("127.0.0.1", 0), handler, max_connections=2,
                                         read_seconds=0.35, write_seconds=0.2)
@@ -89,7 +89,7 @@ class HttpServerTests(unittest.TestCase):
         self.assertEqual(status, 408)
         self.assertEqual(body, {"error": "請求讀取逾時，請重新操作。"})
         self.app._save_locked.assert_not_called()
-        self.assertFalse(self.app._paused)
+        self.assertFalse(self.app.state.paused)
         self.wait_active(0)
         self.assertEqual(self.normal_request()[0], 200)
 
@@ -142,7 +142,7 @@ class HttpServerTests(unittest.TestCase):
                 self.wait_active(0)
         self.app._save_locked.assert_not_called()
         self.assertEqual(self.normal_request("/api/pause", {"paused": True})[0], 200)
-        self.assertTrue(self.app._paused)
+        self.assertTrue(self.app.state.paused)
 
     def test_bad_json_is_generic_and_does_not_echo_payload(self):
         for payload in (b"[]", b'{"paused":NaN}', b'{"paused":Infinity}', b'{"paused":"\xff"}',
@@ -216,7 +216,7 @@ class HttpServerTests(unittest.TestCase):
         self.app.X_AUTH.accept_extension.assert_called_once_with("fixture-ticket", [])
         headers["Origin"] = "https://untrusted.example"
         self.assertEqual(self.normal_request("/api/pause", {"paused": True}, headers)[0], 403)
-        self.assertFalse(self.app._paused)
+        self.assertFalse(self.app.state.paused)
 
     def test_write_timeout_releases_slot_without_handler_error(self):
         entered, release = threading.Event(), threading.Event()

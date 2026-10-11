@@ -335,3 +335,6 @@ class ThumbnailCache:
                     self._process.kill()
                 except OSError:
                     pass
+        thread = self._thread
+        if thread and thread is not threading.current_thread():
+            thread.join(timeout=5)

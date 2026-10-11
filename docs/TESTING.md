@@ -1,12 +1,22 @@
 # Regression and acceptance tests
 
+## N06 state ownership and lifecycle — 2026-10-11
+
+**145 Python tests passed in 83.787 seconds; 10 Node tests passed; zero skips.** Windows / Python 3.12, using temporary storage and synthetic browser pages. The source allowlist now validates 118 files, including `ssdl/app_context.py` and `tests/test_app_context.py`. The final focused lifecycle follow-up passed all 11 cases in 0.403 seconds.
+
+The new acceptance cases verify fresh-process entry imports and context construction without login/history restore or thread startup, independent queue/pacing/services/locks/handlers, idempotent start and close, binding failure without migration, paused queue/settings/quota recovery into a new context, owned helper shutdown, rejection of pairing after auth shutdown, suppression of late login retry callbacks, and closing one running context while another worker continues. Queue/auth (17), P2 (13), HTTP framing/admission (11), environment (5), source policy (3) and diagnostic (3) focused suites also passed.
+
+One preliminary source-policy fixture call ended with Windows 10053 while a POST was rejected before its body was read; the focused retry and both full runs passed. This intermittent transport behavior is recorded for additional fixture/response coverage in N08; it was not suppressed by changing assertions or source authorization.
+
+The application factory retains the existing production root, API fields and connector ID. Acceptance creates isolated application instances; it does not restore the user's actual X session, download live platform content or claim full Windows installation acceptance. The remaining engine/frontend splits and fixture extraction stay in [ROADMAP](../ROADMAP.md).
+
 ## First GitHub Actions repair — 2026-10-11
 
 The [initial Windows run](https://github.com/Zimkjdv/Smart-Social-Downloader/actions/runs/38117758688) failed with two errors and two failing subtests: the runner's default cp1252 encoding could not decode UTF-8 history, its short temporary-directory alias differed from the normalized restored path, and a four-second Chrome fixture budget could expire before the synthetic HTTP 429 request.
 
 Use explicit UTF-8 and resolved fixture paths. The first repair's hosted run confirmed those fixes but exposed an additional eight-second Chrome launch timeout and a second fixture still using four seconds. Real Chrome fixtures now use a 30-second budget; launch allows up to 30 seconds within the existing overall capture deadline, and navigation uses only the remaining budget. Capture preserves fatal responses delivered during final browser calls and reports an exhausted budget as `browser_capture_timeout`. Two deterministic regressions cover startup exhaustion and a late HTTP 429 callback.
 
-**134 Python tests passed in 65.378 seconds; 10 Node tests passed; zero skips.** The source-package allowlist check passed for 116 files. These local checks use synthetic fixtures; the repair's hosted CI result must be confirmed separately.
+**134 Python tests passed in 65.378 seconds; 10 Node tests passed; zero skips.** The source-package allowlist check passed for 116 files. The repair subsequently [passed hosted Windows CI at commit 2bdb9f7](https://github.com/Zimkjdv/Smart-Social-Downloader/actions/runs/38118843888), including Python, Node, environment and packaging steps.
 
 After adjusting the launch and navigation deadlines, the focused browser suite passed all 18 cases in 54.154 seconds with zero skips, including the supervised infinite-script deadline and private-network isolation cases.
 

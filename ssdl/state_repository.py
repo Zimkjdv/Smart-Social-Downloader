@@ -3,32 +3,29 @@
 The injected app context owns shared state; this module never imports app.
 """
 from __future__ import annotations
-import json
-import mimetypes
+from typing import TYPE_CHECKING
+from dataclasses import replace
+
+if TYPE_CHECKING:
+    from .app_context import AppContext
 import os
 import math
-import random
-import socket
-import threading
 import time
-import uuid
 from collections import deque
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import parse_qs, unquote, urlparse
 
 
 class StateRepository:
-    def __init__(self, app):
+    def __init__(self, app: AppContext):
         self.app = app
 
     def save_locked(self) -> None:
         """Write terminal/queue changes atomically. Cookie values are never serialized."""
-        payload = {"jobs": list(self.app._jobs.values()), "queue": list(self.app._queue), "paused": self.app._paused,
-                   "download_dir": str(self.app._download_dir), "x_cookie_file": self.app._x_cookie_file,
-                   "safe_queue": {**self.app.POLICY.snapshot(), "next_job_at": self.app._next_job_at},
-                   "job_starts": list(self.app._job_starts), "hourly_job_limit": self.app._hourly_job_limit,
-                   "no_progress_timeout": self.app._no_progress_timeout, "dynamic_capture": self.app._dynamic_capture}
+        payload = {"jobs": list(self.app.state.jobs.values()), "queue": list(self.app.state.queue), "paused": self.app.state.paused,
+                   "download_dir": str(self.app.state.download_dir), "x_cookie_file": self.app.state.x_cookie_file,
+                   "safe_queue": {**self.app.POLICY.snapshot(), "next_job_at": self.app.state.next_job_at},
+                   "job_starts": list(self.app.state.job_starts), "hourly_job_limit": self.app.state.hourly_job_limit,
+                   "no_progress_timeout": self.app.state.no_progress_timeout, "dynamic_capture": self.app.state.dynamic_capture}
         self.app.STATE_STORE.save(self.app.redact_fields(payload))
 
     def file_total_bytes(self, files, directory: Path) -> int | None:
@@ -54,7 +51,7 @@ class StateRepository:
     def merge_completed_duplicates_locked(self) -> None:
         """Consolidate verified rows for the same source, folder and exact file set."""
         kept, duplicates = {}, []
-        for job in sorted(self.app._jobs.values(), key=lambda item: item["created_at"], reverse=True):
+        for job in sorted(self.app.state.jobs.values(), key=lambda item: item["created_at"], reverse=True):
             if job["status"] != "completed" or job.get("mode") == "x_profile" or not job.get("output_dir"):
                 continue
             files = job.get("files", [])
@@ -83,7 +80,7 @@ class StateRepository:
         for duplicate, retained in duplicates:
             retained["attempts"] = retained.get("attempts", 0) + duplicate.get("attempts", 0)
             retained["retry_count"] = retained.get("retry_count", 0) + duplicate.get("retry_count", 0) + 1
-            self.app._jobs.pop(duplicate["id"], None)
+            self.app.state.jobs.pop(duplicate["id"], None)
         self.app._save_locked()
         print(f"已合併 {len(duplicates)} 個指向相同檔案的完成紀錄，下載檔案保留。")
 
@@ -91,7 +88,7 @@ class StateRepository:
         """Reconstruct a candidate without touching live jobs, settings or policy."""
         from .request_policy import RequestPolicy
 
-        directory = self.app._download_dir
+        directory = self.app.state.download_dir
         if payload.get("download_dir"):
             directory = Path(payload["download_dir"]).expanduser().resolve()
         jobs = {}
@@ -142,22 +139,22 @@ class StateRepository:
         next_job = min(now + self.app.JOB_DELAY_MAX, max(0, saved_policy.get("next_job_at", 0)))
         limit = payload.get("hourly_job_limit", self.app.JOB_RATE_LIMIT)
         timeout = payload.get("no_progress_timeout", self.app.NO_PROGRESS_SECONDS)
-        return {"_jobs": jobs, "_queue": queue, "_paused": payload.get("paused", False),
-                "_download_dir": directory, "_x_cookie_file": payload.get("x_cookie_file", ""),
-                "_hourly_job_limit": limit if type(limit) is int and 1 <= limit <= 1000 else self.app.JOB_RATE_LIMIT,
-                "_no_progress_timeout": timeout if type(timeout) is int and 30 <= timeout <= 3600 else self.app.NO_PROGRESS_SECONDS,
-                "_dynamic_capture": payload.get("dynamic_capture") is True,
-                "_job_starts": starts, "POLICY": policy, "_next_job_at": next_job}
+        state = replace(self.app.state, jobs=jobs, queue=queue, paused=payload.get("paused", False),
+                        download_dir=directory, x_cookie_file=payload.get("x_cookie_file", ""),
+                        hourly_job_limit=limit if type(limit) is int and 1 <= limit <= 1000 else self.app.JOB_RATE_LIMIT,
+                        no_progress_timeout=timeout if type(timeout) is int and 30 <= timeout <= 3600 else self.app.NO_PROGRESS_SECONDS,
+                        dynamic_capture=payload.get("dynamic_capture") is True,
+                        job_starts=starts, next_job_at=next_job)
+        return state, policy
 
     def load_saved_state(self) -> None:
         try:
-            with self.app._condition:
+            with self.app.condition:
                 ready = self.app.STATE_STORE.load(normalize=self._prepare_state)
                 if ready is None:
                     return
                 # All potentially failing work completed before any live field changes.
-                for key, value in ready.items():
-                    setattr(self.app, key, value)
+                self.app.state, self.app.POLICY = ready
                 self.app._merge_completed_duplicates_locked()
                 self.app._save_locked()
         except (OSError, ValueError, TypeError, KeyError, RuntimeError) as exc:

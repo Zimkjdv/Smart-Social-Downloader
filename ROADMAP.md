@@ -1,6 +1,6 @@
 # Roadmap
 
-更新：2026-10-11。此檔是**未完成工作與最新審查發現的唯一總清單**；完成紀錄移至 [CHANGELOG](CHANGELOG.md)。目前基準為 Windows／Python 3.12，沒有 Python 3.10 驗收工作。下列核取方塊均尚未完成，不代表已修正或已發布。N01～N05 已修正並移到 [CHANGELOG](CHANGELOG.md#unreleased)，回歸結果見 [TESTING](docs/TESTING.md)。
+更新：2026-10-11。此檔是**未完成工作與最新審查發現的唯一總清單**；完成紀錄移至 [CHANGELOG](CHANGELOG.md)。目前基準為 Windows／Python 3.12，沒有 Python 3.10 驗收工作。下列核取方塊均尚未完成，不代表已修正或已發布。N01～N05、N06 的狀態擁有者與啟動生命週期已移到 [CHANGELOG](CHANGELOG.md#unreleased)，回歸結果見 [TESTING](docs/TESTING.md)。
 
 ## 本輪整體審查
 
@@ -10,23 +10,22 @@
 
 | 編號 | 優先度 | 狀態 | 問題／改善 |
 | --- | --- | --- | --- |
-| N06 | P2 | 架構改善建議 | 共用狀態與模組初始化副作用、前後端大型模組 |
+| N06 | P2 | 狀態／生命週期完成；拆分待辦 | 前後端大型模組的責任拆分 |
 | N07 | P2 | 待量測 | 保存鎖與大量檔案進度成本、SQLite 長期容量 |
 | N08 | P2 | 維護改善建議 | 測試 fixture、來源打包規則與檔案結構配套 |
 
-N01～N05 已完成；接下來可分批處理 N06～N08 的架構、量測及維護工作。HTTP 讀取期限、併發限制與輸入契約見 [可靠性文件](docs/RELIABILITY.md)。
+N01～N05 已完成；N06 的 AppContext、匯入不恢復登入及實例獨立關閉已完成，接下來處理剩餘模組拆分及 N07～N08。HTTP 讀取期限、併發限制與輸入契約見 [可靠性文件](docs/RELIABILITY.md)。
 
 ## 架構與檔案結構
 
-目前根目錄入口＋`ssdl/`／`static/`／`chrome-extension/`／`tools/`／`docs/`／`tests/` 的分層可以保留。以下是漸進調整建議，**尚未搬動程式或 runtime 目錄**；目前完整樹見 [ARCHITECTURE](docs/ARCHITECTURE.md)。
+目前根目錄入口＋`ssdl/`／`static/`／`chrome-extension/`／`tools/`／`docs/`／`tests/` 的分層保留。AppContext 已實作，runtime 位置保持相容；以下列出剩餘調整，目前完整樹見 [ARCHITECTURE](docs/ARCHITECTURE.md)。
 
-### N06：明確狀態擁有者與模組責任
+### N06：剩餘模組責任拆分
 
-- [ ] 建立具型別的 AppContext／服務介面。`app.py` 用 `sys.modules[__name__]` 注入 scheduler／repository，兩者大量存取私有全域欄位；搬檔已完成，但耦合仍高。改為明確傳入佇列、保存、下載執行與狀態發布所需能力。
-- [ ] 把 XAuthManager／StateStore 等初始化移到明確的啟動生命週期。匯入 app 雖不開 HTTP／worker，但會建立管理器並嘗試恢復登入資料，測試目前須預先 mock `_restore`。驗收一般模組匯入不讀取使用者登入資料；重複建立測試 app 可獨立關閉。
 - [ ] 漸進拆分 `ssdl/media.py`（本輪 1229 行）：先分開引擎 adapter、一般媒體協調、X 帳號同步；共用來源 identity／畫質／去重契約，避免各 adapter 再複製政策。
 - [ ] 拆分 `static/app.js`（966 行）的設定、診斷、清單控制器，保留既有 API client／row reconciliation／i18n／focus 模組。`locales.js` 的 2507 行主要是雙語資料，不單憑行數視為效能缺陷。
-- [ ] 清除拆檔後多餘 import，明列鎖擁有者、背景執行緒與 shutdown 順序。每次只改一個責任邊界，維持入口、API、資料路徑及 Chrome extension ID 相容。
+
+每次只改一個責任邊界，維持入口、API、資料路徑及 Chrome extension ID 相容；共用鎖與關閉順序已列於架構文件。
 
 ### N07：保存成本與長期資料維護
 
@@ -37,9 +36,10 @@ N01～N05 已完成；接下來可分批處理 N06～N08 的架構、量測及�
 
 ### N08：測試與打包跟隨架構調整
 
-- [ ] 從 `tests/test_queue_auth.py` 抽出共用隔離 app fixture；目前 `test_p2.py` 直接借用另一個測試類的 setUp，並大量 patch 模組全域狀態，跨測試耦合較高。
+- [ ] 從 `tests/test_queue_auth.py` 抽出共用隔離 app fixture；目前 `test_p2.py` 仍直接借用另一個測試類的 setUp。fixture 已改為獨立 AppContext，不再 patch app 模組全域，但測試類間耦合仍需整理。
 - [ ] 需要時再分成 unit／integration／browser；同步修改 unittest discovery 與打包允許清單。`tools/package_source.py` 目前的 `ssdl/*.py`、`tests/test_*.py` 只涵蓋最上層，新增子套件或 helpers 若不更新將漏入來源 ZIP。
 - [ ] 加入「發行來源包解壓後可匯入並執行測試」的驗收，禁止以無差別遞迴整個 workspace 取代允許清單。
+- [ ] 加強 Windows 在拒絕含 body 的未授權 POST 時的回應／fixture 覆蓋。本輪一次隔離請求出現 10053，後續單獨及完整回歸均通過，尚未穩定重現；先保留紀錄，不視為已修正或確定的安全缺陷。
 - [ ] 文件分工固定為 README（入口）、CHANGELOG（完成歷史）、Roadmap（未完成）、docs（操作與設計／測試證據）；完成項目移到 CHANGELOG，其他文件連回本清單，避免多份進度互相矛盾。
 
 ## 安裝、真實使用與 GitHub 發布驗收
@@ -47,7 +47,7 @@ N01～N05 已完成；接下來可分批處理 N06～N08 的架構、量測及�
 - [ ] **乾淨 Windows／Python 3.12**：首次安裝、啟動、關閉、更新／基準恢復及 X 登入。先前已通過本機獨立來源副本與新 venv；那不是全新 Windows 系統。沒有要求補測 Python 3.10。
 - [ ] **一般 Chrome 真實配對**：重新載入 connector 1.1.0、自訂 port、取消／過期／失敗後重配及重啟恢復。先前預設 port 曾成功配對，不代表新版自訂 port 已驗收。正常 Windows 使用者環境的 DPAPI 是前提，不能以受限工具環境的失敗宣稱 DPAPI 普遍失效。
 - [ ] **線上平台抽樣**：實際 Best／指定畫質、登入失效、限流與恢復、帳號媒體掃描、缺檔補抓；先取得適合的測試素材。104＋10 合成測試不代表所有平台即時相容。
-- [ ] **GitHub 設定與發布**：啟用並確認私人漏洞回報入口，執行 Windows／Python 3.12 CI，核對 tag、版本、來源 ZIP、release notes 後發布 preview。目前沒有 repo／tag／Release。
+- [ ] **GitHub 設定與發布**：啟用並確認私人漏洞回報入口，核對 tag、版本、來源 ZIP、release notes 後發布 preview。repo 已公開、Windows／Python 3.12 CI 已通過，目前沒有 tag／Release。
 - [ ] **依賴維護**：評估固定 GitHub action commit SHA、建立明確更新與回歸流程，追蹤 SSL 棄用／socket ResourceWarning；未宣稱目前有已知第三方 CVE。引擎／Chrome／Playwright 升級後重跑相關驗收，二進位散布另行核對第三方授權。
 
 ## 後續功能

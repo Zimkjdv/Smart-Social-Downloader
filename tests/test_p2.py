@@ -28,7 +28,8 @@ class P2AppTests(unittest.TestCase):
         values = {"ROOT": self.root, "_dynamic_capture": False, "_no_progress_timeout": 300,
                   "X_AUTH": Mock(), "ENVIRONMENT": Mock(), "THUMBNAILS": Mock()}
         for key, value in values.items():
-            self.stack.enter_context(patch.object(self.app, key, value))
+            target, name = (self.app.state, key[1:]) if key.startswith("_") else (self.app, key)
+            self.stack.enter_context(patch.object(target, name, value))
         self.app.X_AUTH.status.return_value = {"connected": False, "busy": False, "phase": "idle"}
         self.app.X_AUTH.cookies.return_value = {}
         self.app.THUMBNAILS.snapshot.return_value = {"status": "unavailable"}
@@ -65,24 +66,24 @@ class P2AppTests(unittest.TestCase):
         for path in (f"/api/jobs/unknown/{key}", f"/api/jobs/{key}/details", f"/api/jobs/{key}/files"):
             with self.subTest(path=path):
                 self.assertEqual(self.request(path, {})[0], 404)
-                self.assertIn(key, self.app._jobs)
-                self.assertIn(key, self.app._queue)
+                self.assertIn(key, self.app.state.jobs)
+                self.assertIn(key, self.app.state.queue)
         self.assertEqual(self.request(f"/api/jobs/{key}", {})[0], 200)
-        self.assertNotIn(key, self.app._jobs)
+        self.assertNotIn(key, self.app.state.jobs)
 
     def test_pause_requires_explicit_boolean_without_saving_invalid_input(self):
         self.prepare()
         with patch.object(self.app, "_save_locked") as save:
             for starting in (False, True):
-                self.app._paused = starting
+                self.app.state.paused = starting
                 for body in ({}, *({"paused": value} for value in ("false", "true", 0, 1, None, [], {}))):
                     with self.subTest(starting=starting, body=body):
                         self.assertEqual(self.request("/api/pause", body)[0], 400)
-                        self.assertIs(self.app._paused, starting)
+                        self.assertIs(self.app.state.paused, starting)
                         save.assert_not_called()
             for value in (True, False):
                 self.assertEqual(self.request("/api/pause", {"paused": value})[0], 200)
-                self.assertIs(self.app._paused, value)
+                self.assertIs(self.app.state.paused, value)
             self.assertEqual(save.call_count, 2)
 
     def test_connector_rejects_malformed_cookies_and_keeps_session_and_ticket(self):
@@ -141,76 +142,76 @@ class P2AppTests(unittest.TestCase):
             code, result = self.request("/api/jobs", {"urls": ["https://example.org/page"], "video_quality": value})
             self.assertEqual(code, 201)
             key = result["added"][0]
-            self.assertEqual(self.app._jobs[key]["video_quality"], value)
-            self.app._jobs[key].update(status="failed", output_dir=str(self.root))
-            self.app._queue.remove(key)
+            self.assertEqual(self.app.state.jobs[key]["video_quality"], value)
+            self.app.state.jobs[key].update(status="failed", output_dir=str(self.root))
+            self.app.state.queue.remove(key)
             code, result = self.request("/api/jobs", {"urls": ["https://example.org/page"], "video_quality": value})
             self.assertEqual(result["reused"], [key])
-            self.assertEqual(self.app._jobs[key]["video_quality"], value)
+            self.assertEqual(self.app.state.jobs[key]["video_quality"], value)
         code, result = self.request("/api/jobs", {"urls": ["https://example.org/photo.png"], "video_quality": "720"})
-        self.assertEqual(self.app._jobs[result["added"][0]]["video_quality"], "best")
+        self.assertEqual(self.app.state.jobs[result["added"][0]]["video_quality"], "best")
         for value in (720, True, {}, "auto"):
             self.assertEqual(self.request("/api/jobs", {"urls": ["https://example.org/page"], "video_quality": value})[0], 400)
         self.assertEqual(self.request("/api/jobs", {"urls": ["@fixture"], "mode": "x_profile", "video_quality": "720"})[0], 400)
         code, result = self.request("/api/jobs", {"urls": ["https://example.org/default"]})
-        self.assertEqual(self.app._jobs[result["added"][0]]["video_quality"], "best")
+        self.assertEqual(self.app.state.jobs[result["added"][0]]["video_quality"], "best")
 
     def test_choice_api_validates_id_state_origin_and_persists_without_urls(self):
         self.prepare()
         options = [choice("a" * 24, "A", "https://cdn.example/a.mp4"), choice("b" * 24, "B", "https://cdn.example/b.mp4")]
-        self.app._jobs["pick"] = {"id": "pick", "url": "https://example.org/page", "status": "selecting",
+        self.app.state.jobs["pick"] = {"id": "pick", "url": "https://example.org/page", "status": "selecting",
                                   "platform": "Web", "created_at": 1, "files": [], "selection_options": options,
                                   "video_quality": "720"}
         self.app._save_locked()
-        self.app._jobs.clear(); self.app._load_saved_state()
-        self.assertEqual(self.app._jobs["pick"]["status"], "selecting")
-        self.assertEqual(list(self.app._queue), [])
+        self.app.state.jobs.clear(); self.app._load_saved_state()
+        self.assertEqual(self.app.state.jobs["pick"]["status"], "selecting")
+        self.assertEqual(list(self.app.state.queue), [])
         path = "/api/jobs/pick/select-media"
         self.assertEqual(self.request(path, {"selection_id": "a" * 24}, "https://outside.example")[0], 403)
         for identifier in ("https://cdn.example/a.mp4", "f" * 24, 1):
             self.assertEqual(self.request(path, {"selection_id": identifier})[0], 400)
         self.assertEqual(self.request(path, {"selection_id": "b" * 24})[0], 200)
-        self.assertEqual(self.app._jobs["pick"]["selected_media"], "b" * 24)
-        self.assertEqual(self.app._jobs["pick"]["video_quality"], "720")
-        self.assertEqual(list(self.app._queue), ["pick"])
+        self.assertEqual(self.app.state.jobs["pick"]["selected_media"], "b" * 24)
+        self.assertEqual(self.app.state.jobs["pick"]["video_quality"], "720")
+        self.assertEqual(list(self.app.state.queue), ["pick"])
         self.assertEqual(self.request(path, {"selection_id": "b" * 24})[0], 409)
         self.assertNotIn("cdn.example/b.mp4", self.app.STATE_FILE.read_text(encoding="utf-8"))
 
     def test_selecting_releases_worker_and_propagates_dynamic_quality(self):
         self.prepare()
         queue_fixture.QueueAndAuthTests.jobs(self)
-        self.app._dynamic_capture = True
-        self.app._jobs["0"]["video_quality"] = "720"
+        self.app.state.dynamic_capture = True
+        self.app.state.jobs["0"]["video_quality"] = "720"
         seen = []
         def run(payload, *args, **kwargs):
             seen.append(payload)
             if len(seen) == 1:
                 raise SelectionRequired([choice("a" * 24, "A"), choice("b" * 24, "B")])
-            self.app._shutdown.set()
+            self.app.state.shutdown.set()
             return {"files": [], "quality": "fixture", "title": "done"}
         with patch.object(self.app, "run_job", run):
             self.app._worker_loop()
         self.assertEqual(len(seen), 2)
         self.assertTrue(seen[0]["dynamic_capture"])
         self.assertEqual(seen[0]["video_quality"], "720")
-        self.assertEqual(self.app._jobs["0"]["status"], "selecting")
-        self.assertEqual(self.app._jobs["1"]["status"], "completed")
-        self.assertIsNone(self.app._active_id)
+        self.assertEqual(self.app.state.jobs["0"]["status"], "selecting")
+        self.assertEqual(self.app.state.jobs["1"]["status"], "completed")
+        self.assertIsNone(self.app.state.active_id)
 
     def test_cooling_platform_is_skipped_without_reordering_its_jobs(self):
         self.prepare()
         for key, url in [("x1", "https://x.com/a/status/1"), ("x2", "https://x.com/a/status/2"), ("y", "https://youtu.be/fixture")]:
-            self.app._jobs[key] = {"id": key, "url": url, "platform": "X" if key.startswith("x") else "YouTube",
+            self.app.state.jobs[key] = {"id": key, "url": url, "platform": "X" if key.startswith("x") else "YouTube",
                                   "status": "queued", "created_at": 1, "files": []}
-            self.app._queue.append(key)
+            self.app.state.queue.append(key)
         self.app.POLICY.limit(180, platform="X")
         def run(payload, *args, **kwargs):
             self.assertEqual(payload["url"], "https://youtu.be/fixture")
-            self.app._shutdown.set()
+            self.app.state.shutdown.set()
             return {"files": [], "quality": "fixture", "title": "done"}
         with patch.object(self.app, "run_job", run):
             self.app._worker_loop()
-        self.assertEqual(list(self.app._queue), ["x1", "x2"])
+        self.assertEqual(list(self.app.state.queue), ["x1", "x2"])
         self.assertEqual(self.app._quota_locked()["used"], 1)
         saved = self.app.POLICY.snapshot()
         restored = RequestPolicy(); restored.restore(saved)
@@ -226,19 +227,19 @@ class P2AppTests(unittest.TestCase):
         body = {"download_dir": str(self.root), "dynamic_capture": True}
         with patch.object(self.app, "browser_capture_available", return_value=False):
             self.assertEqual(self.request("/api/settings", body)[0], 400)
-        self.assertFalse(self.app._dynamic_capture)
+        self.assertFalse(self.app.state.dynamic_capture)
         with patch.object(self.app, "browser_capture_available", return_value=True):
             self.assertEqual(self.request("/api/settings", body)[0], 200)
-        self.app._dynamic_capture = False
+        self.app.state.dynamic_capture = False
         self.app._load_saved_state()
-        self.assertTrue(self.app._dynamic_capture)
+        self.assertTrue(self.app.state.dynamic_capture)
         body["dynamic_capture"] = "true"
         self.assertEqual(self.request("/api/settings", body)[0], 400)
 
     def test_state_summary_and_file_detail_routes_are_bounded_and_validate_parameters(self):
         self.prepare()
         for n in range(25):
-            self.app._jobs[str(n)] = {"id": str(n), "url": f"https://example.org/{n}", "platform": "Web",
+            self.app.state.jobs[str(n)] = {"id": str(n), "url": f"https://example.org/{n}", "platform": "Web",
                 "title": "Fixture", "status": "completed", "created_at": n, "files": [f"{i}.jpg" for i in range(250)],
                 "warnings": ["warning fixture"], "error_detail": "detail fixture"}
         code, result = self.request("/api/state?page=2&page_size=20")
@@ -253,7 +254,7 @@ class P2AppTests(unittest.TestCase):
             self.assertEqual(self.request("/api/jobs/0/files?" + query)[0], 400)
         self.assertEqual(self.request("/api/jobs/missing/files")[0], 404)
         self.assertEqual(self.request("/api/jobs/0/files", origin="https://outside.example")[0], 403)
-        self.assertEqual(len(self.app._jobs["0"]["files"]), 250)
+        self.assertEqual(len(self.app.state.jobs["0"]["files"]), 250)
 
 
 class P2StorageTests(unittest.TestCase):

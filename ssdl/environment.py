@@ -144,6 +144,7 @@ class EnvironmentDiagnostics:
         self.root, self.port = root, port
         self._lock = threading.Lock()
         self._thread = None
+        self._stop = threading.Event()
         self._report = {"phase": "idle", "busy": False, "checked_at": 0,
                         "ready": False, "status": "warning", "errors": 0,
                         "warnings": 0, "port": port, "checks": []}
@@ -154,7 +155,7 @@ class EnvironmentDiagnostics:
 
     def refresh(self) -> dict:
         with self._lock:
-            if not self._report["busy"]:
+            if not self._stop.is_set() and not self._report["busy"]:
                 self._report.update(phase="checking", busy=True)
                 self._thread = threading.Thread(target=self._inspect, name="environment-check", daemon=True)
                 self._thread.start()
@@ -169,4 +170,12 @@ class EnvironmentDiagnostics:
                       "port": self.port, "checks": [_check("diagnostic", "環境診斷", "error",
                       "無法完成環境診斷。", hint="請重新檢查，或從一般 Windows 桌面重新啟動 start.bat。")]}
         with self._lock:
-            self._report = report
+            if not self._stop.is_set():
+                self._report = report
+
+    def shutdown(self):
+        with self._lock:
+            self._stop.set()
+            thread = self._thread
+        if thread and thread is not threading.current_thread():
+            thread.join(timeout=15)
