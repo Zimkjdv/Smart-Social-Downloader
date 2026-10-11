@@ -25,7 +25,7 @@ class CaptureBoundaryTests(unittest.TestCase):
         context.cookies.return_value = []
         scanner = capture.BrowserMediaDiscovery("https://public.example/page", lambda event: None, driver, seconds=1)
         with patch.object(capture, "chrome_executable", return_value="chrome"), \
-             patch.object(capture.time, "monotonic", side_effect=[0, 2, 2]):
+             patch.object(capture.time, "monotonic", side_effect=[0, 0, 2, 2, 2]):
             with self.assertRaises(web_media.WebMediaError) as failure:
                 scanner.discover()
         self.assertEqual(failure.exception.code, "browser_capture_timeout")
@@ -42,7 +42,7 @@ class CaptureBoundaryTests(unittest.TestCase):
             return []
         context.cookies.side_effect = pending_callback
         with patch.object(capture, "chrome_executable", return_value="chrome"), \
-             patch.object(capture.time, "monotonic", side_effect=[0, 2]):
+             patch.object(capture.time, "monotonic", side_effect=[0, 0, 2, 2]):
             with self.assertRaises(RateLimited) as failure:
                 scanner.discover()
         self.assertIs(failure.exception, error)
@@ -244,7 +244,7 @@ class ChromeCaptureTests(unittest.TestCase):
         self.reached.clear()
         with self.fixture_transport() as driver:
             scanner = capture.BrowserMediaDiscovery(f"http://public.example:{self.server.server_port}" + path,
-                                                   lambda event: None, driver, seconds=12)
+                                                   lambda event: None, driver, seconds=30)
             return scanner, scanner.discover()
 
     def test_runtime_script_fetch_and_dom_quality_are_captured_without_media_transfer(self):
@@ -292,7 +292,7 @@ class ChromeCaptureTests(unittest.TestCase):
         self.reached.clear()
         with tempfile.TemporaryDirectory(prefix="ssdl-browser-output-") as folder, self.fixture_transport() as driver:
             url = f"http://public.example:{self.server.server_port}/download"
-            scanner = capture.BrowserMediaDiscovery(url, lambda event: None, driver, seconds=4)
+            scanner = capture.BrowserMediaDiscovery(url, lambda event: None, driver, seconds=30)
             items = scanner.discover()
             self.assertNotIn("/playable-360p.mp4", self.reached)
             with patch.object(media.WebMediaDiscovery, "discover", return_value=iter(())), \

@@ -209,7 +209,8 @@ class BrowserMediaDiscovery:
         try:
             self.emit({"status_text": "正在使用隔離 Chrome 捕捉動態媒體", "stage": "browser_capture",
                        "capture_timeout": self.seconds})
-            browser = self.driver.runtime.chromium.launch(headless=True, channel="chrome", timeout=8000,
+            browser = self.driver.runtime.chromium.launch(headless=True, channel="chrome",
+                timeout=min(30000, max(1, int((self.deadline - time.monotonic()) * 1000))),
                 proxy={"server": "http://127.0.0.1:9", "bypass": "<-loopback>"},
                 args=["--disable-quic", "--disable-background-networking", "--disable-extensions",
                       "--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE 127.0.0.1",
@@ -229,7 +230,8 @@ class BrowserMediaDiscovery:
             page = context.new_page()
             page.on("popup", lambda popup: popup.close())
             try:
-                page.goto(self.url, wait_until="domcontentloaded", timeout=int(self.seconds * 1000))
+                page.goto(self.url, wait_until="domcontentloaded",
+                          timeout=max(1, int((self.deadline - time.monotonic()) * 1000)))
             except Exception:
                 pass  # A media navigation is intentionally aborted once recorded.
             observed_at = None

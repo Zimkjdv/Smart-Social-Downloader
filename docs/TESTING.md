@@ -4,9 +4,11 @@
 
 The [initial Windows run](https://github.com/Zimkjdv/Smart-Social-Downloader/actions/runs/38117758688) failed with two errors and two failing subtests: the runner's default cp1252 encoding could not decode UTF-8 history, its short temporary-directory alias differed from the normalized restored path, and a four-second Chrome fixture budget could expire before the synthetic HTTP 429 request.
 
-Use explicit UTF-8 and resolved fixture paths, and a 12-second real Chrome fixture budget (the production capture deadline remains unchanged). Capture now preserves fatal responses delivered during final browser calls and reports an exhausted budget as `browser_capture_timeout`. Two deterministic regressions cover startup exhaustion and a late HTTP 429 callback.
+Use explicit UTF-8 and resolved fixture paths. The first repair's hosted run confirmed those fixes but exposed an additional eight-second Chrome launch timeout and a second fixture still using four seconds. Real Chrome fixtures now use a 30-second budget; launch allows up to 30 seconds within the existing overall capture deadline, and navigation uses only the remaining budget. Capture preserves fatal responses delivered during final browser calls and reports an exhausted budget as `browser_capture_timeout`. Two deterministic regressions cover startup exhaustion and a late HTTP 429 callback.
 
 **134 Python tests passed in 65.378 seconds; 10 Node tests passed; zero skips.** The source-package allowlist check passed for 116 files. These local checks use synthetic fixtures; the repair's hosted CI result must be confirmed separately.
+
+After adjusting the launch and navigation deadlines, the focused browser suite passed all 18 cases in 54.154 seconds with zero skips, including the supervised infinite-script deadline and private-network isolation cases.
 
 ## N03–N05 fixes — 2026-10-11
 
