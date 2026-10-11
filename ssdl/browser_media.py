@@ -283,7 +283,13 @@ class BrowserMediaDiscovery:
                 group = source.group if source else selection_id(owner, "network:" + url)
                 result.append(MediaCandidate(url, headers.get("Referer", owner), self.title,
                     height=source.height if source else 0, priority=5, group=group, headers=headers))
+            # Browser calls above can dispatch pending route callbacks, including 429s.
+            if self.fatal:
+                raise self.fatal
             if not result:
+                if time.monotonic() >= self.deadline:
+                    raise WebMediaError("動態媒體捕捉逾時；請重試或查看診斷。",
+                                        code="browser_capture_timeout", detail=self.diagnostics())
                 code = "browser_capture_budget" if self.requests > MAX_REQUESTS else "browser_media_not_found"
                 raise WebMediaError("動態捕捉沒有找到可下載的影音來源；頁面可能需要登入、操作或使用不支援的傳輸。",
                                     code=code, detail=self.diagnostics())

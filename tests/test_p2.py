@@ -174,7 +174,7 @@ class P2AppTests(unittest.TestCase):
         self.assertEqual(self.app._jobs["pick"]["video_quality"], "720")
         self.assertEqual(list(self.app._queue), ["pick"])
         self.assertEqual(self.request(path, {"selection_id": "b" * 24})[0], 409)
-        self.assertNotIn("cdn.example/b.mp4", self.app.STATE_FILE.read_text())
+        self.assertNotIn("cdn.example/b.mp4", self.app.STATE_FILE.read_text(encoding="utf-8"))
 
     def test_selecting_releases_worker_and_propagates_dynamic_quality(self):
         self.prepare()

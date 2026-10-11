@@ -1,5 +1,13 @@
 # Regression and acceptance tests
 
+## First GitHub Actions repair — 2026-10-11
+
+The [initial Windows run](https://github.com/Zimkjdv/Smart-Social-Downloader/actions/runs/38117758688) failed with two errors and two failing subtests: the runner's default cp1252 encoding could not decode UTF-8 history, its short temporary-directory alias differed from the normalized restored path, and a four-second Chrome fixture budget could expire before the synthetic HTTP 429 request.
+
+Use explicit UTF-8 and resolved fixture paths, and a 12-second real Chrome fixture budget (the production capture deadline remains unchanged). Capture now preserves fatal responses delivered during final browser calls and reports an exhausted budget as `browser_capture_timeout`. Two deterministic regressions cover startup exhaustion and a late HTTP 429 callback.
+
+**134 Python tests passed in 65.378 seconds; 10 Node tests passed; zero skips.** The source-package allowlist check passed for 116 files. These local checks use synthetic fixtures; the repair's hosted CI result must be confirmed separately.
+
 ## N03–N05 fixes — 2026-10-11
 
 **132 Python tests passed in 57.492 seconds; 10 Node tests passed; zero skips.** Windows / Python 3.12.10 / Node 24.19.0, including synthetic-page real headless Chrome tests. Fourteen new regressions extend the N01/N02 baseline. A final focused auth/queue rerun passed all 17 cases in 0.239 seconds, covering the malformed pairing-token guard added after the full run.

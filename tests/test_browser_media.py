@@ -18,6 +18,35 @@ from ssdl.network import public_network
 
 
 class CaptureBoundaryTests(unittest.TestCase):
+    def test_startup_exhausting_budget_reports_timeout(self):
+        driver = Mock()
+        context = driver.runtime.chromium.launch.return_value.new_context.return_value
+        context.new_page.return_value.frames = []
+        context.cookies.return_value = []
+        scanner = capture.BrowserMediaDiscovery("https://public.example/page", lambda event: None, driver, seconds=1)
+        with patch.object(capture, "chrome_executable", return_value="chrome"), \
+             patch.object(capture.time, "monotonic", side_effect=[0, 2, 2]):
+            with self.assertRaises(web_media.WebMediaError) as failure:
+                scanner.discover()
+        self.assertEqual(failure.exception.code, "browser_capture_timeout")
+        driver.runtime.chromium.launch.return_value.close.assert_called_once()
+
+    def test_late_browser_callback_preserves_rate_limit(self):
+        driver = Mock()
+        context = driver.runtime.chromium.launch.return_value.new_context.return_value
+        context.new_page.return_value.frames = []
+        scanner = capture.BrowserMediaDiscovery("https://public.example/page", lambda event: None, driver, seconds=1)
+        error = RateLimited("synthetic HTTP 429")
+        def pending_callback():
+            scanner.fatal = error
+            return []
+        context.cookies.side_effect = pending_callback
+        with patch.object(capture, "chrome_executable", return_value="chrome"), \
+             patch.object(capture.time, "monotonic", side_effect=[0, 2]):
+            with self.assertRaises(RateLimited) as failure:
+                scanner.discover()
+        self.assertIs(failure.exception, error)
+
     def test_unlabelled_static_sources_preserve_query_identity(self):
         parser = web_media.PlayerHTML("https://public.example/page")
         parser.feed("<script>let a='/stream.mp4?id=A';let b='/stream.mp4?id=B';</script>")
@@ -215,7 +244,7 @@ class ChromeCaptureTests(unittest.TestCase):
         self.reached.clear()
         with self.fixture_transport() as driver:
             scanner = capture.BrowserMediaDiscovery(f"http://public.example:{self.server.server_port}" + path,
-                                                   lambda event: None, driver, seconds=4)
+                                                   lambda event: None, driver, seconds=12)
             return scanner, scanner.discover()
 
     def test_runtime_script_fetch_and_dom_quality_are_captured_without_media_transfer(self):

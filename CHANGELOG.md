@@ -8,6 +8,7 @@ No GitHub release or tag has been created.
 
 ### Fixed
 
+- Fix the first Windows GitHub Actions failure: explicitly read UTF-8 state in the selection regression, resolve temporary paths before comparing restored history, and allow Chrome fixture startup within a 12-second capture budget. Preserve late HTTP 429 callbacks and report exhausted capture budgets as timeouts. Add two deterministic regressions; local verification passed 134 Python and 10 Node tests without skips.
 - N03: validate connector Cookie record types, field lengths, control characters and finite expiration values before session selection. Malformed input returns a generic 400 without replacing the existing session, touching encrypted storage or consuming a valid pairing ticket; correct retry and fresh pairing remain available.
 - N04: `/api/pause` requires an explicit JSON boolean. Missing values, strings, numbers, null and containers return 400 without changing or saving queue state.
 - N05: bound the local HTTP server to 32 active connections, with a shared absolute 10-second header/body input deadline and a 5-second socket-write timeout. Reject excess connections with 503 / Retry-After; return 408 for incomplete body reads and close incomplete headers. Enforce unambiguous Content-Length, reject unsupported Transfer-Encoding and malformed/nonfinite JSON without echoing payloads, and release sockets/slots on disconnect or shutdown.

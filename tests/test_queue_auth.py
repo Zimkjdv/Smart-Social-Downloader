@@ -20,7 +20,7 @@ class QueueAndAuthTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix="ssdl-queue-")
         self.addCleanup(self.temp.cleanup)
-        self.root = Path(self.temp.name)
+        self.root = Path(self.temp.name).resolve()
         with patch.object(x_auth.XAuthManager, "_restore"):
             self.app = importlib.import_module("ssdl.app")
         self.stack = ExitStack()
