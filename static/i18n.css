@@ -1,0 +1,23 @@
+.language-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  gap: 6px;
+  min-width: 62px;
+  min-height: 34px;
+  padding: 7px 9px;
+  border: 1px solid #3c4961;
+  border-radius: 8px;
+  background: #172032;
+  color: #cdd8ed;
+  font: 600 11px system-ui, sans-serif;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.language-toggle svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.6; }
+.language-toggle:hover { background: #29213e; border-color: #a78ad9; color: #eee3ff; }
+.language-toggle:focus-visible { outline: 2px solid #b998f5; outline-offset: 3px; }
+.connect-language { float: right; margin-top: -7px; }
+html[lang="en"] .jobs-actions { flex-wrap: wrap; }
+html[lang="en"] #monitor-copy { overflow-wrap: anywhere; }

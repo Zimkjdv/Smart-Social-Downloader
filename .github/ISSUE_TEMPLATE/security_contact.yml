@@ -1,0 +1,16 @@
+name: Request a private security contact / 要求私人安全回報管道
+description: Use only when GitHub private vulnerability reporting is unavailable.
+title: "[Security]: Private contact requested"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This Issue is PUBLIC. Prefer Security → Advisories → Report a vulnerability when available. Follow SECURITY.md. Do not include affected endpoints, reproduction steps, exploit details, cookies, URLs or attachments here. Ask only for a private reporting channel.
+        此 Issue 是公開的。只要求私人回報管道，不要貼漏洞細節、登入資料或附件。
+  - type: checkboxes
+    id: request
+    attributes:
+      label: Private contact request / 私人聯絡請求
+      options:
+        - label: I need a private channel and will wait before sharing technical details. / 我需要私人管道，會等待後再分享技術細節。
+          required: true

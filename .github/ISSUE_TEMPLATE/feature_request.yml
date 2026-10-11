@@ -1,0 +1,21 @@
+name: Feature request / 功能建議
+description: Suggest a change to downloads, queue behavior or the interface.
+title: "[Feature]: "
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or workflow / 使用情境
+      description: Explain what you are trying to accomplish. English / 繁體中文皆可。Do not include private accounts, URLs or credentials.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior / 建議功能
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives and context / 其他方案與補充（選填）

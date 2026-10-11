@@ -1,0 +1,60 @@
+/* Keep the header and actions visible while each settings section scrolls. */
+#settings-modal .settings-workspace {
+  display: flex;
+  flex-direction: column;
+  width: min(620px, 100%);
+  height: min(720px, calc(100vh - 36px));
+  height: min(720px, calc(100dvh - 36px));
+  max-height: none;
+  overflow: hidden;
+  padding: 0;
+}
+.settings-header { flex: none; padding: 22px 24px 16px; border-bottom: 1px solid var(--line); }
+.settings-header .dialog-top { align-items: center; gap: 16px; }
+.settings-header h2 { font-size: 22px; }
+.settings-header .dialog-copy { margin: 10px 0 18px; color: #98a6bd; font-size: 12px; line-height: 1.6; }
+#settings-close { display: flex; align-items: center; justify-content: center; flex: none; width: 36px; height: 36px; padding: 0; line-height: 0; border-radius: 10px; }
+#settings-close svg { display: block; width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
+.settings-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; padding: 4px; background: #0a101c; border: 1px solid #29344a; border-radius: 10px; }
+.settings-tab { min-height: 38px; padding: 8px 12px; border: 1px solid transparent; border-radius: 7px; background: transparent; color: #9baac1; font-size: 13px; font-weight: 600; cursor: pointer; }
+.settings-tab:hover { background: #1a2233; color: #e3e9f4; }
+.settings-tab[aria-selected="true"] { border-color: #966bf2; background: linear-gradient(110deg, #8150e2, #6940c9); color: #fff; box-shadow: 0 3px 12px #6e44ce30; }
+.settings-content { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; padding: 22px 24px 24px; scrollbar-color: #414d65 #101727; scrollbar-width: thin; }
+.settings-panel[hidden] { display: none; }
+.settings-panel { outline-offset: -2px; }
+.settings-panel .field-label { margin-bottom: 8px; color: #c4cfe1; font-size: 12px; }
+.settings-panel .path-input { padding: 0 12px; }
+.settings-panel .path-input input { height: 42px; font-size: 13px; }
+.settings-panel .field-hint { margin-top: 8px; color: #92a1b9; font-size: 11px; line-height: 1.7; }
+.settings-panel .auth-heading { margin-bottom: 12px; font-size: 14px; }
+.settings-panel .auth-description { margin-bottom: 16px; font-size: 12px; }
+.settings-panel .primary-button, .settings-panel .subtle-button { min-height: 36px; padding: 9px 12px; font-size: 12px; }
+.settings-panel .auth-status, .settings-panel .rate-reset-summary { font-size: 12px; }
+.settings-panel .detail-link { display: inline-block; margin: 4px 8px 4px 0; font-size: 11px; line-height: 1.6; }
+.settings-panel .quota-input span { font-size: 12px; }
+.settings-panel .queue-setting { margin-top: 22px; padding-top: 20px; }
+.settings-panel #no-progress-timeout { max-width: 140px; }
+.settings-panel label[for="no-progress-timeout"] { margin-top: 20px; }
+.settings-panel .cookie-setting, .settings-panel .environment-setting:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
+.settings-panel .advanced-cookies { margin-top: 20px; padding-top: 16px; font-size: 12px; }
+.settings-panel .advanced-cookies summary { color: #bda8ec; }
+.settings-panel .cookie-privacy { color: #c6ad7c; }
+.settings-panel .environment-checks { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 16px 0; }
+.settings-panel .environment-checks li { padding: 12px; }
+.settings-panel .environment-check-heading { align-items: flex-start; font-size: 12px; }
+.settings-panel .environment-check-heading span { font-size: 11px; }
+.settings-panel .environment-checks p { font-size: 11px; line-height: 1.6; }
+.settings-footer { flex: none; padding: 14px 24px 18px; border-top: 1px solid #29344a; background: #111a2b; }
+.settings-footer .dialog-message { min-height: 0; margin: 0; font-size: 11px; line-height: 1.6; max-height: 64px; overflow-y: auto; overflow-wrap: anywhere; }
+.settings-footer .dialog-message:not(:empty) { margin-bottom: 10px; }
+.settings-footer .dialog-actions { margin: 0; gap: 10px; }
+.settings-footer button { min-height: 38px; padding: 9px 16px; font-size: 12px; }
+.settings-footer .primary-button { padding: 9px 16px; }
+@media (max-width: 540px) {
+  .settings-header { padding: 18px 16px 12px; }
+  .settings-content { padding: 18px 16px; }
+  .settings-footer { padding: 12px 16px 14px; }
+  .settings-tab { padding: 8px 4px; font-size: 12px; }
+  .settings-panel .environment-checks { grid-template-columns: minmax(0, 1fr); }
+  .settings-panel .rate-reset-row { align-items: flex-start; }
+}

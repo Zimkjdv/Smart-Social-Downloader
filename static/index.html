@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#090d18">
+  <title>Smart Social Downloader</title>
+  <link rel="stylesheet" href="/static/styles.css">
+  <link rel="stylesheet" href="/static/header.css">
+  <link rel="stylesheet" href="/static/jobs.css">
+  <link rel="stylesheet" href="/static/profiles.css">
+  <link rel="stylesheet" href="/static/i18n.css">
+  <link rel="stylesheet" href="/static/environment.css">
+  <link rel="stylesheet" href="/static/settings.css">
+  <link rel="stylesheet" href="/static/ui_accessibility.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="Smart Social Downloader 首頁" data-i18n-aria-label="ui.smart_social_downloader_home">
+        <span class="brand-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v11m0 0 4-4m-4 4-4-4M5 16v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3"/></svg></span>
+        <span class="brand-identity"><span class="brand-name">Smart Social <b>Downloader</b></span><span class="application-version" id="application-version" title="應用程式版本" data-i18n-title="ui.application_version">—</span></span>
+      </a>
+      <span class="local-badge" data-i18n-key="ui.runs_on_this_device"><i></i> 僅在這台裝置執行</span>
+      <div class="top-spacer"></div>
+      <div class="top-stats header-meters" aria-label="下載速率與檔案統計" data-i18n-aria-label="ui.download_rate_and_file_statistics">
+        <button type="button" class="header-meter header-rate" id="top-rate" title="點擊確認重設 Rate" aria-label="重設 Rate" aria-haspopup="dialog" aria-controls="rate-confirm-dialog" disabled data-i18n-title="ui.click_to_confirm_a_rate_reset" data-i18n-aria-label="ui.reset_rate">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 4 6v6c0 4 4 7 8 9 4-2 8-5 8-9V6l-8-3Z"/><path d="m8 12 3 3 5-6"/></svg>
+          <span id="top-rate-label">Rate</span><b><span id="top-rate-used">—</span>/<span id="top-rate-limit">40</span></b>
+        </button>
+        <button type="button" class="header-meter header-storage" id="top-storage" title="開啟下載資料夾" aria-label="開啟下載資料夾" data-i18n-title="ui.open_download_folder" data-i18n-aria-label="ui.open_download_folder">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7V5h7l2 3h9v11H3V7Z"/><path d="M3 11h18"/></svg>
+          <b id="top-storage-size">—</b><small id="top-storage-count" data-i18n-key="ui.calculating">統計中</small>
+        </button>
+      </div>
+      <button type="button" class="subtle-button x-login-trigger" id="x-login-open" title="連接 Chrome 中的 X 登入狀態" data-i18n-title="ui.connect_your_x_session_from_chrome"><span aria-hidden="true">𝕏</span><span id="x-login-label" data-i18n-key="ui.connect_chrome">連接 Chrome 登入</span></button>
+      <button type="button" class="subtle-button header-pause" id="top-pause" title="暫停後續工作，正在下載的工作會繼續完成" aria-pressed="false" data-i18n-title="ui.pause_upcoming_jobs_the_current_download_will"><span class="pause-symbol" aria-hidden="true">Ⅱ</span><span class="pause-label" data-i18n-key="ui.pause">Pause</span></button>
+      <button type="button" class="icon-button status-refresh" id="status-refresh" title="更新下載狀態：閒置每 30 秒、處理中每 2 秒自動更新" aria-label="更新下載狀態" data-i18n-title="ui.refresh_download_status_automatically_every_30_seconds" data-i18n-aria-label="ui.refresh_download_status"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10a9 9 0 1 1 2.6 8.4M3 4v6h6"/></svg></button>
+      <button type="button" class="language-toggle" id="language-toggle" title="切換為英文" aria-label="切換為英文"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c5 5 5 13 0 18M12 3c-5 5-5 13 0 18"/></svg><span class="language-label">EN</span></button>
+      <button class="icon-button settings-trigger" id="settings-open" title="下載設定" aria-label="下載設定" data-i18n-title="ui.download_settings" data-i18n-aria-label="ui.download_settings">
+        <svg class="settings-gear" viewBox="0 0 24 24" aria-hidden="true"><path d="M9.28 5.44L10.16 5.14L10.37 2.74L13.63 2.74L13.84 5.14L14.72 5.44L15.55 5.85L17.39 4.30L19.70 6.61L18.15 8.45L18.56 9.28L18.86 10.16L21.26 10.37L21.26 13.63L18.86 13.84L18.56 14.72L18.15 15.55L19.70 17.39L17.39 19.70L15.55 18.15L14.72 18.56L13.84 18.86L13.63 21.26L10.37 21.26L10.16 18.86L9.28 18.56L8.45 18.15L6.61 19.70L4.30 17.39L5.85 15.55L5.44 14.72L5.14 13.84L2.74 13.63L2.74 10.37L5.14 10.16L5.44 9.28L5.85 8.45L4.30 6.61L6.61 4.30L8.45 5.85Z"/><circle cx="12" cy="12" r="3.1"/></svg>
+      </button>
+    </header>
+
+    <main aria-label="下載工作區" data-i18n-aria-label="ui.download_workspace">
+      <section class="safe-queue-banner" id="queue-banner" aria-label="安全佇列狀態" data-i18n-aria-label="ui.safe_queue_status">
+        <div class="queue-banner-main"><i class="queue-status-dot" aria-hidden="true"></i><div><div class="queue-title-row"><b id="queue-status-title" data-i18n-key="ui.queue_idle">佇列閒置</b><div class="engine-status engine-compact" id="engine-status" role="status" tabindex="0" aria-describedby="engine-subtitle" title="正在確認本機服務狀態" data-i18n-title="ui.checking_the_local_service"><span class="pulse-dot" aria-hidden="true"></span><b id="engine-title" data-i18n-key="ui.checking_engines">引擎檢查中</b><span class="sr-only" id="engine-subtitle" data-i18n-key="ui.checking_the_local_service">正在確認本機服務狀態</span></div></div><p id="queue-status-copy" data-i18n-key="ui.waiting_for_new_jobs">等待新任務</p></div></div>
+        <div class="queue-policy"><span>◷ Delay 3s – 8s jitter</span><span id="queue-policy-rate">Rate ≤ 40 / h</span><span data-i18n-key="ui.request_interval_1s">請求間隔 ≥ 1 秒</span><span>Sequential Mode · 1 worker</span></div>
+      </section>
+
+      <section class="overview-grid" aria-label="下載概覽" data-i18n-aria-label="ui.download_overview">
+        <article class="panel add-panel">
+          <div class="panel-heading">
+            <div class="heading-icon add-icon">＋</div>
+            <div><h2 data-i18n-key="ui.add_downloads">新增下載</h2><p id="download-input-description" data-i18n-key="ui.paste_video_image_or_post_urls">貼上影片、圖片或貼文網址</p></div>
+          </div>
+          <div class="download-mode-switch" role="group" aria-label="下載模式" data-i18n-aria-label="ui.download_mode">
+            <button type="button" class="selected" data-download-mode="urls" aria-pressed="true" data-i18n-key="ui.media_urls">媒體網址</button>
+            <button type="button" data-download-mode="x_profile" aria-pressed="false" data-i18n-key="ui.x_account_media">X 帳號媒體</button>
+          </div>
+          <div class="supported-row" id="supported-platforms"><span class="muted-label" data-i18n-key="ui.platforms">常見平台</span>
+            <span class="platform-chip threads">Twitter / X</span><span class="platform-chip youtube">YouTube</span><span class="platform-chip tiktok">TikTok</span><span class="platform-chip instagram">Instagram</span><span class="platform-chip threads">Threads</span><span class="platform-chip facebook">Facebook</span><span class="platform-chip more" data-i18n-key="ui.more">+ 更多</span>
+          </div>
+          <div class="profile-options hidden" id="profile-options">
+            <p data-i18n-key="ui.scan_the_media_list_first_to_show">先掃描媒體清單，顯示總檔案數、需要下載與已存在數量，再依序下載。包含此帳號發布的圖片、影片及回覆媒體，不含轉發或引述；再次執行會補抓新增及未完成的內容。</p>
+            <div class="profile-login-row"><span id="profile-login-status" data-i18n-key="ui.connect_an_x_session_to_continue">需要連接 X 登入</span><button type="button" class="subtle-button" id="profile-connect-x" data-i18n-key="ui.connect_chrome">連接 Chrome 登入</button></div>
+          </div>
+          <div class="download-quality" id="video-quality-controls">
+            <label for="video-quality" data-i18n-key="ui.video_quality">影片畫質</label>
+            <div class="quality-select-wrap"><select id="video-quality" aria-describedby="video-quality-hint">
+              <option value="best" selected data-i18n-key="ui.best_quality_default">最高畫質（預設）</option>
+              <option value="2160">2160p / 4K</option><option value="1440">1440p / QHD</option>
+              <option value="1080">1080p</option><option value="720">720p</option><option value="480">480p</option>
+              <option value="360">360p</option><option value="240">240p</option><option value="144">144p</option>
+            </select><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></div>
+            <p id="video-quality-hint" data-i18n-key="ui.automatically_choose_the_best_available_quality_images">自動選擇最高可用畫質；圖片保留原尺寸。</p>
+          </div>
+          <div class="quality-note hidden" id="profile-quality-note" data-i18n-key="ui.x_account_media_currently_uses_the_best"><span>◇</span> X 帳號媒體目前使用最高畫質。</div>
+          <label class="sr-only" for="url-input" id="download-input-label" data-i18n-key="ui.urls_to_download">要下載的網址</label>
+          <div class="textarea-wrap"><span class="textarea-link-icon">↗</span><textarea id="url-input" rows="4" placeholder="貼上媒體網址，每行一個&#10;&#10;https://x.com/使用者/status/貼文編號&#10;https://www.instagram.com/p/..." spellcheck="false" data-i18n-placeholder="ui.paste_media_urls_one_per_line_https"></textarea><span id="url-count" class="url-count" data-i18n-key="ui.0_urls">0 個網址</span></div>
+          <div class="form-bottom"><div class="privacy-note" data-i18n-key="ui.random_3_8_second_delay_between_jobs"><span>◈</span> 每項工作間隨機延時 3～8 秒</div><button class="primary-button" id="add-jobs"><span data-i18n-key="ui.add_to_download_queue">加入下載佇列</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button></div>
+          <div class="form-message" id="form-message" role="status"></div>
+        </article>
+
+        <article class="panel monitor-panel">
+          <div class="panel-heading monitor-heading">
+            <div class="heading-icon monitor-icon"><span class="monitor-ring">◌</span></div>
+            <div><h2 data-i18n-key="ui.active_queue_monitor">即時佇列監控</h2><p data-i18n-key="ui.current_download_activity">目前下載狀態</p></div>
+            <span class="live-pill"><i></i> LIVE</span>
+          </div>
+          <div class="monitor-stage" id="monitor-stage">
+            <div class="empty-orbit"><span>↓</span><i></i></div>
+            <b id="monitor-title" data-i18n-key="ui.queue_is_ready">佇列準備就緒</b>
+            <span id="monitor-copy" data-i18n-key="ui.add_links_to_start_your_media_collection">加入連結，開始整理你的媒體收藏</span>
+            <div class="profile-counts hidden" id="monitor-profile-counts" role="group" aria-label="X 帳號媒體數量" data-i18n-aria-label="ui.x_account_media_counts">
+              <div><span id="profile-total-label" data-i18n-key="ui.total_files">總檔案數</span><b id="profile-total-count">—</b></div>
+              <div><span data-i18n-key="ui.to_download">需要下載</span><b id="profile-download-count">—</b></div>
+              <div><span data-i18n-key="ui.existing">已存在</span><b id="profile-existing-count">—</b></div>
+            </div>
+            <div class="monitor-progress hidden" id="monitor-progress"><div class="mini-progress"><i id="monitor-progress-fill"></i></div><span id="monitor-progress-text">0%</span></div>
+          </div>
+          <div class="monitor-counts">
+            <div><span data-i18n-key="ui.queued">等待中</span><b class="count-amber" id="count-queued">0</b></div><div><span data-i18n-key="ui.downloading">下載中</span><b class="count-blue" id="count-active">0</b></div><div><span data-i18n-key="ui.completed">已完成</span><b class="count-green" id="count-completed">0</b></div><div><span data-i18n-key="ui.failed">失敗</span><b class="count-red" id="count-failed">0</b></div>
+          </div>
+        </article>
+      </section>
+
+      <section class="jobs-panel panel">
+        <div class="jobs-topline">
+          <div class="jobs-title"><div class="heading-icon list-icon">▤</div><div><h2 data-i18n-key="ui.downloads">下載項目</h2><p data-i18n-key="ui.manage_media_in_your_download_queue">管理目前工作階段的媒體</p></div></div>
+          <div class="jobs-actions"><button class="subtle-button" id="retry-failed" disabled data-i18n-key="ui.retry_failed"><span aria-hidden="true">↻</span>重試失敗</button><button class="subtle-button" id="pause-queue"><span class="pause-symbol">Ⅱ</span><span data-i18n-key="ui.pause_queue">暫停佇列</span></button><button class="subtle-button clear-button" id="clear-done" data-i18n-key="ui.clear_completed"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6m4-6v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>清除已完成</button><button class="subtle-button clear-all-button" id="clear-all" title="清除等待中及歷史項目；目前工作完成後移除，保留下載檔案" data-i18n-title="ui.clear_queued_and_previous_jobs_remove_the" data-i18n-key="ui.clear_all">清除全部</button></div>
+        </div>
+        <div class="table-toolbar">
+          <div class="filter-tabs" role="group" aria-label="篩選下載項目" data-i18n-aria-label="ui.filter_downloads">
+            <button type="button" class="filter-tab selected" data-filter="all" aria-pressed="true" data-i18n-key="ui.all_jobs">全部項目 <span id="tab-all">0</span></button><button type="button" class="filter-tab" data-filter="queued" aria-pressed="false" data-i18n-key="ui.queued">等待中 <span id="tab-queued">0</span></button><button type="button" class="filter-tab" data-filter="active" aria-pressed="false" data-i18n-key="ui.downloading">下載中 <span id="tab-active">0</span></button><button type="button" class="filter-tab" data-filter="completed" aria-pressed="false" data-i18n-key="ui.completed">已完成 <span id="tab-completed">0</span></button><button type="button" class="filter-tab" data-filter="selecting" aria-pressed="false" data-i18n-key="ui.to_choose">待選擇 <span id="tab-selecting">0</span></button><button type="button" class="filter-tab" data-filter="failed" aria-pressed="false" data-i18n-key="ui.failed">失敗 <span id="tab-failed">0</span></button>
+          </div>
+          <div class="table-controls"><label class="select-wrap"><span class="sr-only" data-i18n-key="ui.filter_by_platform">平台篩選</span><svg class="platform-filter-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18l-7 8v6l-4 2v-8L3 5Z"/></svg><select id="platform-filter"><option value="all" data-i18n-key="ui.all_platforms">所有平台</option></select><svg class="select-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></label><label class="search-wrap"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg><input id="search-input" type="search" placeholder="搜尋項目…" aria-label="搜尋項目" data-i18n-aria-label="ui.search_downloads_2" data-i18n-placeholder="ui.search_downloads"></label></div>
+        </div>
+        <div class="table-scroll" id="jobs-table-scroll" tabindex="0" role="region" aria-label="下載項目清單" data-i18n-aria-label="ui.download_list">
+          <table>
+            <thead><tr><th scope="col" data-i18n-key="ui.media_source">媒體 / 來源</th><th scope="col" data-i18n-key="ui.platform">平台</th><th scope="col" data-i18n-key="ui.added">加入時間</th><th scope="col" data-i18n-key="ui.status_progress">狀態 / 進度</th><th scope="col" title="容量／下載耗時" data-i18n-title="ui.file_size_download_elapsed_time">SIZE / TIME</th><th scope="col" data-i18n-key="ui.files">檔案</th><th scope="col" data-i18n-key="ui.action">操作</th></tr></thead>
+            <tbody id="job-rows"></tbody>
+          </table>
+          <div class="table-empty" id="table-empty"><div class="empty-stack"><span>▤</span></div><b data-i18n-key="ui.no_downloads_to_show">這裡還沒有下載項目</b><p data-i18n-key="ui.paste_links_above_to_add_media_to">在上方貼上連結，讓你的收藏開始排隊。</p><button id="empty-add" class="text-button" data-i18n-key="ui.paste_your_first_link">＋ 貼上第一個連結</button></div>
+        </div>
+        <div class="table-footer">
+          <div class="table-footer-info">
+            <span id="footer-summary" role="status" aria-live="polite" aria-atomic="true" data-i18n-key="ui.showing_0_items">顯示 0 個項目</span>
+            <label class="page-size-label" for="jobs-page-size"><span data-i18n-key="ui.per_page">每頁</span><select id="jobs-page-size" aria-label="每頁項目數" data-i18n-aria-label="ui.items_per_page"><option value="10">10</option><option value="20" selected>20</option><option value="50">50</option></select></label>
+          </div>
+          <nav class="jobs-pagination" aria-label="下載清單分頁" data-i18n-aria-label="ui.download_list_pagination">
+            <button type="button" class="page-button" id="jobs-page-prev" title="上一頁" aria-label="上一頁" disabled data-i18n-title="ui.previous_page" data-i18n-aria-label="ui.previous_page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 6-6 6 6 6"/></svg></button>
+            <span class="page-numbers" id="jobs-page-numbers"></span>
+            <button type="button" class="page-button" id="jobs-page-next" title="下一頁" aria-label="下一頁" disabled data-i18n-title="ui.next_page" data-i18n-aria-label="ui.next_page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m10 6 6 6-6 6"/></svg></button>
+          </nav>
+          <span class="footer-online" data-i18n-key="ui.local_service_online"><i></i> 本機服務運作中</span>
+        </div>
+      </section>
+      <footer class="page-footer"><span>SMART SOCIAL DOWNLOADER <i>·</i> LOCAL WORKSPACE</span></footer>
+    </main>
+  </div>
+
+  <div class="modal-backdrop hidden" id="settings-modal" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+    <div class="settings-dialog settings-workspace">
+      <header class="settings-header">
+        <div class="dialog-top">
+          <div><p class="eyebrow">PREFERENCES</p><h2 id="settings-title" data-i18n-key="ui.download_settings">下載設定</h2></div>
+          <button type="button" class="icon-button close-modal" id="settings-close" aria-label="關閉" data-i18n-aria-label="ui.close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
+        </div>
+        <p class="dialog-copy" data-i18n-key="ui.manage_downloads_sign_in_and_your_local">管理下載、登入與本機環境。</p>
+        <div class="settings-tabs" role="tablist" aria-label="設定分頁" data-i18n-aria-label="ui.settings_sections">
+          <button type="button" class="settings-tab" id="settings-tab-general" role="tab" aria-selected="true" aria-controls="settings-panel-general" data-settings-tab="general"><span data-i18n-key="ui.general">一般設定</span></button>
+          <button type="button" class="settings-tab" id="settings-tab-x" role="tab" aria-selected="false" aria-controls="settings-panel-x" tabindex="-1" data-settings-tab="x"><span data-i18n-key="ui.x_sign_in">X 登入</span></button>
+          <button type="button" class="settings-tab" id="settings-tab-diagnostics" role="tab" aria-selected="false" aria-controls="settings-panel-diagnostics" tabindex="-1" data-settings-tab="diagnostics"><span data-i18n-key="ui.diagnostics">診斷</span></button>
+        </div>
+      </header>
+      <div class="settings-content">
+        <div class="settings-panel" id="settings-panel-general" role="tabpanel" aria-labelledby="settings-tab-general" tabindex="0">
+          <label class="field-label" for="download-dir" data-i18n-key="ui.download_folder_path">下載資料夾路徑</label><div class="path-input"><span>▱</span><input id="download-dir" type="text" autocomplete="off" spellcheck="false"></div><p class="field-hint" data-i18n-key="ui.enter_a_full_folder_path_on_this">請輸入這台電腦上的資料夾完整路徑。資料夾不存在時會自動建立。</p>
+      <section class="queue-setting" aria-labelledby="queue-settings-title">
+        <h3 class="auth-heading" id="queue-settings-title" data-i18n-key="ui.safe_queue">安全佇列</h3>
+        <label class="field-label" for="hourly-job-limit" data-i18n-key="ui.hourly_job_limit">每小時工作上限</label>
+        <div class="path-input quota-input"><input id="hourly-job-limit" type="number" min="1" max="1000" step="1" value="40" required inputmode="numeric"><span data-i18n-key="ui.jobs_60_minutes">個／60 分鐘</span></div>
+        <p class="field-hint" data-i18n-key="ui.default_40_range_1_1000_counts_jobs">預設 40，可設定 1～1000。以最近 60 分鐘啟動的工作計算，失敗與重新下載也會計入。儲存後立即套用，保留目前已用計數。</p>
+        <div class="rate-reset-row">
+          <span class="rate-reset-summary" id="settings-rate-summary" data-i18n-key="ui.current_usage_40_jobs">目前已用 —/40 個工作</span>
+          <button type="button" class="subtle-button rate-reset-button" id="rate-reset" aria-describedby="rate-reset-hint" aria-haspopup="dialog" aria-controls="rate-confirm-dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10a9 9 0 1 1 2.6 8.4M3 4v6h6"/></svg><span data-i18n-key="ui.reset_rate">重設 Rate</span></button>
+        </div>
+        <p class="field-hint" id="rate-reset-hint" data-i18n-key="ui.after_confirmation_clear_the_usage_count_and">確認後將已用計數歸零，後續工作重新累計。每小時上限不變，工作延時與平台冷卻仍會保留。</p>
+        <label class="field-label" for="cooldown-mode" data-i18n-key="ui.platform_cooldown_mode">平台冷卻模式</label>
+        <div class="path-input"><select id="cooldown-mode"><option value="platform" data-i18n-key="ui.per_platform_cooldowns_default">各平台獨立冷卻（預設）</option><option value="global" data-i18n-key="ui.shared_cooldown_for_all_platforms">全部平台共用冷卻</option></select></div>
+        <p class="field-hint" data-i18n-key="ui.per_platform_mode_lets_other_platforms_continue">各平台模式可繼續其他平台的工作；全域 Rate 上限、單 worker 與請求間隔仍共同遵守。切換模式不會清除既有冷卻。</p>
+        <p class="field-hint" id="platform-cooldown-summary" role="status"></p>
+        <label class="field-label" for="no-progress-timeout" data-i18n-key="ui.no_progress_timeout">無進度期限</label>
+        <div class="path-input quota-input"><input id="no-progress-timeout" type="number" min="30" max="3600" step="1" value="300" required inputmode="numeric"><span data-i18n-key="ui.seconds">秒</span></div>
+        <p class="field-hint" data-i18n-key="ui.default_300_seconds_adjustable_from_30_to">預設 300 秒，可設定 30～3600。長時間沒有傳輸或處理進度時停止該工作；安全佇列等待不計入，持續有進度的長影片不受總耗時限制。下個工作生效。</p>
+        <label class="browser-capture-check" for="dynamic-capture"><input id="dynamic-capture" type="checkbox"><span data-i18n-key="ui.enable_dynamic_capture">啟用動態媒體捕捉（選配）</span></label>
+        <p class="field-hint" data-i18n-key="ui.dynamic_capture_help">一般解析找不到來源時，使用隔離暫時 Chrome 執行頁面腳本。預設關閉；不讀取日常 Chrome 登入，不自動登入或點擊頁面按鈕。最多 45 秒、40 個請求。</p>
+        <p class="field-hint" id="browser-capture-status" role="status"></p>
+        <p class="field-hint"><span data-i18n-key="ui.dynamic_capture_install">安裝選配套件：</span> <code>python tools/manage.py browser-setup</code></p>
+      </section>
+        </div>
+        <div class="settings-panel" id="settings-panel-x" role="tabpanel" aria-labelledby="settings-tab-x" tabindex="0" hidden>
+      <section class="cookie-setting" aria-labelledby="x-auth-heading">
+        <h3 class="auth-heading" id="x-auth-heading" data-i18n-key="ui.x_session_connection">X 登入連接</h3>
+        <p class="field-hint auth-description" data-i18n-key="ui.use_your_existing_x_session_in_chrome">使用平常 Chrome 中已登入的 X。無法直接讀取時，會開啟一般 Chrome 的本機連接頁；第一次載入連接器後，便可一鍵同步並自動重試失敗的 X 項目。</p>
+        <div class="auth-buttons"><button type="button" class="primary-button" id="x-connect" data-i18n-key="ui.connect_chrome_2">一鍵連接 Chrome</button><button type="button" class="subtle-button" id="x-disconnect" disabled data-i18n-key="ui.disconnect">停用連接</button></div>
+        <p class="auth-status" id="x-auth-message" role="status" aria-live="polite" data-i18n-key="ui.x_session_not_connected">尚未連接 X 登入</p>
+        <button type="button" class="detail-link" id="x-login-browser" data-i18n-key="ui.open_x_in_regular_chrome">在一般 Chrome 開啟 X</button>
+        <a class="detail-link" href="/chrome-connect" target="_blank" rel="noopener" data-i18n-key="ui.chrome_connector_setup">Chrome 連接器安裝步驟</a>
+        <p class="field-hint cookie-privacy" data-i18n-key="ui.only_x_session_cookies_are_saved_encrypted">只保留 X 登入 Cookie，在這台電腦以 Windows 加密保存。不需要匯出檔案，也不讀取 Google 或 Apple 的登入資料。</p>
+        <p class="field-hint auth-limit-hint" data-i18n-key="ui.if_x_temporarily_restricts_sign_in_stop">X 顯示暫時限制登入時，請停止反覆嘗試，待限制解除後在一般 Chrome 登入。連接器不能解除帳號限制。</p>
+      </section>
+      <details class="advanced-cookies"><summary data-i18n-key="ui.advanced_use_a_cookie_file">進階：使用 Cookie 檔案</summary><label class="field-label" for="x-cookie-file" data-i18n-key="ui.x_cookie_file_path_optional">X Cookie 檔案路徑（選填）</label><div class="path-input"><span>◈</span><input id="x-cookie-file" type="text" autocomplete="off" spellcheck="false" placeholder="例如 D:\Cookies\cookies.txt" data-i18n-placeholder="ui.e_g_d_cookies_cookies_txt"></div><p class="field-hint" data-i18n-key="ui.supports_netscape_format_cookies_txt_to_use">支援 Netscape 格式 cookies.txt。如需改用檔案，請先停用 Chrome 連接，再填入完整路徑並儲存。兩者皆未設定時使用公開貼文資料。</p></details>
+        </div>
+        <div class="settings-panel" id="settings-panel-diagnostics" role="tabpanel" aria-labelledby="settings-tab-diagnostics" tabindex="0" hidden>
+      <div class="application-version-row"><span data-i18n-key="ui.application_version">應用程式版本</span><code id="settings-application-version">—</code></div>
+      <section class="environment-setting" aria-labelledby="environment-heading">
+        <div class="environment-heading-row"><h3 class="auth-heading" id="environment-heading" data-i18n-key="ui.environment_diagnostics">環境診斷</h3><button type="button" class="subtle-button" id="environment-refresh" data-i18n-key="ui.recheck">重新檢查</button></div>
+        <p class="field-hint" id="environment-summary" role="status" aria-live="polite" data-i18n-key="ui.loading_environment_diagnostics">正在取得環境診斷…</p>
+        <ul class="environment-checks" id="environment-checks"></ul>
+        <p class="field-hint" data-i18n-key="ui.run_setup_bat_to_repair_packages_stop">修復套件請執行 setup.bat；更新引擎請先停止服務，再執行 update.bat。安裝 Node.js 或 Deno 後請重新啟動服務。</p>
+        <div class="environment-links"><a class="detail-link" href="https://nodejs.org/en/download/" target="_blank" rel="noopener" data-i18n-key="ui.official_node_js_download">Node.js 官方下載</a><a class="detail-link" href="https://docs.deno.com/runtime/getting_started/installation/" target="_blank" rel="noopener" data-i18n-key="ui.official_deno_installation_guide">Deno 官方安裝說明</a></div>
+      </section>
+      <section class="environment-setting" aria-labelledby="local-health-heading">
+        <h3 class="auth-heading" id="local-health-heading" data-i18n-key="ui.local_data_and_download_worker">本機資料與下載排程</h3>
+        <p class="field-hint" id="persistence-summary" role="status"></p>
+        <p class="field-hint" id="worker-summary" role="status"></p>
+        <div class="auth-buttons"><button type="button" class="subtle-button" id="state-save" data-i18n-key="ui.retry_saving">重新嘗試保存</button><button type="button" class="subtle-button" id="diagnostics-export" data-i18n-key="ui.export_diagnostics">匯出診斷</button></div>
+        <p class="field-hint" data-i18n-key="ui.diagnostics_omit_source_urls_file_lists_and">診斷不包含來源網址、檔案清單或 Cookie；錯誤文字會遮蔽憑證與本機路徑，分享前仍可自行查看內容。</p>
+      </section>
+      <section class="environment-setting" aria-labelledby="storage-health-heading">
+        <h3 class="auth-heading" id="storage-health-heading" data-i18n-key="ui.storage_and_thumbnail_cache">容量與縮圖快取</h3>
+        <p class="field-hint" id="storage-scan-summary" role="status"></p>
+        <p class="field-hint" id="thumbnail-cache-summary" role="status"></p>
+        <div class="auth-buttons"><button type="button" class="subtle-button" id="storage-rescan" data-i18n-key="ui.rescan_storage">重新掃描容量</button><button type="button" class="subtle-button" id="thumbnail-cache-clear" data-i18n-key="ui.clear_thumbnail_cache">清理縮圖快取</button></div>
+        <p class="field-hint" data-i18n-key="ui.storage_totals_update_incrementally_after_downloads_external">容量在下載完成後增量更新，外部搬移、刪除或新增檔案由每 10 分鐘或手動重掃校正。</p>
+        <p class="field-hint" data-i18n-key="ui.the_thumbnail_cache_holds_up_to_128">縮圖快取最多 128 MB、1000 個預覽，30 天未使用會回收。清理只移除生成的預覽，需要時會重新產生。</p>
+      </section>
+        </div>
+      </div>
+      <footer class="settings-footer">
+        <div class="dialog-message" id="settings-message" role="status"></div>
+        <div class="dialog-actions"><button type="button" class="subtle-button" id="settings-cancel" data-i18n-key="ui.cancel">取消</button><button type="button" class="primary-button" id="settings-save" data-i18n-key="ui.save_settings">儲存設定 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button></div>
+      </footer>
+    </div>
+  </div>
+  <div class="modal-backdrop hidden" id="error-modal" role="dialog" aria-modal="true" aria-labelledby="error-title"><div class="settings-dialog error-dialog"><div class="dialog-top"><h2 id="error-title" data-i18n-key="ui.download_failure_details">下載失敗原因</h2><button class="icon-button close-modal" id="error-close" aria-label="關閉" data-i18n-aria-label="ui.close">×</button></div><p class="error-summary" id="error-summary"></p><p class="error-source" id="error-source"></p><label class="field-label" for="error-diagnostic" data-i18n-key="ui.raw_engine_diagnostics">引擎詳細訊息</label><pre id="error-diagnostic"></pre><div class="dialog-actions"><button class="subtle-button" id="error-ok" data-i18n-key="ui.close">關閉</button></div></div></div>
+  <div class="modal-backdrop hidden" id="warnings-modal" role="dialog" aria-modal="true" aria-labelledby="warnings-title">
+    <div class="settings-dialog warnings-dialog">
+      <div class="dialog-top"><h2 id="warnings-title" data-i18n-key="ui.download_warnings">下載提醒</h2><button type="button" class="icon-button close-modal" id="warnings-close" aria-label="關閉下載提醒" data-i18n-aria-label="ui.close_download_warnings">×</button></div>
+      <p class="dialog-copy" data-i18n-key="ui.messages_from_the_source_and_download_engine">下載來源與引擎的提醒內容</p>
+      <p class="error-source" id="warnings-source"></p>
+      <ol class="warnings-list" id="warnings-list"></ol>
+      <div class="dialog-actions"><button type="button" class="subtle-button" id="warnings-ok" data-i18n-key="ui.close">關閉</button></div>
+    </div>
+  </div>
+  <div class="modal-backdrop hidden" id="file-picker-modal" role="dialog" aria-modal="true" aria-labelledby="file-picker-title">
+    <div class="settings-dialog file-picker-dialog"><div class="dialog-top"><h2 id="file-picker-title" data-i18n-key="ui.choose_a_file">選擇檔案</h2><button type="button" class="icon-button close-modal" id="file-picker-close" aria-label="關閉檔案選擇" data-i18n-aria-label="ui.close_file_selection">×</button></div><p class="dialog-copy" id="file-picker-copy"></p><div class="file-picker-list" id="file-picker-list"></div><div class="dialog-actions"><button type="button" class="subtle-button" id="file-picker-cancel" data-i18n-key="ui.cancel">取消</button></div></div>
+  </div>
+  <dialog class="settings-dialog rate-confirm-dialog" id="rate-confirm-dialog" aria-labelledby="rate-confirm-title" aria-describedby="rate-confirm-copy rate-confirm-summary rate-confirm-hint">
+    <div class="dialog-top"><h2 id="rate-confirm-title" data-i18n-key="ui.reset_rate_2">重設 Rate？</h2><button type="button" class="icon-button close-modal" id="rate-confirm-close" aria-label="取消重設" data-i18n-aria-label="ui.cancel_reset">×</button></div>
+    <p class="dialog-copy" id="rate-confirm-copy" data-i18n-key="ui.clear_the_job_count_for_the_last">確定要清除最近 60 分鐘的工作計數嗎？</p>
+    <p class="rate-confirm-summary" id="rate-confirm-summary"></p>
+    <p class="field-hint" id="rate-confirm-hint" data-i18n-key="ui.the_hourly_limit_download_history_job_delays">每小時上限、下載紀錄、工作延時與平台冷卻都會保留。</p>
+    <div class="dialog-message" id="rate-confirm-message" role="status"></div>
+    <div class="dialog-actions"><button type="button" class="subtle-button" id="rate-confirm-cancel" autofocus data-i18n-key="ui.cancel">取消</button><button type="button" class="primary-button" id="rate-confirm-submit" data-i18n-key="ui.confirm_reset">確認重設</button></div>
+  </dialog>
+  <div class="modal-backdrop hidden" id="media-selection-modal" role="dialog" aria-modal="true" aria-labelledby="media-selection-title" aria-describedby="media-selection-copy">
+    <div class="settings-dialog media-selection-dialog">
+      <div class="dialog-top"><h2 id="media-selection-title" data-i18n-key="ui.choose_media_to_download">選擇要下載的媒體</h2><button type="button" class="icon-button close-modal" id="media-selection-close" aria-label="關閉" data-i18n-aria-label="ui.close">×</button></div>
+      <p class="dialog-copy" id="media-selection-copy" data-i18n-key="ui.this_page_contains_multiple_players_choose_one">此頁有多個播放器。選擇其中一個後加入佇列；同一播放器的畫質版本會依畫質設定選擇。</p>
+      <div class="media-selection-list" id="media-selection-list"></div>
+      <p class="dialog-message" id="media-selection-message" role="status"></p>
+      <div class="dialog-actions"><button type="button" class="subtle-button" id="media-selection-cancel" data-i18n-key="ui.choose_later">稍後選擇</button></div>
+    </div>
+  </div>
+  <div class="toast-region" id="toast-region" aria-live="polite"></div>
+  <script src="/static/locales.js" defer></script>
+  <script src="/static/i18n.js" defer></script>
+  <script src="/static/api.js" defer></script>
+  <script src="/static/job_rows.js" defer></script>
+  <script src="/static/ui_state.js" defer></script>
+  <script src="/static/job_presentation.js" defer></script>
+  <script src="/static/x_login.js" defer></script>
+  <script src="/static/media_selection.js" defer></script>
+  <script src="/static/ui_accessibility.js" defer></script>
+  <script src="/static/app.js" defer></script>
+</body>
+</html>

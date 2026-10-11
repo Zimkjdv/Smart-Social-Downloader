@@ -1,0 +1,10 @@
+.environment-setting{border-top:1px solid var(--line);margin-top:20px;padding-top:16px}
+.environment-heading-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.environment-heading-row h3{margin:0}.environment-checks{list-style:none;margin:12px 0;padding:0;display:grid;gap:8px}
+.environment-checks li{border:1px solid #29364b;border-radius:8px;padding:10px 12px;background:#0c1422}
+.environment-check-heading{display:flex;justify-content:space-between;gap:12px;align-items:center;font-size:11px}
+.environment-check-heading b{font-weight:600;color:#d8e1f4}.environment-check-heading span{font-size:10px;color:#8ee1bf;white-space:nowrap}
+.environment-checks li[data-status="warning"]{border-color:#51442b}.environment-checks li[data-status="warning"] .environment-check-heading span{color:#e9c481}
+.environment-checks li[data-status="error"]{border-color:#58313b}.environment-checks li[data-status="error"] .environment-check-heading span{color:#f3a1ad}
+.environment-checks p{font-size:10px;line-height:1.7;margin:5px 0 0;color:#94a5c0;overflow-wrap:anywhere}.environment-checks .environment-check-hint{color:#c8b7e9}
+.environment-links{display:flex;flex-wrap:wrap;gap:10px}.environment-links a{font-size:10px}

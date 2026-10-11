@@ -1,0 +1,42 @@
+name: Installation or X connection / 安裝或 X 連接
+description: Get help with setup, startup, diagnostics or Chrome pairing.
+title: "[Setup]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        First read docs/TROUBLESHOOTING.md and the Chrome connector README. Do not attach cookies or browser profiles. The connector uses an existing X session; it cannot lift X account restrictions. English / 繁體中文皆可。
+  - type: input
+    id: version
+    attributes:
+      label: Application version / 應用程式版本
+      description: Use Settings → Diagnostics or python tools/manage.py --version. If setup prevents this, state the source/download date.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment / 環境
+      description: Windows and Python versions; include Chrome/connector version and local port for pairing problems. Do not include account names or personal paths.
+    validations:
+      required: true
+  - type: dropdown
+    id: stage
+    attributes:
+      label: Failing step / 發生問題的步驟
+      options:
+        - setup.bat
+        - start.bat
+        - update.bat
+        - Environment diagnostics
+        - Chrome connector installation / reload
+        - X session pairing / encrypted storage
+    validations:
+      required: true
+  - type: textarea
+    id: error
+    attributes:
+      label: Steps and exact error / 操作步驟與錯誤
+      description: Remove personal paths, account names and secrets from messages/screenshots. Include which repair steps you have already tried.
+    validations:
+      required: true

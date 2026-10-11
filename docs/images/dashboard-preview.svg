@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="790" viewBox="0 0 1280 790" role="img" aria-labelledby="title description">
+  <title id="title">Smart Social Downloader interface illustration</title>
+  <desc id="description">Dark download dashboard with a purple URL input panel, queue monitor, rate counter and media list. All accounts, URLs, file counts and artwork are fictional; this is an illustration, not a live screenshot.</desc>
+  <defs>
+    <linearGradient id="purple" x2="1" y2="1"><stop stop-color="#925cf5"/><stop offset="1" stop-color="#6537d7"/></linearGradient>
+    <linearGradient id="sky" x2="0" y2="1"><stop stop-color="#304584"/><stop offset="1" stop-color="#b0719d"/></linearGradient>
+    <linearGradient id="green" x2="1"><stop stop-color="#10251f"/><stop offset="1" stop-color="#101923"/></linearGradient>
+    <symbol id="download" viewBox="0 0 24 24"><path d="M12 3v12m-5-5 5 5 5-5M4 16v4h16v-4"/></symbol>
+    <symbol id="play" viewBox="0 0 24 24"><path d="m9 5 11 7-11 7Z"/></symbol>
+    <symbol id="folder" viewBox="0 0 24 24"><path d="M3 7V4h7l3 4h8v12H3V7Zm0 4h18"/></symbol>
+    <symbol id="retry" viewBox="0 0 24 24"><path d="M4 10a8 8 0 1 1 2 8M4 4v6h6"/></symbol>
+    <symbol id="trash" viewBox="0 0 24 24"><path d="M4 6h16M9 6V3h6v3M6 6l1 15h10l1-15M10 10v7m4-7v7"/></symbol>
+    <symbol id="image" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8" cy="8" r="2"/><path d="m4 19 7-7 4 4 3-3 3 3"/></symbol>
+    <symbol id="check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m7 12 3 3 7-7"/></symbol>
+    <symbol id="scene" viewBox="0 0 64 64"><rect width="64" height="64" rx="8" fill="url(#sky)"/><circle cx="45" cy="17" r="7" fill="#efcba8"/><path d="m0 51 23-29 23 29 11-15 7 9v19H0" fill="#202c4e"/><path d="m16 31 7-9 7 9-7-3Z" fill="#c8d3e8"/></symbol>
+    <style>
+      text{font-family:Segoe UI,Arial,sans-serif;fill:#e6ebf5;font-size:14px} .muted{fill:#93a2ba;font-size:12px} .heading{font-size:17px;font-weight:600} .small{font-size:11px;fill:#93a2ba} .purple{fill:#c6a9ff} .teal{fill:#70dabb} .line{stroke:#283246} .icon{fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;color:#a9bdd1} .label{font-size:11px;fill:#99a8c0;letter-spacing:.7px}
+    </style>
+  </defs>
+  <rect width="1280" height="790" rx="18" fill="#090d17"/>
+  <rect x="1" y="1" width="1278" height="788" rx="17" fill="none" stroke="#29334a"/>
+  <rect x="24" y="23" width="34" height="34" rx="10" fill="url(#purple)"/>
+  <use href="#download" x="30" y="28" width="22" height="24" class="icon" style="color:#fff"/>
+  <text x="70" y="44" class="heading">Smart Social Downloader</text>
+  <rect x="329" y="28" width="121" height="25" rx="12" fill="#141e2b"/><text x="341" y="45" class="small">LOCAL WORKSPACE</text>
+  <rect x="833" y="25" width="116" height="31" rx="8" fill="#111c2a" stroke="#293c50"/><text x="847" y="45" class="teal">Rate</text><text x="887" y="45" font-weight="600">7/40</text>
+  <rect x="957" y="25" width="144" height="31" rx="8" fill="#111c2a" stroke="#293c50"/><text x="970" y="45">84.2 MB</text><text x="1035" y="45" class="small">14 files</text>
+  <rect x="1109" y="25" width="76" height="31" rx="8" fill="#2b2317" stroke="#655035"/><text x="1121" y="45" fill="#edc987">Ⅱ Pause</text>
+  <rect x="1193" y="25" width="62" height="31" rx="8" fill="#182033" stroke="#38465e"/><text x="1206" y="45">EN ⚙</text>
+  <path d="M24 73h1232" class="line"/>
+  <rect x="24" y="94" width="1232" height="66" rx="11" fill="url(#green)" stroke="#285343"/>
+  <circle cx="45" cy="127" r="5" fill="#52d5ac"/><text x="63" y="131" class="teal" font-weight="600">Downloading</text>
+  <text x="188" y="131" class="muted">Night sky time-lapse</text>
+  <text x="849" y="131" class="small">Delay 3–8s · Rate ≤ 40 / h · 1 worker</text>
+  <rect x="24" y="179" width="770" height="300" rx="12" fill="#101624" stroke="#293347"/>
+  <rect x="44" y="198" width="32" height="32" rx="9" fill="#281d40"/><text x="53" y="222" class="purple" font-size="24">+</text>
+  <text x="89" y="213" class="heading">Add download</text><text x="89" y="232" class="muted">Paste video, image or post URLs</text>
+  <rect x="44" y="251" width="242" height="37" rx="9" fill="#0b1120" stroke="#33415a"/>
+  <rect x="48" y="255" width="109" height="29" rx="6" fill="url(#purple)"/><text x="59" y="275">Media URLs</text><text x="170" y="275" class="muted">X Account Media</text>
+  <text x="44" y="313" class="muted">Video quality</text><rect x="143" y="295" width="178" height="28" rx="6" fill="#0b1120" stroke="#33415a"/><text x="155" y="314">Best quality (default)</text>
+  <rect x="44" y="337" width="730" height="69" rx="9" fill="#090f1b" stroke="#33415a"/>
+  <text x="60" y="362" class="muted">Paste URLs, one per line</text><text x="60" y="384" class="small">Spaces and commas also work</text>
+  <text x="44" y="446" class="small">◇ Random 3–8 second delay between jobs</text>
+  <rect x="558" y="422" width="216" height="37" rx="9" fill="url(#purple)"/><text x="580" y="446" font-weight="600">Add to Download Queue →</text>
+  <rect x="812" y="179" width="444" height="300" rx="12" fill="#101624" stroke="#293347"/>
+  <text x="835" y="213" class="heading">Active queue monitor</text><circle cx="1202" cy="208" r="4" fill="#52d5ac"/><text x="1212" y="212" class="small">LIVE</text>
+  <circle cx="1034" cy="282" r="26" fill="#151e32" stroke="#3c3965"/><use href="#download" x="1022" y="269" width="24" height="24" class="icon" style="color:#bc9af6"/>
+  <text x="1034" y="329" text-anchor="middle" font-weight="600">Night sky time-lapse</text>
+  <text x="1034" y="351" text-anchor="middle" class="muted">1080p · 62% · 1.8 MB/s</text>
+  <rect x="859" y="369" width="350" height="5" rx="2" fill="#232e44"/><rect x="859" y="369" width="217" height="5" rx="2" fill="url(#purple)"/>
+  <path d="M835 402h399" class="line"/>
+  <text x="877" y="429" text-anchor="middle" class="small">Queued</text><text x="982" y="429" text-anchor="middle" class="small">Active</text><text x="1087" y="429" text-anchor="middle" class="small">Done</text><text x="1192" y="429" text-anchor="middle" class="small">Failed</text>
+  <text x="877" y="452" text-anchor="middle" fill="#edc987">1</text><text x="982" y="452" text-anchor="middle" class="purple">1</text><text x="1087" y="452" text-anchor="middle" class="teal">2</text><text x="1192" y="452" text-anchor="middle">0</text>
+  <rect x="24" y="499" width="1232" height="250" rx="12" fill="#101624" stroke="#293347"/>
+  <rect x="42" y="515" width="104" height="31" rx="7" fill="url(#purple)"/><text x="54" y="535" font-weight="600">All jobs 4</text>
+  <text x="167" y="535" class="muted">Queued 1</text><text x="260" y="535" class="muted">Active 1</text><text x="348" y="535" class="muted">Completed 2</text><text x="467" y="535" class="muted">Failed 0</text>
+  <text x="986" y="535" class="muted">All platforms ⌄</text><text x="1129" y="535" class="muted">Search jobs…</text>
+  <path d="M24 559h1232" class="line"/>
+  <text x="44" y="582" class="label">MEDIA / SOURCE</text><text x="557" y="582" class="label">PLATFORM</text><text x="669" y="582" class="label">STATUS / PROGRESS</text><text x="871" y="582" class="label">SIZE / TIME</text><text x="1007" y="582" class="label">FILE</text><text x="1130" y="582" class="label">ACTIONS</text>
+  <g transform="translate(0 600)">
+    <use href="#scene" x="44" y="5" width="49" height="49"/><text x="106" y="23" font-weight="600">Night sky time-lapse</text><text x="106" y="43" class="small">youtube.example/watch/demo · 1080p</text>
+    <text x="557" y="31" class="muted">YouTube</text><rect x="669" y="11" width="140" height="28" rx="7" fill="#17233d" stroke="#375579"/><text x="680" y="30" fill="#a5ccff">↓ Downloading 62%</text>
+    <text x="871" y="23">24.8 MB</text><text x="871" y="43" class="small">Elapsed 0:16</text><text x="1007" y="31" class="muted">…/night-sky.mp4</text>
+    <use href="#play" x="1137" y="18" width="20" height="20" class="icon"/><use href="#folder" x="1166" y="18" width="20" height="20" class="icon"/><use href="#retry" x="1195" y="18" width="20" height="20" class="icon"/><use href="#trash" x="1224" y="18" width="20" height="20" class="icon"/>
+  </g>
+  <path d="M24 663h1232" class="line"/>
+  <g transform="translate(0 677)">
+    <use href="#scene" x="44" y="0" width="49" height="49"/><text x="106" y="19" font-weight="600">Mountain sketch collection</text><text x="106" y="39" class="small">x.example/demo/status/sample · Original images</text>
+    <text x="557" y="27" class="muted">X</text><rect x="669" y="7" width="113" height="28" rx="7" fill="#122c24" stroke="#2f6751"/><use href="#check" x="677" y="12" width="18" height="18" class="icon" style="color:#70dabb"/><text x="701" y="26" class="teal">Completed</text>
+    <text x="871" y="19">1.4 MB</text><text x="871" y="39" class="small">Elapsed 0:02</text><text x="1007" y="27" class="muted">2 media files</text>
+    <use href="#image" x="1137" y="14" width="20" height="20" class="icon" style="color:#c6a9ff"/><use href="#folder" x="1166" y="14" width="20" height="20" class="icon" style="color:#7dc4ce"/><use href="#retry" x="1195" y="14" width="20" height="20" class="icon"/><use href="#trash" x="1224" y="14" width="20" height="20" class="icon"/>
+  </g>
+  <text x="24" y="775" class="small">INTERFACE ILLUSTRATION · FICTIONAL DATA</text><text x="1046" y="775" class="small">ENGLISH / 繁體中文</text>
+</svg>

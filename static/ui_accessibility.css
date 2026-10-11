@@ -1,0 +1,29 @@
+button:focus-visible, a:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-visible {
+  outline: 2px solid #b99aff; outline-offset: 3px;
+}
+.path-input select { width: 100%; background: transparent; border: 0; color: var(--text, #e5eafa); padding: 14px; font: inherit; }
+.path-input option { background: #101827; }
+.status-label.selecting { color: #bda1ff; border-color: #6848a2; background: #221b35; }
+.media-selection-dialog { width: min(640px, 94vw); max-height: 85dvh; display: flex; flex-direction: column; }
+.media-selection-list { display: grid; gap: 10px; overflow-y: auto; min-height: 0; }
+.media-choice { text-align: left; padding: 16px; background: #151c2b; border: 1px solid #35415a; color: #e5eafa; border-radius: 12px; cursor: pointer; }
+.media-choice:hover { border-color: #a07afa; background: #211d35; }
+.media-choice strong, .media-choice span { display: block; overflow-wrap: anywhere; }
+.media-choice span { margin-top: 7px; color: #9cafcb; font-size: 12px; }
+@media (max-width: 900px) {
+  .filter-tabs { max-width: 100%; overflow-x: auto; flex-wrap: nowrap; padding-bottom: 5px; }
+  .filter-tab { flex-shrink: 0; }
+  .table-controls { flex-wrap: wrap; width: 100%; }
+  .settings-dialog { max-width: 94vw; }
+  .dialog-top, .dialog-actions { flex-wrap: wrap; gap: 12px; }
+}
+@media (max-width: 520px) {
+  .download-quality { align-items: flex-start; }
+  .quality-select-wrap { width: 100%; }
+  .settings-tabs { overflow-x: auto; }
+  .settings-tab { flex-shrink: 0; }
+  .media-selection-dialog { padding: 18px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+}

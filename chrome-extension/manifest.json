@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "Smart Social Downloader · X 連接器",
+  "description": "將這個 Chrome 個人檔案已登入的 X 狀態連接到本機下載工具。只傳送 X 登入 Cookie 到 127.0.0.1。",
+  "version": "1.1.0",
+  "minimum_chrome_version": "109",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEArgKVUZWrwafzmb4WQlS+NU/NuqFgxkoSoiW/wZCybqML/lScyYaGUsBztLBu8X7lJGgggNV2srNK59X8K4QYhev5+Wjf5lhPHBv39IKrRmhwSJx4bltvn0btjN+xzGKy+S7/SeZd+K79w1DHPYltLScq4Wjdmc+6wKzoAILHqkvv8gpU20phuwiPZH3sA0p+uC9OIB32DBX8aCQC+sftR+mtioUsxmx8kkq1EYkmNrSH3JGUpozJNqmJQG1PkROKixQlU5OjzknVc9+ZZ68ZJAij0ulRuO3rFu6lcvTRJCf7rm3oUOx72um96h5dsur9usiJEXUNbhB3Ob+ihagXDQIDAQAB",
+  "permissions": ["cookies", "storage"],
+  "host_permissions": ["https://x.com/*", "https://twitter.com/*", "http://127.0.0.1/*"],
+  "background": { "service_worker": "background.js" },
+  "content_scripts": [{ "matches": ["http://127.0.0.1/*"], "js": ["connect.js"], "run_at": "document_idle" }],
+  "action": { "default_title": "連接已登入的 X", "default_popup": "popup.html" }
+}

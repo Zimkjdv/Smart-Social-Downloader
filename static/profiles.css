@@ -1,0 +1,59 @@
+.download-mode-switch {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  width: fit-content;
+  max-width: 100%;
+  margin: 16px 0 12px;
+  padding: 4px;
+  border: 1px solid #29344a;
+  border-radius: 9px;
+  background: #0b1120;
+}
+.download-quality { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; margin: 14px 0 12px; }
+.download-quality > label { color: #c3cce0; font-size: 12px; font-weight: 600; }
+.quality-select-wrap { position: relative; width: 190px; max-width: 100%; }
+.quality-select-wrap select { width: 100%; min-height: 36px; padding: 8px 35px 8px 12px; border: 1px solid #35415b; border-radius: 8px; background: #0b1120; color: #e1d7f7; font-size: 12px; cursor: pointer; appearance: none; }
+.quality-select-wrap select:hover { border-color: #8668bc; }
+.quality-select-wrap select:focus-visible { outline: 2px solid #ac87f4; outline-offset: 2px; }
+.quality-select-wrap svg { position: absolute; right: 12px; top: 50%; width: 15px; height: 15px; transform: translateY(-50%); fill: none; stroke: #b69cdd; stroke-width: 1.8; pointer-events: none; }
+.download-quality > p { flex-basis: 100%; margin: 0; color: #94a5bf; font-size: 11px; line-height: 1.6; }
+.download-mode-switch button {
+  min-height: 34px;
+  padding: 7px 14px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: #a9b7cf;
+  font-size: 12px;
+  cursor: pointer;
+}
+.download-mode-switch button:hover { color: #f1eaff; background: #201a34; }
+.download-mode-switch button.selected {
+  background: linear-gradient(135deg, #8150e9, #6941d2);
+  border-color: #a581ef;
+  color: #fff;
+}
+.profile-options {
+  margin: 12px 0;
+  padding: 12px 14px;
+  border: 1px solid #2e3650;
+  border-radius: 8px;
+  background: #13192a;
+}
+.profile-options p { margin: 0; color: #b7c3d8; font-size: 12px; line-height: 1.7; }
+.profile-login-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-top: 9px; }
+.profile-login-row span { color: #d9be88; font-size: 11px; }
+.profile-login-row.is-connected span { color: #81dbb9; }
+.profile-login-row .subtle-button { border: 1px solid #514171; border-radius: 6px; color: #d4c0fb; min-height: 30px; font-size: 11px; }
+.profile-summary { color: #b8c7dd; font-size: 11px; line-height: 1.6; margin-top: 6px; }
+.profile-counts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); width: 100%; max-width: 320px; gap: 8px; margin: 14px 0 3px; }
+.profile-counts > div { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px 6px; border: 1px solid #303a50; border-radius: 8px; background: #121a2b; }
+.profile-counts span { color: #a4b3cc; font-size: 11px; line-height: 1.4; }
+.profile-counts b { color: #ded0ff; font-size: 19px; font-variant-numeric: tabular-nums; line-height: 1.3; }
+.profile-counts > div:nth-child(2) b { color: #8ebcff; }
+.profile-counts > div:nth-child(3) b { color: #89dfbd; }
+.icon-stop-button { border-color: #6c4a30; color: #e0b07b; }
+.icon-stop-button:not(:disabled):hover { border-color: #bc8b50; background: #38271a; color: #ffe0b3; }
+.jobs-panel .status-label.stopped { color: #e9c088; border-color: #62482e; background: #302318; }
+.status-label.stopped svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 1.7; flex: none; }

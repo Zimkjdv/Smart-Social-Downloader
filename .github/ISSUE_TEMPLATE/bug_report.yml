@@ -1,0 +1,55 @@
+name: Bug report / 錯誤回報
+description: Report a reproducible application or download problem.
+title: "[Bug]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        English / 繁體中文皆可。For vulnerabilities, follow SECURITY.md and use private reporting. Never attach cookies, data/, browser profiles, private URLs or unredacted logs. Review screenshots and exported diagnostics before sharing.
+  - type: input
+    id: app_version
+    attributes:
+      label: Application version / 應用程式版本
+      description: Copy from Settings → Diagnostics. This is not the yt-dlp version.
+      placeholder: "0.1.0-preview.1"
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment and engine versions / 環境與引擎版本
+      description: Windows / Python, yt-dlp, gallery-dl and FFmpeg versions from environment diagnostics; include Chrome and connector versions if relevant.
+    validations:
+      required: true
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Affected workflow / 受影響功能
+      options:
+        - Media URLs
+        - X Account Media
+        - Generic player selection
+        - Queue / Rate / cooldown
+        - UI / settings / files
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce / 重現步驟
+      description: Include quality preference and retry/first-download behavior if relevant. A public non-sensitive example may help; do not include signed URLs or account details.
+    validations:
+      required: true
+  - type: textarea
+    id: expected_actual
+    attributes:
+      label: Expected and actual behavior / 預期與實際結果
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Reviewed diagnostic excerpt / 已檢視的診斷節錄（選填）
+      description: Export from Settings → Diagnostics, inspect it, and paste only relevant non-sensitive information. Raw engine output may contain private data.
+      render: text
