@@ -241,7 +241,7 @@ class XAuthManager:
             self._challenge = ""
             self._challenge_expires = 0
             thread = self._thread
-        if thread and thread is not threading.current_thread():
+        if thread and thread.is_alive() and thread is not threading.current_thread():
             thread.join(timeout=8)
 
     def _open_chrome(self, url: str):

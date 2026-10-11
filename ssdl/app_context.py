@@ -137,8 +137,12 @@ class AppContext:
             self.X_AUTH.restore()
             self.ENVIRONMENT.refresh()
             self.state.worker_thread = threading.Thread(target=self._worker, name="download-queue", daemon=True)
+            try:
+                self.state.worker_thread.start()
+            except BaseException:
+                self.state.worker_thread = None
+                raise
             self._started = True
-            self.state.worker_thread.start()
 
     def close(self) -> None:
         """Stop work, preserve queue state, then close instance-owned helpers."""
@@ -151,7 +155,7 @@ class AppContext:
                 self.condition.notify_all()
             self.X_AUTH.shutdown()
             worker = self.state.worker_thread
-            if worker and worker is not threading.current_thread():
+            if worker and worker.is_alive() and worker is not threading.current_thread():
                 worker.join(timeout=10)
             self.THUMBNAILS.shutdown()
             self.STORAGE.shutdown()

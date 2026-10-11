@@ -177,5 +177,5 @@ class EnvironmentDiagnostics:
         with self._lock:
             self._stop.set()
             thread = self._thread
-        if thread and thread is not threading.current_thread():
+        if thread and thread.is_alive() and thread is not threading.current_thread():
             thread.join(timeout=15)

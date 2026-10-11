@@ -171,6 +171,30 @@ with patch('ssdl.x_auth.XAuthManager._restore', side_effect=AssertionError('auth
         encrypted.assert_not_called()
         restored.assert_not_called()
 
+    def test_worker_start_failure_can_be_closed_without_masking_the_error(self):
+        context = self.context(auth=Mock(), environment=Mock())
+        with patch.object(threading.Thread, "start", side_effect=RuntimeError("synthetic thread startup failure")):
+            with self.assertRaisesRegex(RuntimeError, "synthetic thread startup failure"):
+                context.start()
+        self.assertIsNone(context.state.worker_thread)
+        self.assertFalse(context._started)
+        context.close()
+        self.assertFalse(context.STATE_FILE.exists())
+
+    def test_helper_start_failures_can_be_closed_without_joining_unstarted_threads(self):
+        context = self.context()
+        with patch.object(threading.Thread, "start", side_effect=RuntimeError("synthetic thread startup failure")), \
+             patch("ssdl.x_auth.chrome_executable", return_value=Path("synthetic-chrome")), \
+             patch("ssdl.x_auth._dpapi", return_value=b"synthetic"):
+            for action in (context.ENVIRONMENT.refresh, lambda: context.STORAGE.snapshot(self.root),
+                           context.THUMBNAILS.status, context.X_AUTH.connect):
+                with self.assertRaisesRegex(RuntimeError, "synthetic thread startup failure"):
+                    action()
+            context.close()
+        for service in (context.ENVIRONMENT, context.STORAGE, context.THUMBNAILS, context.X_AUTH):
+            self.assertTrue(service._stop.is_set())
+            self.assertFalse(service._thread.is_alive())
+
 
 if __name__ == "__main__":
     unittest.main()

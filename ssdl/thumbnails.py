@@ -336,5 +336,5 @@ class ThumbnailCache:
                 except OSError:
                     pass
         thread = self._thread
-        if thread and thread is not threading.current_thread():
+        if thread and thread.is_alive() and thread is not threading.current_thread():
             thread.join(timeout=5)
