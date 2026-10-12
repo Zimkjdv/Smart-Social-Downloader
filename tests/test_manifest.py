@@ -4,8 +4,9 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
+from ssdl import media_coordinator
 from ssdl import media
-from ssdl.media_manifest import MediaManifest, file_entries, verify_entries
+from ssdl.media_manifest import file_entries, verify_entries
 
 
 class ManifestTests(unittest.TestCase):
@@ -27,7 +28,7 @@ class ManifestTests(unittest.TestCase):
                 "warnings": [], "engine": "fixture", "media_id": "stable-id"}
 
     def download(self, **kwargs):
-        with patch.object(media, "_download_source", self.source):
+        with patch.object(media_coordinator, "_download_source", self.source):
             return media.download(self.url, self.root, lambda event: None, manifest_file=self.path, **kwargs)
 
     def test_verified_source_does_not_run_engine_twice(self):

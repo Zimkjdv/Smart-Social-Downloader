@@ -74,6 +74,14 @@ smart-social-downloader/
 │   ├── version.py                 Single application version
 │   ├── app.py                     Composition root
 │   ├── app_context.py             Typed state, owned services and lifecycle
+│   ├── media.py                   Stable download entry points
+│   ├── media_contracts.py         Shared source identity, paths and errors
+│   ├── media_coordinator.py       Routing, generic discovery and manifest reuse
+│   ├── media_engines.py           Optional engines and shared defaults
+│   ├── video_adapter.py          yt-dlp quality and original stream transfers
+│   ├── gallery_adapter.py        gallery-dl configuration and transfers
+│   ├── image_adapter.py          Original image bytes and verified history
+│   ├── x_account_media.py        X account scan/sync and public-post media
 │   ├── browser_media.py           Optional temporary Chrome discovery
 │   └── *.py                       API, scheduling, persistence and downloads
 ├── static/                        Browser UI, styles and locale keys

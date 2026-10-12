@@ -11,6 +11,7 @@ import unittest
 from unittest.mock import patch
 from urllib.parse import parse_qs, urlparse
 
+from ssdl import video_adapter
 from ssdl import media
 from ssdl.web_media import MediaCandidate
 from ssdl.network import public_network
@@ -98,7 +99,7 @@ class StreamTests(unittest.TestCase):
 
         self.stack = ExitStack()
         self.addCleanup(self.stack.close)
-        self.stack.enter_context(patch.object(media, "video_options", side_effect=fast_options))
+        self.stack.enter_context(patch.object(video_adapter, "video_options", side_effect=fast_options))
         self.stack.enter_context(patch.object(media.POLICY, "before_request"))
 
     def download(self, path, **kwargs):

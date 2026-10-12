@@ -1,5 +1,18 @@
 # Regression and acceptance tests
 
+## N06 download adapters and orchestration — 2026-10-13
+
+**157 Python tests passed in 84.218 seconds; 10 Node tests passed; zero skips.** Windows / Python 3.12. The source allowlist validates 126 files, including seven new implementation modules and `test_media_architecture.py`. Ten new boundary/account tests passed in 0.190 seconds; focused manifest (7) and all-quality (10) suites also passed.
+
+- Shared source/error/entry-point identity and gallery configuration lock; all implementation modules are included in the source allowlist and do not import the media facade.
+- Engine routing and unsupported-video fallback; existing partial files prevent another fallback attempt. Original images bypass gallery/video and retain best/original mode; X credentials are stripped from other platform configuration. Public X posts use the dedicated service, and account links still require login.
+- Replacement of the active request-policy object reaches paced HTTP and HTTP 429 backoff. Existing real child-process IPC, cancellation, no-progress/capture supervision, guarded HLS/DASH, missing-fragment failures and decoded stream acceptance remain in the full suite.
+- Synthetic X timeline with real temporary ProfileArchive storage: scan total before transfer, completed post reuse without another transfer, moving one file refetches only its missing expected path, incomplete scans start no downloads, partial results retain error/files and do not mark the post complete, and temporary scan handles/shared lock are released.
+
+An AST comparison of 29 moved top-level functions/classes against the previous commit matches after reversing the explicit dependency qualifications. This is an additional check against unintended extraction edits, not proof of all behavior. The first full attempt caught two missing imports in relocated browser test mocks; the passing run includes those corrections. Existing library socket ResourceWarnings remain tracked under dependency maintenance; assertions were not disabled.
+
+No live platform media or personal Cookie values were used. Public entry points, API fields, archive/runtime locations, original-byte behavior and quality selection remain compatible. Backend splitting is complete; frontend controller splitting, N07 measurements and N08 fixture/packaging acceptance remain in [ROADMAP](../ROADMAP.md).
+
 ## N06 state ownership and lifecycle — 2026-10-11
 
 **145 Python tests passed in 83.787 seconds; 10 Node tests passed; zero skips.** Windows / Python 3.12, using temporary storage and synthetic browser pages. The source allowlist now validates 118 files, including `ssdl/app_context.py` and `tests/test_app_context.py`. The final focused lifecycle follow-up passed all 11 cases in 0.403 seconds.
@@ -8,7 +21,7 @@ The new acceptance cases verify fresh-process entry imports and context construc
 
 One preliminary source-policy fixture call ended with Windows 10053 while a POST was rejected before its body was read; the focused retry and both full runs passed. This intermittent transport behavior is recorded for additional fixture/response coverage in N08; it was not suppressed by changing assertions or source authorization.
 
-The application factory retains the existing production root, API fields and connector ID. Acceptance creates isolated application instances; it does not restore the user's actual X session, download live platform content or claim full Windows installation acceptance. The remaining engine/frontend splits and fixture extraction stay in [ROADMAP](../ROADMAP.md).
+The application factory retains the existing production root, API fields and connector ID. Acceptance creates isolated application instances; it does not restore the user's actual X session, download live platform content or claim full Windows installation acceptance. Engine splitting was pending at this milestone and is completed in the 2026-10-13 follow-up above; current remaining work stays in [ROADMAP](../ROADMAP.md).
 
 ## First GitHub Actions repair — 2026-10-11
 

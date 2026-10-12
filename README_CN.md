@@ -74,6 +74,14 @@ smart-social-downloader/
 │   ├── version.py                 唯一應用程式版本來源
 │   ├── app.py                     組裝入口
 │   ├── app_context.py             具型別的狀態、服務與生命週期
+│   ├── media.py                   相容的下載入口
+│   ├── media_contracts.py         共用來源識別、路徑與錯誤
+│   ├── media_coordinator.py       引擎調度、通用解析與去重
+│   ├── media_engines.py           選配引擎與共用設定
+│   ├── video_adapter.py          yt-dlp 畫質與原始串流下載
+│   ├── gallery_adapter.py        gallery-dl 設定與媒體下載
+│   ├── image_adapter.py          圖片原始位元組與保存紀錄
+│   ├── x_account_media.py        X 帳號掃描／同步及公開貼文
 │   ├── browser_media.py           選配臨時 Chrome 捕捉
 │   └── *.py                       API、排程、保存及下載模組
 ├── static/                        網頁介面、樣式及語系 key

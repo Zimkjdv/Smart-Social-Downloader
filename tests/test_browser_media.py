@@ -13,6 +13,7 @@ from unittest.mock import Mock, MagicMock, patch
 
 from ssdl import browser_media as capture
 from ssdl import web_media, media
+from ssdl import media_coordinator, video_adapter
 from ssdl.request_policy import RateLimited, RequestPolicy
 from ssdl.network import public_network
 
@@ -109,8 +110,8 @@ class CaptureBoundaryTests(unittest.TestCase):
                                        group="a" * 24, height=720)
         with patch.object(media.WebMediaDiscovery, "discover", return_value=iter(())), \
              patch.object(capture.BrowserMediaDiscovery, "discover", return_value=[item]) as dynamic, \
-             patch.object(media, "validate_target"), \
-             patch.object(media, "download_video", return_value={"files": ["fixture.mp4"], "quality": "720p"}) as downloaded:
+             patch.object(media_coordinator, "validate_target"), \
+             patch.object(video_adapter, "download_video", return_value={"files": ["fixture.mp4"], "quality": "720p"}) as downloaded:
             with self.assertRaises(media.DownloadError):
                 media.download_web_media("https://public.example/page", None, lambda event: None)
             dynamic.assert_not_called()
@@ -134,14 +135,14 @@ class CaptureBoundaryTests(unittest.TestCase):
         item = web_media.MediaCandidate("https://cdn.example/a.mp4", "https://public.example/", group="a" * 24)
         with patch.object(media.WebMediaDiscovery, "discover", return_value=[item]), \
              patch.object(capture.BrowserMediaDiscovery, "discover", return_value=[item]) as dynamic, \
-             patch.object(media, "validate_target"), \
-             patch.object(media, "download_video", side_effect=[media.DownloadError("static failed"), {"files": ["a.mp4"]}]) as download:
+             patch.object(media_coordinator, "validate_target"), \
+             patch.object(video_adapter, "download_video", side_effect=[media.DownloadError("static failed"), {"files": ["a.mp4"]}]) as download:
             self.assertEqual(media.download_web_media("https://public.example/page", None, lambda event: None,
                                                      dynamic_capture=True)["files"], ["a.mp4"])
             self.assertEqual((dynamic.call_count, download.call_count), (1, 2))
         with patch.object(media.WebMediaDiscovery, "discover", return_value=[item]), \
-             patch.object(capture.BrowserMediaDiscovery, "discover") as dynamic, patch.object(media, "validate_target"), \
-             patch.object(media, "download_video", side_effect=media.DownloadError("partial", ["part.mp4"])):
+             patch.object(capture.BrowserMediaDiscovery, "discover") as dynamic, patch.object(media_coordinator, "validate_target"), \
+             patch.object(video_adapter, "download_video", side_effect=media.DownloadError("partial", ["part.mp4"])):
             with self.assertRaises(media.DownloadError):
                 media.download_web_media("https://public.example/page", None, lambda event: None, dynamic_capture=True)
         dynamic.assert_not_called()

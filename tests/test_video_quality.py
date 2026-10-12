@@ -4,6 +4,7 @@ import tempfile
 import unittest
 from unittest.mock import Mock, patch
 
+from ssdl import media_coordinator
 from ssdl import media, video_quality as quality
 from ssdl.media_selection import SelectionRequired
 from ssdl.web_media import PlayerHTML, MediaCandidate
@@ -130,7 +131,7 @@ class QualityTests(unittest.TestCase):
                 path = output / (options["video_quality"] + ".mp4")
                 path.write_bytes(b"fixture-media")
                 return {"files": [path.name], "title": "fixture", "quality": options["video_quality"], "media_id": "fixture"}
-            with patch.object(media, "_download_source", side_effect=saved) as engine:
+            with patch.object(media_coordinator, "_download_source", side_effect=saved) as engine:
                 for preference in ("720", "1080", "720"):
                     media.download("https://example.org/page", root, lambda event: None,
                                    video_quality=preference, manifest_file=root / "manifest.sqlite3")

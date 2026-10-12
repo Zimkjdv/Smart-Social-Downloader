@@ -351,7 +351,14 @@ smart-social-downloader/
 │   ├── ipc.py                有容量限制的 UTF-8 frame 與分段工作訊息
 │   ├── process_group.py      所屬程序／合併工具清理
 │   ├── network.py            公開目標與實際位址檢查
-│   ├── media.py              引擎選擇及下載
+│   ├── media.py              相容的下載入口
+│   ├── media_contracts.py    共用來源識別、路徑與錯誤
+│   ├── media_engines.py      選配引擎及共用設定
+│   ├── media_coordinator.py  引擎調度、通用解析與完整來源去重
+│   ├── video_adapter.py      yt-dlp 影片／串流下載
+│   ├── gallery_adapter.py    gallery-dl 設定與媒體下載
+│   ├── image_adapter.py      圖片原始位元組與保存紀錄
+│   ├── x_account_media.py    X 帳號掃描／同步及公開貼文
 │   ├── video_quality.py       來源畫質標記與選取結果顯示
 │   ├── browser_media.py      選配臨時 Chrome 媒體捕捉
 │   ├── web_media.py          通用網頁媒體識別

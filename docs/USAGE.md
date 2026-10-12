@@ -248,7 +248,14 @@ smart-social-downloader/
 │   ├── ipc.py                  Bounded UTF-8 frames and chunked job messages
 │   ├── process_group.py        Ownership and cleanup of child/helper processes
 │   ├── network.py              Public HTTP transport and actual address checks
-│   ├── media.py                Engine selection and media downloads
+│   ├── media.py                Compatible download entry points
+│   ├── media_contracts.py      Shared source identity, paths and errors
+│   ├── media_engines.py        Optional engines and shared settings
+│   ├── media_coordinator.py    Routing, discovery and verified source reuse
+│   ├── video_adapter.py        yt-dlp video/stream transfers
+│   ├── gallery_adapter.py      gallery-dl configuration and transfers
+│   ├── image_adapter.py        Original image bytes and history
+│   ├── x_account_media.py      X account scan/sync and public-post media
 │   ├── video_quality.py        Source resolution hints and video selection labels
 │   ├── web_media.py            Generic page and player discovery
 │   ├── browser_media.py        Optional temporary Chrome media discovery

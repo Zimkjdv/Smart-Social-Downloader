@@ -4,6 +4,7 @@ Implemented on 2026-10-11. The earlier performance work remains described in [PE
 
 ## Components
 
+- N06 follow-up (2026-10-13): `media.py` is now a stable facade. Shared contracts, optional engine detection, video/gallery/image adapters, source orchestration and X account/public-post media are separate modules; implementation modules never import the facade. The frontend controller split remains in ROADMAP.
 - `ssdl/app.py` is the composition root and factory. `ssdl/app_context.py` owns typed AppState, instance-specific services, state views and explicit start/close; importing the entry point does not restore login/history or launch workers.
 - `ssdl/http_api.py` owns HTTP routes, origin checks, settings and user actions.
 - `ssdl/scheduler.py` owns serial scheduling, quota accounting, progress and job completion.

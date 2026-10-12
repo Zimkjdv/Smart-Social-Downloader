@@ -4,7 +4,7 @@
 
 `ssdl` 是 **Smart Social Downloader** 的縮寫，作為 Python 套件名稱，方便使用 `from ssdl import media` 等匯入。它不代表下載媒體的分類資料夾；平台分類仍使用 `youtube/`、`twitter/` 等名稱。中英文 README 均提供目錄結構及用途。
 
-這份文件描述目前結構。AppContext 與明確初始化生命週期已實作；引擎 adapter、前端控制器與共用測試 fixture 拆分仍列於 [Roadmap：架構與檔案結構](../ROADMAP.md#架構與檔案結構)。匯入 `ssdl.app` 不會建立管理器、恢復登入／歷史或啟動 HTTP／worker。
+這份文件描述目前結構。AppContext、明確初始化生命週期及後端下載引擎拆分已實作；前端控制器與共用測試 fixture 拆分仍列於 [Roadmap：架構與檔案結構](../ROADMAP.md#架構與檔案結構)。匯入 `ssdl.app` 不會建立管理器、恢復登入／歷史或啟動 HTTP／worker。
 
 ```text
 smart-social-downloader/
@@ -43,7 +43,14 @@ smart-social-downloader/
 │   ├── ipc.py                # 16 MiB frame／64 MiB 訊息分段與驗證
 │   ├── process_group.py      # 所屬程序樹／合併工具清理
 │   ├── network.py            # 公開 HTTP 目標及實際連線檢查
-│   ├── media.py              # 引擎調度、影片／圖片／帳號下載
+│   ├── media.py              # 相容的下載入口，明確匯出各模組函式
+│   ├── media_contracts.py    # 來源 ID、路徑、錯誤及 paced HTTP 共用契約
+│   ├── media_engines.py      # 選配引擎、FFmpeg 探測及共用完整性設定
+│   ├── media_coordinator.py  # 引擎調度、通用解析、完整來源 manifest
+│   ├── video_adapter.py      # yt-dlp、畫質／播放器選擇及串流下載
+│   ├── gallery_adapter.py    # gallery-dl 設定、節流與檔案進度
+│   ├── image_adapter.py      # 原始圖片位元組及 ImageHistory
+│   ├── x_account_media.py    # X 帳號掃描計畫／同步及公開貼文
 │   ├── video_quality.py       # 來源尺寸辨識及畫質顯示
 │   ├── web_media.py          # 通用 HTML／播放器媒體發現
 │   ├── browser_media.py      # 選配臨時 Chrome／受檢查傳輸
@@ -102,7 +109,32 @@ node --test tests/frontend.test.cjs
 
 測試使用暫存資料夾與本機 HTTP fixture，不需要 X 登入或真實平台下載。API 測試明確建立獨立 AppContext，不須為了匯入 app 預先 mock 登入恢復。
 
-已拆出共用設定、環境診斷、保存、manifest、程序監督、網路政策、遮蔽及瀏覽器 API 客戶端。`ssdl/app.py` 的 HTTP 路由、排程與保存現已拆出獨立元件；`ssdl/media.py` 的引擎調度仍可視未來需求進一步拆分。
+已拆出共用設定、環境診斷、保存、manifest、程序監督、網路政策、遮蔽及瀏覽器 API 客戶端。`ssdl/app.py` 的 HTTP 路由、排程與保存已拆出獨立元件；`ssdl/media.py` 現在只保留相容入口，下載實作的責任邊界如下。
+
+## 下載引擎與協調邊界（N06，2026-10-13）
+
+```mermaid
+flowchart TD
+    Entry[media.py 相容入口] --> Coordinator[media_coordinator.py]
+    Entry --> XAccount[x_account_media.py]
+    Coordinator --> Video[video_adapter.py]
+    Coordinator --> Gallery[gallery_adapter.py]
+    Coordinator --> Image[image_adapter.py]
+    Coordinator --> XAccount
+    XAccount --> Gallery
+    Video --> Contracts[media_contracts.py 共用契約]
+    Gallery --> Contracts
+    Image --> Contracts
+    XAccount --> Contracts
+```
+
+- `media.py` 明確匯出既有函式與錯誤類型，讓 app／job_runner／scheduler 的呼叫方式保持相容。各實作模組直接匯入共用契約，不反向匯入 media facade，不以動態 module proxy 或複製函式全域來維持耦合。
+- `media_contracts.py` 集中 `DownloadError`／診斷、source_key、X 貼文／圖片身份、平台資料夾、原保存位置核對與 paced_urlopen。所有 adapter 使用同一個錯誤類型及來源規則；畫質／播放器選擇仍由既有 video_quality／media_selection 提供。
+- `media_engines.py` 集中下載引擎的選配匯入、版本、FFmpeg 路徑與串流缺片判定設定。影片及 gallery-dl 委派 yt-dlp 都沿用相同 STREAM_INTEGRITY_OPTIONS，沒有另外複製缺片政策。
+- `media_coordinator.py` 負責完整來源 manifest、經核對舊紀錄的遷移、引擎選擇及靜態／動態通用解析。只在適合的錯誤下回退；已有部分檔案、限流及不安全來源錯誤不因拆檔而繼續嘗試其他引擎。
+- `gallery_adapter.GALLERY_LOCK` 保護 gallery-dl 的程序全域設定。一般調度與 X 帳號同步共用此鎖；帳號同步先掃描完整計畫，再核對／下載缺少的檔案。直接圖片、影片及公開 X 媒體保留原有命名與進度／回傳格式。
+- adapter 與共用 HTTP helper 從 request_policy 模組取得當前 POLICY，避免拆檔時把舊物件綁死。job_runner 建立 RemotePolicy 後，request_policy 與 web_media 使用同一個父程序 RPC 節流／冷卻服務；子程序及 socket 安全邊界保持不變。
+- facade 的第三方 library aliases 保留用於既有診斷。維護測試應在實作責任所在的 adapter／coordinator 設定測試替身，不能依賴改寫 facade 別名來改變其他模組的函式全域。
 
 ## 工作與資料邊界
 
