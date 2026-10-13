@@ -85,6 +85,11 @@ smart-social-downloader/
 │   ├── browser_media.py           Optional temporary Chrome discovery
 │   └── *.py                       API, scheduling, persistence and downloads
 ├── static/                        Browser UI, styles and locale keys
+│   ├── app.js                     Composition, state publishing and refresh
+│   ├── settings_controller.js     Settings, drafts, tabs and Rate confirmation
+│   ├── diagnostics_controller.js  Environment, health and cache maintenance
+│   ├── jobs_controller.js         List actions, filters, pages and file picker
+│   └── controller_lifecycle.js    Owned listeners, timers and cleanup
 ├── chrome-extension/              Chrome X session connector
 ├── tools/                         Setup, diagnostics and source packaging
 ├── docs/                          Usage, architecture and maintenance guides

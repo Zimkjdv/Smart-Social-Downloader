@@ -4,13 +4,13 @@ Implemented on 2026-10-11. The earlier performance work remains described in [PE
 
 ## Components
 
-- N06 follow-up (2026-10-13): `media.py` is now a stable facade. Shared contracts, optional engine detection, video/gallery/image adapters, source orchestration and X account/public-post media are separate modules; implementation modules never import the facade. The frontend controller split remains in ROADMAP.
+- N06 follow-up (2026-10-13): `media.py` is a stable facade over shared contracts, engines, adapters, orchestration and X services. Settings, diagnostics and list controllers now complete the frontend split; N06 is complete. Remaining work is N07/N08 in ROADMAP.
 - `ssdl/app.py` is the composition root and factory. `ssdl/app_context.py` owns typed AppState, instance-specific services, state views and explicit start/close; importing the entry point does not restore login/history or launch workers.
 - `ssdl/http_api.py` owns HTTP routes, origin checks, settings and user actions.
 - `ssdl/scheduler.py` owns serial scheduling, quota accounting, progress and job completion.
 - `ssdl/state_repository.py` owns history loading, migration, atomic saving and legacy row consolidation.
 - Components receive the live app context explicitly and never import `app`. Existing root callbacks remain bound aliases for embedding compatibility. This is an incremental split, not a conversion to a new web framework or a removal of all shared state.
-- `static/ui_state.js`, `job_presentation.js`, `x_login.js` and `media_selection.js` separate in-page state, row rendering, login actions and player selection. `app.js` coordinates refresh and other actions. Script ordering in HTML is explicit; no bundler or new dependency is required.
+- `static/ui_state.js`, `job_presentation.js`, `x_login.js` and `media_selection.js` retain shared state, keyed rows, login and player selection. Three controller factories receive explicit dependencies and own their private flags/listeners/timers; `app.js` composes them and publishes validated snapshots. Script ordering in HTML is explicit; no bundler or new dependency is required.
 
 ## Fixed translation keys and keyboard interaction
 

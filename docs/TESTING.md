@@ -1,5 +1,15 @@
 # Regression and acceptance tests
 
+## N06 frontend controller completion — 2026-10-13
+
+**159 Python tests passed in 85.029 seconds; 18 Node tests passed; zero skips.** The source allowlist validates 130 files, including lifecycle and three new controller scripts. All seven real headless Chrome UI cases remain enabled, alongside synthetic Chrome capture, HLS/DASH, fault and child-process suites.
+
+Eight new Node cases cover module loading without DOM/application globals, idempotent initialization/disposal, listener/timer cleanup, concurrent settings saves, closed settings ignoring late reads, old auto-close versus reopened drafts, disposed diagnostic reads/search debounce, object URL cleanup, and closed job details ignoring late responses. Existing offline recovery, snapshot ordering, uncertain writes, draft/scroll/language and connector tests still pass. Two new real Chrome cases cancel/confirm Rate without duplicate writes and page through 120 filenames before sending the exact selected index/name once.
+
+Preliminary browser fixture runs exposed an ambiguous open-media selector and a keyboard assertion appended to the wrong test while adding coverage; the final run uses the action icon explicitly and retains the keyboard assertion in its original cookie-field case. Production focus and mutation assertions were not disabled. New controller lifecycle guards are covered by the Node cases.
+
+No personal Cookie access, live platform download or backend service restart was performed. The page preserves its UI/API behavior and normal 30-second/active 2-second polling. N06 is complete; remaining work and platform/installation acceptance are in [ROADMAP](../ROADMAP.md).
+
 ## N06 download adapters and orchestration — 2026-10-13
 
 **157 Python tests passed in 84.218 seconds; 10 Node tests passed; zero skips.** Windows / Python 3.12. The source allowlist validates 126 files, including seven new implementation modules and `test_media_architecture.py`. Ten new boundary/account tests passed in 0.190 seconds; focused manifest (7) and all-quality (10) suites also passed.
@@ -11,7 +21,7 @@
 
 An AST comparison of 29 moved top-level functions/classes against the previous commit matches after reversing the explicit dependency qualifications. This is an additional check against unintended extraction edits, not proof of all behavior. The first full attempt caught two missing imports in relocated browser test mocks; the passing run includes those corrections. Existing library socket ResourceWarnings remain tracked under dependency maintenance; assertions were not disabled.
 
-No live platform media or personal Cookie values were used. Public entry points, API fields, archive/runtime locations, original-byte behavior and quality selection remain compatible. Backend splitting is complete; frontend controller splitting, N07 measurements and N08 fixture/packaging acceptance remain in [ROADMAP](../ROADMAP.md).
+No live platform media or personal Cookie values were used. Public entry points, API fields, archive/runtime locations, original-byte behavior and quality selection remain compatible. Frontend splitting was pending at this milestone and is completed in the follow-up above; current pending work remains in [ROADMAP](../ROADMAP.md).
 
 ## N06 state ownership and lifecycle — 2026-10-11
 

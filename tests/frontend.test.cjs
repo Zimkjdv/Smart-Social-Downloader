@@ -60,8 +60,13 @@ class Element {
   }
   addEventListener(type, callback) { this.events.set(type, [...(this.events.get(type) || []), callback]); }
   async fire(type, data = {}) { for (const callback of this.events.get(type) || []) await callback({target:this, ...data}); }
+  removeEventListener(type, callback) { this.events.set(type, (this.events.get(type) || []).filter(item => item !== callback)); }
+  showModal() { this.open = true; }
+  close() { this.open = false; }
+  click() { return this.fire('click', {currentTarget:this}); }
   setAttribute(key, value) { this.attrs[key] = value; }
   getAttribute(key) { return this.attrs[key] ?? null; }
+  hasAttribute(key) { return Object.hasOwn(this.attrs, key); }
   removeAttribute(key) { delete this.attrs[key]; }
   querySelector(key) { if (!this.children.has(key)) this.children.set(key, new Element(key)); return this.children.get(key); }
   querySelectorAll() { return []; }
@@ -98,13 +103,143 @@ function appHarness() {
   vm.runInContext(source('static/api.js'), context);
   const request = context.SSDLApi.request;
   context.SSDLApi.request = (url, options) => request(url, {...options, timeoutMs:20});
-  for (const name of ['ui_state.js', 'job_presentation.js', 'x_login.js', 'media_selection.js', 'app.js']) {
+  for (const name of ['ui_state.js', 'job_presentation.js', 'x_login.js', 'media_selection.js', 'controller_lifecycle.js', 'diagnostics_controller.js', 'jobs_controller.js', 'settings_controller.js', 'app.js']) {
     vm.runInContext(source('static/' + name), context);
   }
   return {context, elements, calls, scheduled, get:key => document.querySelector(key), document,
     evaluate:code => vm.runInContext(code, context), response:fn => {response = fn;},
-    close:() => {for (const timer of realTimers) clearTimeout(timer); scheduled.clear();}};
+    close:() => {vm.runInContext('disposeDashboard()', context); for (const timer of realTimers) clearTimeout(timer); scheduled.clear();}};
 }
+
+test('controller modules load without DOM access or application globals', () => {
+  const context = vm.createContext({window:{}, document:new Proxy({}, {get() {throw new Error('unexpected DOM access');}})});
+  for (const name of ['controller_lifecycle.js','settings_controller.js','jobs_controller.js','diagnostics_controller.js']) {
+    vm.runInContext(source('static/' + name), context);
+  }
+  assert.equal(typeof context.window.SSDLSettingsController.create, 'function');
+  assert.equal(typeof context.window.SSDLJobsController.create, 'function');
+  assert.equal(typeof context.window.SSDLDiagnosticsController.create, 'function');
+});
+
+test('controller lifecycle initializes once and releases listeners timers and queued callbacks', async () => {
+  const context = vm.createContext({window:{}});
+  vm.runInContext(source('static/controller_lifecycle.js'), context);
+  const timers = new Map(), target = new Element();
+  let calls = 0, next = 0, cleanup = 0;
+  const scope = context.window.SSDLControllerLifecycle.create({setTimeout:(fn) => {timers.set(++next, fn); return next;}, clearTimeout:id => timers.delete(id)});
+  scope.listen(target, 'click', () => calls++);
+  await target.fire('click'); assert.equal(calls, 0);
+  scope.init(); scope.init();
+  await target.fire('click'); assert.equal(calls, 1);
+  scope.defer(() => calls++, 250);
+  const delayed = [...timers.values()][0];
+  scope.onDispose(() => cleanup++);
+  scope.dispose(); scope.dispose();
+  delayed(); await target.fire('click');
+  assert.equal(calls, 1); assert.equal(cleanup, 1); assert.equal(timers.size, 0);
+  assert.equal(target.events.get('click').length, 0);
+  assert.throws(() => scope.init(), /disposed/);
+});
+
+test('controller initialization never duplicates writes and settings save rejects concurrent submissions', async () => {
+  const app = appHarness();
+  try {
+    await pause(10);
+    app.evaluate('jobsController.init(); settingsController.init(); diagnosticsController.init();');
+    assert.equal(app.get('#top-pause').events.get('click').length, 1);
+    assert.equal(app.get('#settings-save').events.get('click').length, 1);
+    assert.equal(app.get('#environment-refresh').events.get('click').length, 1);
+    let finish;
+    app.response(() => new Promise(resolve => {finish = resolve;}));
+    const first = app.get('#settings-save').fire('click');
+    await app.get('#settings-save').fire('click');
+    assert.equal(app.calls.filter(call => call.url.startsWith('/api/settings')).length, 1);
+    finish(json(state())); await first;
+    assert.equal(app.get('#settings-save').disabled, false);
+  } finally {app.close();}
+});
+
+test('closing settings during its load cannot reopen the dialog when the response arrives', async () => {
+  const app = appHarness();
+  try {
+    await pause(10);
+    let finish;
+    app.response(() => new Promise(resolve => {finish = resolve;}));
+    const opening = app.evaluate('openSettings()');
+    app.evaluate('settingsController.close()');
+    finish(json(state()));
+    assert.equal(await opening, false);
+    assert.equal(app.get('#settings-modal').classList.contains('hidden'), true);
+    assert.equal(app.get('#settings-open').disabled, false);
+  } finally {app.close();}
+});
+
+test('old save auto-close cannot close a freshly reopened settings draft', async () => {
+  const app = appHarness();
+  try {
+    await pause(10); await app.evaluate('openSettings()');
+    await app.get('#settings-save').fire('click');
+    const delayed = [...app.scheduled.values()].find(timer => timer.delay === 550).fn;
+    app.evaluate('settingsController.close()'); await app.evaluate('openSettings()');
+    app.get('#download-dir').value = 'new unsaved draft'; delayed();
+    assert.equal(app.get('#settings-modal').classList.contains('hidden'), false);
+    assert.equal(app.get('#download-dir').value, 'new unsaved draft');
+  } finally {app.close();}
+});
+
+test('disposed diagnostics ignores a late response and job disposal cancels search debounce', async () => {
+  const app = appHarness();
+  try {
+    await pause(10);
+    const oldSummary = app.get('#environment-summary').textContent;
+    let finish;
+    app.response(() => new Promise(resolve => {finish = resolve;}));
+    const loading = app.evaluate('diagnosticsController.load()');
+    app.evaluate('diagnosticsController.dispose()');
+    finish(json({...environment(), checked_at:99, status:'warning', warnings:1})); await loading;
+    assert.equal(app.get('#environment-summary').textContent, oldSummary);
+    app.get('#search-input').value = 'fixture'; await app.get('#search-input').fire('input');
+    const delayed = [...app.scheduled.values()].find(timer => timer.delay === 250).fn;
+    const before = app.calls.length;
+    app.evaluate('jobsController.dispose()'); delayed();
+    await app.get('#top-pause').fire('click');
+    assert.equal(app.calls.length, before);
+    assert.equal([...app.scheduled.values()].some(timer => timer.delay === 250), false);
+  } finally {app.close();}
+});
+
+test('diagnostic export releases object URLs when its controller is disposed', async () => {
+  const app = appHarness();
+  try {
+    await pause(10);
+    const revoked = [];
+    app.context.URL = class extends URL {static createObjectURL() {return 'blob:synthetic-report';} static revokeObjectURL(url) {revoked.push(url);}};
+    app.response(() => json({format_version:1, created_at:1, counts:{}, jobs:[], environment:environment()}));
+    await app.get('#diagnostics-export').fire('click');
+    app.evaluate('diagnosticsController.dispose()');
+    assert.deepEqual(revoked, ['blob:synthetic-report']);
+    assert.equal([...app.scheduled.values()].some(timer => timer.delay === 1000), false);
+  } finally {app.close();}
+});
+
+test('closing job details during its read discards the late dialog response', async () => {
+  const app = appHarness();
+  try {
+    await pause(10);
+    app.context.snapshot = state([job('failed')]); app.evaluate('render(snapshot)');
+    let finish;
+    app.response(() => new Promise(resolve => {finish = resolve;}));
+    const button = new Element(); button.attrs['data-detail'] = 'one';
+    button.closest = selector => selector === 'button' ? button : {dataset:{jobId:'one'}};
+    const reading = app.get('#job-rows').fire('click', {target:button});
+    app.evaluate('jobsController.closeError()');
+    finish(json({...job('failed'), warnings:[], error:'synthetic failure', error_detail:'synthetic detail'}));
+    await reading;
+    assert.equal(app.get('#error-modal').classList.contains('hidden'), true);
+    assert.equal(button.disabled, false);
+    assert.equal(app.evaluate('pendingJobActions.size'), 0);
+  } finally {app.close();}
+});
 test('DOM retains last valid jobs offline, restores refresh control and polling, then reconnects', async () => {
   const app = appHarness();
   try {

@@ -4,7 +4,7 @@
 
 `ssdl` 是 **Smart Social Downloader** 的縮寫，作為 Python 套件名稱，方便使用 `from ssdl import media` 等匯入。它不代表下載媒體的分類資料夾；平台分類仍使用 `youtube/`、`twitter/` 等名稱。中英文 README 均提供目錄結構及用途。
 
-這份文件描述目前結構。AppContext、明確初始化生命週期及後端下載引擎拆分已實作；前端控制器與共用測試 fixture 拆分仍列於 [Roadmap：架構與檔案結構](../ROADMAP.md#架構與檔案結構)。匯入 `ssdl.app` 不會建立管理器、恢復登入／歷史或啟動 HTTP／worker。
+這份文件描述目前結構。N06 的 AppContext、初始化生命週期、後端下載引擎及前端控制器拆分均已實作；保存成本量測與共用測試 fixture 仍列於 [Roadmap：架構與檔案結構](../ROADMAP.md#架構與檔案結構)。匯入 `ssdl.app` 不會建立管理器、恢復登入／歷史或啟動 HTTP／worker。
 
 ```text
 smart-social-downloader/
@@ -69,7 +69,11 @@ smart-social-downloader/
 │   ├── ui_accessibility.js   # 彈窗焦點與鍵盤
 │   ├── ui_accessibility.css  # 焦點與窄視窗
 │   ├── api.js                # 請求期限、JSON 與回應結構驗證
-│   ├── app.js                # 介面狀態、操作及呈現
+│   ├── app.js                # 組裝、已驗證 snapshot 發布與刷新
+│   ├── settings_controller.js # 設定草稿、分頁及 Rate 確認
+│   ├── diagnostics_controller.js # 診斷、健康、容量與快取操作
+│   ├── jobs_controller.js    # 清單、篩選／分頁及檔案選擇
+│   ├── controller_lifecycle.js # 控制器事件、計時器及清理
 │   ├── job_rows.js           # 資料列保留與變動欄位更新
 │   ├── settings.css          # 設定分頁、固定導覽與內容捲動
 │   └── i18n.js               # 繁中／英文訊息
@@ -151,6 +155,17 @@ Windows Job Object 在傳入工作前綁定子程序，其啟動的 FFmpeg／JS 
 ## P2 模組邊界（2026-10-11）
 
 後端元件明確注入具型別的 AppContext，不再以 `sys.modules` 注入 app 模組，也不反向匯入入口。AppState 明列佇列、Rate、設定及 worker 狀態；API／scheduler／repository 共用同一實例的狀態與鎖。前端將狀態、列表呈現、X 登入、播放器選擇分離，固定語系 key 放在 `static/locales.js`，焦點管理放在 `ui_accessibility.js`。仍是漸進拆分，沒有切換框架。完整規則與驗收狀態見 [P2_COMPLETION.md](P2_COMPLETION.md)。
+
+## 前端控制器邊界（N06，2026-10-13）
+
+`app.js` 組裝設定、診斷與清單控制器，保留快照順序／實例判定、未確認寫入後的讀取核對、30 秒閒置／2 秒活動刷新及新增網址表單。原先 966 行縮為約 390 行；職責比行數重要，雙語資料仍保留於 locales.js。
+
+- 三個 factory 透過 `create(dependencies)` 接收 DOM、共用 state、語系／格式函式、API、最新 snapshot getter 及 render／refresh 回呼。載入模組只公開 factory，不存取 DOM 或 API；私有忙碌旗標、對話框 epoch、設定分頁與診斷快取留在各實例。原 API client、keyed row rendering、i18n、X 登入、播放器選擇及焦點模組保留。
+- settings_controller 管理草稿、分頁／鍵盤／返回焦點、保存及 Rate 確認。輪詢／語言切換不覆蓋未儲存欄位；重複保存被阻擋。關閉／重開設定會更新 epoch，較晚的開啟／保存回應及舊 auto-close 不會干擾另一輪視窗。
+- diagnostics_controller 管理環境檢查與翻譯快取、保存／worker 健康、容量重掃、縮圖清理、診斷匯出與 object URL 回收。jobs_controller 管理列操作、篩選／搜尋 debounce／分頁、錯誤／提醒及每批最多 100 個檔案的選擇；file index 與 filename 一起送出，較晚彈窗回應受 epoch／生命週期保護。
+- controller_lifecycle 擁有靜態 listener 與 timer。init 可重複而不增加 listener；dispose 會移除 listener、取消 timer 與回收匯出 URL，已 dispose 的控制器不可再次 init。動態檔案按鈕隨清單 DOM 回收，不為追蹤事件而永久持有它們。
+- dispose 不重送或撤回已送出的 mutation；寫入可能已在後端生效，較晚回應不再發布至已清理的控制器。頁面離開時停止刷新與控制器；進入瀏覽器返回快取時保留實例，避免返回後操作失效。
+- HTML 明列既有模組、lifecycle、三個 factory 與 app 的載入順序。沒有新增框架、bundler 或 npm 依賴；node 測試與真實 Chrome 驗收涵蓋設定草稿、焦點、分頁、Rate 及檔案選擇。
 
 ## AppContext 與生命週期（N06）
 

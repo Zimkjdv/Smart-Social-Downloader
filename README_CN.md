@@ -85,6 +85,11 @@ smart-social-downloader/
 │   ├── browser_media.py           選配臨時 Chrome 捕捉
 │   └── *.py                       API、排程、保存及下載模組
 ├── static/                        網頁介面、樣式及語系 key
+│   ├── app.js                     組裝、狀態發布與刷新排程
+│   ├── settings_controller.js     設定草稿、分頁及 Rate 確認
+│   ├── diagnostics_controller.js  環境診斷、健康與快取維護
+│   ├── jobs_controller.js         清單操作、篩選、分頁及檔案選擇
+│   └── controller_lifecycle.js    事件、計時器與清理
 ├── chrome-extension/              Chrome X 登入連接器
 ├── tools/                         安裝、診斷及原始碼打包
 ├── docs/                          操作、架構與維護文件

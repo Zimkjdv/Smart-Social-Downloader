@@ -275,7 +275,11 @@ smart-social-downloader/
 │   ├── ui_accessibility.js     Modal focus and keyboard boundaries
 │   ├── ui_accessibility.css    Focus, responsive and reduced-motion styles
 │   ├── api.js                  API deadlines and response validation
-│   ├── app.js                  UI state, actions, and rendering
+│   ├── app.js                  Composition, state publishing and refresh
+│   ├── settings_controller.js  Settings, drafts, tabs and Rate confirmation
+│   ├── diagnostics_controller.js Environment, health and maintenance
+│   ├── jobs_controller.js      List actions, filters, pages and file picker
+│   ├── controller_lifecycle.js Owned listeners, timers and cleanup
 │   ├── job_rows.js             Preserve rows and patch changed cells
 │   ├── i18n.js                 English / Traditional Chinese translations
 │   ├── settings.css            Tabbed settings window and scrolling content

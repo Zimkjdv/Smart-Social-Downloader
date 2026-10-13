@@ -43,7 +43,7 @@ class BrowserUITests(unittest.TestCase):
                     "paused": False, "ready": True, "download_dir": "fixture-downloads", "x_cookie_file": "",
                     "x_auth": {"connected": False, "busy": False, "phase": "idle"},
                     "safe_queue": {"enabled": True, "phase": "idle", "cooldown_mode": "platform"},
-                    "rate_limit": {"used": 3, "limit": 40}, "storage": {"ready": True},
+                    "rate_limit": {"used": cls.rate_used, "limit": 40}, "storage": {"ready": True},
                     "environment": environment(), "persistence": {"healthy": True, "error": "", "blocked": False},
                     "worker": {"alive": True, "phase": "idle"}, "no_progress_timeout": 300,
                     "dynamic_capture": cls.settings.get("dynamic_capture", False), "browser_capture_available": True,
@@ -51,6 +51,15 @@ class BrowserUITests(unittest.TestCase):
             def do_GET(self):
                 path = urlparse(self.path).path
                 if path == "/api/environment": return self.send_json(environment())
+                if path.startswith("/api/jobs/") and path.endswith("/files"):
+                    params = parse_qs(urlparse(self.path).query)
+                    offset, limit = int(params.get("offset", [0])[0]), int(params.get("limit", [100])[0])
+                    job = next(job for job in cls.jobs if job["id"] == path.split("/")[3])
+                    files = job.get("files", [])
+                    end = min(len(files), offset + limit)
+                    return self.send_json({"job_id": job["id"], "total": len(files), "offset": offset,
+                        "limit": limit, "next_offset": end if end < len(files) else None,
+                        "files": [{"index": index, "filename": files[index]} for index in range(offset, end)]})
                 if path.startswith("/api/"): return self.send_json(self.state())
                 if path == "/": return self.send_bytes((ROOT / "static/index.html").read_bytes(), "text/html")
                 candidate = ROOT / path.lstrip("/")
@@ -67,6 +76,9 @@ class BrowserUITests(unittest.TestCase):
                                      "files": [], "video_quality": payload["video_quality"]})
                     return self.send_json({"added": [key], "reused": [], "already_pending": [], "rejected": [], "state": self.state()}, 201)
                 if path == "/api/settings": cls.settings.update(payload)
+                if path == "/api/rate/reset":
+                    previous = cls.rate_used; cls.rate_used = 0
+                    return self.send_json({"previous_used": previous, "state": self.state()})
                 if path.endswith("/select-media"):
                     job = next(job for job in cls.jobs if job["id"] == path.split("/")[3])
                     job.update(status="queued", selected_media=payload["selection_id"])
@@ -85,6 +97,7 @@ class BrowserUITests(unittest.TestCase):
 
     def setUp(self):
         self.jobs.clear(); self.writes.clear(); self.settings.clear()
+        type(self).rate_used = 3
         self.context = self.browser.new_context(viewport={"width": 1440, "height": 1000}, reduced_motion="reduce")
         self.addCleanup(self.context.close)
         self.page = self.context.new_page(); self.errors = []
@@ -188,6 +201,38 @@ class BrowserUITests(unittest.TestCase):
         self.assertEqual(page.evaluate("document.activeElement.tagName"), "SUMMARY")
         page.keyboard.press("Escape")
         page.wait_for_function("document.activeElement.id === 'settings-open'")
+        self.assert_no_errors()
+
+    def test_rate_dialog_cancels_without_writing_and_confirm_updates_usage_once(self):
+        self.load(); page = self.page
+        page.locator("#top-rate").click()
+        self.assertTrue(page.locator("#rate-confirm-dialog").evaluate("el => el.open"))
+        page.locator("#rate-confirm-cancel").click()
+        self.assertFalse([entry for entry in self.writes if entry[0] == "/api/rate/reset"])
+        page.locator("#top-rate").click()
+        with page.expect_response(lambda response: response.request.method == "POST" and urlparse(response.url).path == "/api/rate/reset"):
+            page.locator("#rate-confirm-submit").click()
+        page.wait_for_function("!document.querySelector('#rate-confirm-dialog').open")
+        self.assertEqual(page.locator("#top-rate-used").inner_text(), "0")
+        self.assertEqual(len([entry for entry in self.writes if entry[0] == "/api/rate/reset"]), 1)
+        page.wait_for_function("document.activeElement.id === 'top-rate'")
+        self.assert_no_errors()
+
+    def test_file_picker_pages_and_opens_exact_file_without_repeating_the_action(self):
+        files = [f"web/synthetic-{index}.png" for index in range(120)]
+        self.jobs.append({"id": "files", "title": "Synthetic album", "url": "https://example.org/album",
+                          "platform": "Web", "status": "completed", "created_at": 1, "files": files})
+        self.load(); page = self.page
+        page.locator('.row-icon-button[data-open-media="files"]').click()
+        choices = page.locator("#file-picker-list .file-choice:not(#file-picker-more)")
+        page.wait_for_function("document.querySelectorAll('#file-picker-list .file-choice:not(#file-picker-more)').length === 100")
+        page.locator("#file-picker-more").click()
+        page.wait_for_function("document.querySelectorAll('#file-picker-list .file-choice:not(#file-picker-more)').length === 120")
+        with page.expect_response(lambda response: response.request.method == "POST" and response.url.endswith("/open-file")):
+            choices.nth(100).click()
+        page.wait_for_function("document.querySelector('#file-picker-modal').classList.contains('hidden')")
+        opened = [entry for entry in self.writes if entry[0].endswith("/open-file")]
+        self.assertEqual(opened, [("/api/jobs/files/open-file", {"file_index": 100, "filename": files[100]})])
         self.assert_no_errors()
 
     def test_every_fixed_locale_key_matches_and_html_keys_exist(self):

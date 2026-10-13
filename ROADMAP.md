@@ -1,6 +1,6 @@
 # Roadmap
 
-更新：2026-10-13。此檔是**未完成工作與最新審查發現的唯一總清單**；完成紀錄移至 [CHANGELOG](CHANGELOG.md)。目前基準為 Windows／Python 3.12，沒有 Python 3.10 驗收工作。下列核取方塊均尚未完成，不代表已修正或已發布。N01～N05、N06 的狀態擁有者／生命週期及後端下載模組拆分已移到 [CHANGELOG](CHANGELOG.md#unreleased)，回歸結果見 [TESTING](docs/TESTING.md)。
+更新：2026-10-13。此檔是**未完成工作與最新審查發現的唯一總清單**；完成紀錄移至 [CHANGELOG](CHANGELOG.md)。目前基準為 Windows／Python 3.12，沒有 Python 3.10 驗收工作。下列核取方塊均尚未完成，不代表已修正或已發布。N01～N06 已完成並移到 [CHANGELOG](CHANGELOG.md#unreleased)，回歸結果見 [TESTING](docs/TESTING.md)。
 
 ## 本輪整體審查
 
@@ -10,19 +10,14 @@
 
 | 編號 | 優先度 | 狀態 | 問題／改善 |
 | --- | --- | --- | --- |
-| N06 | P2 | 狀態／生命週期及後端完成 | 前端控制器的責任拆分 |
 | N07 | P2 | 待量測 | 保存鎖與大量檔案進度成本、SQLite 長期容量 |
 | N08 | P2 | 維護改善建議 | 測試 fixture、來源打包規則與檔案結構配套 |
 
-N01～N05 已完成；N06 的 AppContext、匯入不恢復登入、實例獨立關閉及後端下載引擎／協調／X 帳號同步拆分已完成，接下來處理前端控制器及 N07～N08。HTTP 讀取期限、併發限制與輸入契約見 [可靠性文件](docs/RELIABILITY.md)。
+N01～N06 已完成並移至 [CHANGELOG](CHANGELOG.md#unreleased)。下一項是 N07 的保存成本量測，再依結果決定 writer／容量維護設計；N08 的 fixture 與來源包驗收仍待辦。HTTP 讀取期限、併發限制與輸入契約見 [可靠性文件](docs/RELIABILITY.md)。
 
 ## 架構與檔案結構
 
 目前根目錄入口＋`ssdl/`／`static/`／`chrome-extension/`／`tools/`／`docs/`／`tests/` 的分層保留。AppContext 已實作，runtime 位置保持相容；以下列出剩餘調整，目前完整樹見 [ARCHITECTURE](docs/ARCHITECTURE.md)。
-
-### N06：剩餘前端控制器拆分
-
-- [ ] 拆分 `static/app.js`（966 行）的設定、診斷、清單控制器，保留既有 API client／row reconciliation／i18n／focus 模組。`locales.js` 的 2507 行主要是雙語資料，不單憑行數視為效能缺陷。
 
 每次只改一個責任邊界，維持入口、API、資料路徑及 Chrome extension ID 相容；共用鎖與關閉順序已列於架構文件。
 

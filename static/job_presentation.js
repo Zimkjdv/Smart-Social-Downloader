@@ -1,4 +1,4 @@
-/* Job formatting and keyed table rendering; actions live in app.js. */
+/* Job formatting and keyed table rendering; actions live in jobs_controller.js. */
 const safe = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
 const statusNames = { queued: '等待中', active: '下載中', completed: '已完成', failed: '失敗', selecting: '待選擇媒體' };
 const jobTitle = (job) => job.mode === 'x_profile' ? t('ui.x_account_media_account', { account: job.account || '' }) : !job.title || job.title === '等待下載' || job.title === '正在下載圖片來源檔' ? t(job.title || 'ui.waiting_to_download') : job.title;

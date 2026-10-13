@@ -378,7 +378,11 @@ smart-social-downloader/
 │   ├── ui_accessibility.css  焦點、窄視窗與減少動態
 │   ├── settings.css          設定分頁、固定導覽與內容捲動
 │   ├── api.js                請求期限與回應驗證
-│   ├── app.js                介面狀態與操作
+│   ├── app.js                組裝、狀態發布與刷新
+│   ├── settings_controller.js 設定草稿、分頁及 Rate 確認
+│   ├── diagnostics_controller.js 診斷、健康與維護
+│   ├── jobs_controller.js    清單操作、篩選／分頁及檔案選擇
+│   ├── controller_lifecycle.js 事件、計時器與清理
 │   ├── job_rows.js           保留資料列、只更新變動欄位
 │   └── i18n.js               繁中／英文翻譯
 ├── chrome-extension/         Chrome X 本機連接器
