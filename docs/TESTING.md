@@ -1,5 +1,15 @@
 # Regression and acceptance tests
 
+## N07 persistence measurement milestone — 2026-10-14
+
+**167 Python tests passed in 86.091 seconds; 18 Node tests passed; zero skips.** Windows / Python 3.12.10. The reviewed source allowlist validates 133 files, including the new measurement tool, acceptance module and performance report. Existing Chrome UI/capture, HLS/DASH integrity, worker supervision, source policy, lifecycle and quality suites remain enabled.
+
+Eight new cases validate synthetic counts and offline schema, nearest-rank statistics, real temporary primary/backup saves and summary/pause/stop acknowledgements, the gate at actual handler lock acquisition, failed-save rejection, owned writer/HTTP cleanup, RLock condition wait/notify semantics and source-package inclusion. They run the small workload and assert correctness, without machine-specific latency thresholds. The final focused rerun also passed all eight cases.
+
+The full three-workload benchmark was repeated **separately after regression tests finished**, with five samples per operation. The 400,180-path / 20.29 MiB state saved in a median 927.67 ms (nearest-rank p95 1,267.31 ms). Contended summary/pause/stop acknowledgement medians were 1,044.32 / 2,057.78 / 1,930.42 ms. Measurements and cProfile-overhead limits are in [PERSISTENCE_PERFORMANCE](PERSISTENCE_PERFORMANCE.md).
+
+No production service restart, personal Cookie/history access or external platform download occurred. Stop measures saved intent rather than actual subprocess termination; scan/IPC/64 MiB capacity and SQLite maintenance are outside this milestone. N07's first measurement is complete; the writer is designed but not implemented, with remaining work in [ROADMAP](../ROADMAP.md).
+
 ## N06 frontend controller completion — 2026-10-13
 
 **159 Python tests passed in 85.029 seconds; 18 Node tests passed; zero skips.** The source allowlist validates 130 files, including lifecycle and three new controller scripts. All seven real headless Chrome UI cases remain enabled, alongside synthetic Chrome capture, HLS/DASH, fault and child-process suites.

@@ -54,7 +54,7 @@ API 狀態快照附帶服務實例 ID 與遞增序號。較早輪詢若較晚返
 - **body 格式**：POST 要有唯一的十進位 Content-Length，大小 1～100,000 bytes；重複／非數字／超限長度及 Transfer-Encoding 被拒絕。服務不支援 chunked request body。JSON 必須是物件，無效 UTF-8、過深結構、NaN／Infinity 均得到不包含原始輸入的 400。
 - **併發與回應**：最多 **32 條 active HTTP 連線**，包含讀取、路由處理及回應；超量在建立 handler 執行緒前回覆 **503** 與 `Retry-After: 1`，不執行 API 操作。每條連線處理一個請求，socket 寫入期限 **5 秒**。shutdown 只關閉此服務接受的 socket，HTTP 斷線不會停止背景下載。這些為固定伺服器常數，沒有新增使用者設定。
 
-主介面的 15 秒期限及 Chrome 連接器的 12 秒期限仍保留；未確認的寫入不自動重送。這些限制處理 HTTP 傳輸與併發，不限制下載總時間，也不能中斷路由內的磁碟或其他應用程式操作；保存鎖成本仍待 N07 量測。Host／Origin／連接器配對政策不變，服務仍限 loopback。
+主介面的 15 秒期限及 Chrome 連接器的 12 秒期限仍保留；未確認的寫入不自動重送。這些限制處理 HTTP 傳輸與併發，不限制下載總時間，也不能中斷路由內的磁碟或其他應用程式操作。[N07 保存成本量測](PERSISTENCE_PERFORMANCE.md) 已在大型合成紀錄重現共用鎖等待，writer 改造仍待辦。Host／Origin／連接器配對政策不變，服務仍限 loopback。
 
 ## 4．媒體網路目標（R11）
 

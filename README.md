@@ -91,7 +91,8 @@ smart-social-downloader/
 │   ├── jobs_controller.js         List actions, filters, pages and file picker
 │   └── controller_lifecycle.js    Owned listeners, timers and cleanup
 ├── chrome-extension/              Chrome X session connector
-├── tools/                         Setup, diagnostics and source packaging
+├── tools/                         Setup, diagnostics, measurement and packaging
+│   └── measure_persistence.py      Isolated synthetic saves and API latency
 ├── docs/                          Usage, architecture and maintenance guides
 │   └── images/dashboard-preview.svg  Fictional public illustration
 ├── tests/                         Local fixtures and regression suites
@@ -107,6 +108,8 @@ smart-social-downloader/
 ## Updates, reporting and releases
 
 The **application version** appears beneath the app name and in Settings → Diagnostics. Engine versions appear separately in environment diagnostics. `update.bat` updates engines; it does not update application source. See [Maintenance](docs/MAINTENANCE.md) and [CHANGELOG](CHANGELOG.md).
+
+Maintainers can reproduce synthetic save and API latency measurements with `python tools/measure_persistence.py`. See [persistence performance](docs/PERSISTENCE_PERFORMANCE.md) for results, limits and the planned writer; the command uses disposable history and does not download media or restore login.
 
 After the GitHub repository is published, use the Issue forms for bugs, installation or feature requests. Read [CONTRIBUTING](CONTRIBUTING.md) first and review diagnostics/screenshots before sharing them. Vulnerabilities use the private process in [SECURITY](SECURITY.md).
 

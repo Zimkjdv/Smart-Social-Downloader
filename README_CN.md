@@ -91,7 +91,8 @@ smart-social-downloader/
 │   ├── jobs_controller.js         清單操作、篩選、分頁及檔案選擇
 │   └── controller_lifecycle.js    事件、計時器與清理
 ├── chrome-extension/              Chrome X 登入連接器
-├── tools/                         安裝、診斷及原始碼打包
+├── tools/                         安裝、診斷、量測及原始碼打包
+│   └── measure_persistence.py      隔離合成保存與 API 延遲量測
 ├── docs/                          操作、架構與維護文件
 │   └── images/dashboard-preview.svg  可公開的虛構介面示意
 ├── tests/                         本機 fixture 與回歸測試
@@ -107,6 +108,8 @@ smart-social-downloader/
 ## 更新、回報與發布
 
 **應用程式版本**顯示在頂部名稱下方及設定 → 診斷；引擎版本另列於環境診斷。`update.bat` 更新引擎，不更新應用程式原始碼。詳見 [維護指南](docs/MAINTENANCE.md) 與 [CHANGELOG](CHANGELOG.md)。
+
+維護者可用 `python tools/measure_persistence.py` 重現合成紀錄保存與 API 延遲量測，結果、限制及後續 writer 設計見 [保存效能文件](docs/PERSISTENCE_PERFORMANCE.md)。指令使用暫存資料，不下載媒體或恢復登入。
 
 GitHub repo 發布後，可使用 Issue 表單回報錯誤、安裝問題或功能建議。分享前先檢視診斷與截圖，避免個人資料外洩；流程見 [CONTRIBUTING](CONTRIBUTING.md)。漏洞請依 [SECURITY](SECURITY.md) 使用私人回報方式。
 

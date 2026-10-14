@@ -4,7 +4,7 @@
 
 `ssdl` 是 **Smart Social Downloader** 的縮寫，作為 Python 套件名稱，方便使用 `from ssdl import media` 等匯入。它不代表下載媒體的分類資料夾；平台分類仍使用 `youtube/`、`twitter/` 等名稱。中英文 README 均提供目錄結構及用途。
 
-這份文件描述目前結構。N06 的 AppContext、初始化生命週期、後端下載引擎及前端控制器拆分均已實作；保存成本量測與共用測試 fixture 仍列於 [Roadmap：架構與檔案結構](../ROADMAP.md#架構與檔案結構)。匯入 `ssdl.app` 不會建立管理器、恢復登入／歷史或啟動 HTTP／worker。
+這份文件描述目前結構。N06 的 AppContext、初始化生命週期、後端下載引擎及前端控制器拆分均已實作；N07 的 [保存成本量測](PERSISTENCE_PERFORMANCE.md) 已完成，writer 實作及共用測試 fixture 仍列於 [Roadmap：架構與檔案結構](../ROADMAP.md#架構與檔案結構)。匯入 `ssdl.app` 不會建立管理器、恢復登入／歷史或啟動 HTTP／worker。
 
 ```text
 smart-social-downloader/
@@ -78,7 +78,8 @@ smart-social-downloader/
 │   ├── settings.css          # 設定分頁、固定導覽與內容捲動
 │   └── i18n.js               # 繁中／英文訊息
 ├── chrome-extension/         # Chrome X 本機連接器
-├── tools/                    # 環境管理與原始碼打包
+├── tools/                    # 環境管理、量測與原始碼打包
+│   └── measure_persistence.py # 隔離合成歷史保存／API 延遲量測
 ├── docs/                     # 使用、發布、去重及架構說明
 ├── tests/                    # 本機 API、下載、串流及發布測試
 ├── .github/workflows/        # Windows CI

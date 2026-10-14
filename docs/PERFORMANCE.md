@@ -2,6 +2,8 @@
 
 Implemented on 2026-10-10 for the first three P2 items. The 200-job history limit and complete saved file lists are unchanged.
 
+The N07 [persistence and queue-lock measurements](PERSISTENCE_PERFORMANCE.md) were completed on 2026-10-14. They measure real durable saves and loopback API contention separately from the JSON-only comparison below; writer implementation remains pending. Current regression evidence is in [TESTING](TESTING.md), while the verification notes here describe the original P2 milestone.
+
 ## API views
 
 All new read routes retain the local-origin check.

@@ -6,6 +6,12 @@ Application changes are recorded here. Download engine and Chrome connector vers
 
 No GitHub release or tag has been created.
 
+### Added
+
+- N07 measurement milestone (2026-10-14): add `tools/measure_persistence.py` for disposable synthetic history, real atomic/fsync saves and loopback summary/pause/stop acknowledgement latency. Separate unprofiled cold/steady and contended samples from cProfile attribution; validate the resulting primary/backup and saved pause/stop intent. Include the tool in the source allowlist; restore no login/history and start no download worker.
+- Record reproducible workloads, timings, limits and the next writer design in [persistence performance](docs/PERSISTENCE_PERFORMANCE.md). The 400,180-path / 20.29 MiB history saved in a median 927.67 ms; contended summary took 1,044.32 ms and pause/stop acknowledgement 2,057.78 / 1,930.42 ms. This reproduces synthetic API waiting, not a verified stall in the user's actual history. Writer, large-account capacity and SQLite maintenance remain pending in ROADMAP.
+- Add eight portable harness acceptance cases without CI speed thresholds. Local verification: 167 Python tests and 18 Node tests passed with zero skips; source allowlist validates 133 files. Update both README trees and architecture/reliability/performance links; move the completed measurement out of ROADMAP. See [TESTING](docs/TESTING.md).
+
 ### Fixed
 
 - Fix the first Windows GitHub Actions failure: explicitly read UTF-8 state in the selection regression, resolve temporary paths before comparing restored history, and allow Chrome fixtures a 30-second capture budget. Chrome launch now uses up to 30 seconds within the existing overall capture deadline, and navigation uses only the remaining budget. Preserve late HTTP 429 callbacks and report exhausted capture budgets as timeouts. Add two deterministic regressions; local verification passed 134 Python and 10 Node tests without skips.

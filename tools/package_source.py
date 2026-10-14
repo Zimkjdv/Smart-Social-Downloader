@@ -17,7 +17,7 @@ ROOT_FILES = (".gitignore", "LICENSE", "THIRD_PARTY_NOTICES.md", "README.md", "R
               "app.py")
 SOURCE_GLOBS = {"ssdl": ("*.py",), "static": ("*.js", "*.css", "*.html"),
                 "chrome-extension": ("*.js", "*.html", "manifest.json", "README.md"),
-                "tests": ("test_*.py", "*.test.cjs"), "tools": ("manage.py", "package_source.py", "measure_state.py"),
+                "tests": ("test_*.py", "*.test.cjs"), "tools": ("manage.py", "package_source.py", "measure_state.py", "measure_persistence.py"),
                 "docs": ("*.md",), "docs/images": ("dashboard-preview.svg",),
                 ".github/ISSUE_TEMPLATE": ("*.yml", "*.yaml"),
                 ".github": ("pull_request_template.md",),
