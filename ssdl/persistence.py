@@ -12,8 +12,12 @@ from .state_writer import SAVE_ERROR
 from urllib.parse import urlsplit
 from .video_quality import validate_video_quality
 from .media_selection import validate_choices
+from .json_budget import encode_json, JSONBudgetError
 
 SCHEMA_VERSION = 2
+MAX_STATE_BYTES = 64 * 1024 * 1024
+CAPACITY_ERROR = "下載紀錄超過 64 MiB 保存容量；變更僅在記憶體中。請先備份，再清理不需要的下載項目並重新保存；媒體原檔不會刪除。"
+READ_CAPACITY_ERROR = "下載紀錄或備份超過 64 MiB 讀取上限；原檔保留，請先備份並修復紀錄後重新啟動。"
 RECOVERED_NOTICE = "已從最後有效備份恢復；損壞紀錄會另行保留。"
 
 
@@ -137,7 +141,10 @@ class StateStore:
         self._invalid_primary = False
         self._status = {"healthy": True, "schema_version": SCHEMA_VERSION,
                         "last_saved_at": 0, "error": "", "recovered": False,
-                        "backup_available": self.backup.is_file(), "blocked": False}
+                        "backup_available": self.backup.is_file(), "blocked": False,
+                        "error_code": "", "max_bytes": MAX_STATE_BYTES,
+                        "saved_bytes": None, "attempted_bytes": None,
+                        "attempted_bytes_exact": True, "capacity_warning": False}
 
     def status(self):
         with self._status_lock:
@@ -147,15 +154,35 @@ class StateStore:
         with self._status_lock:
             self._status.update(values)
 
-    def record_failure(self):
+    def record_failure(self, *, preserve=False):
         with self._status_lock:
-            if not self._status["blocked"]:
-                self._status.update(healthy=False, error=SAVE_ERROR)
+            if not self._status["blocked"] and not (preserve and not self._status["healthy"]):
+                self._status.update(healthy=False, error=SAVE_ERROR, error_code="state_save_failed")
 
     def _read(self, path):
-        if path.stat().st_size > 64 * 1024 * 1024:
-            raise ValueError("State too large")
-        return validate_state(json.loads(path.read_text(encoding="utf-8-sig")))
+        return self._read_with_size(path)[0]
+
+    def _read_with_size(self, path):
+        contents = self._read_contents(path)
+        payload = validate_state(json.loads(contents.decode("utf-8-sig")))
+        return payload, len(contents)
+
+    @staticmethod
+    def _read_contents(path):
+        size = path.stat().st_size
+        if size > MAX_STATE_BYTES:
+            raise JSONBudgetError(MAX_STATE_BYTES, size)
+        with path.open("rb") as stream:
+            contents = stream.read(MAX_STATE_BYTES + 1)
+        if len(contents) > MAX_STATE_BYTES:
+            raise JSONBudgetError(MAX_STATE_BYTES, len(contents))
+        return contents
+
+    def _block_capacity(self):
+        # Do not treat oversized input as damaged JSON and copy/read it without
+        # a budget. Preserve both candidates, including a potentially newer backup.
+        self._set_status(healthy=False, blocked=True, error=READ_CAPACITY_ERROR,
+                         error_code="state_read_too_large", capacity_warning=True)
 
     def _block_future(self):
         self._set_status(healthy=False, blocked=True,
@@ -166,19 +193,27 @@ class StateStore:
             if not self.filename.exists() and not self.backup.exists():
                 return None
             try:
-                payload = self._read(self.filename)
+                payload, size = self._read_with_size(self.filename)
                 result = normalize(payload) if normalize else payload
                 self._invalid_primary = False
-                self._set_status(healthy=True, blocked=False)
+                self._set_status(healthy=True, blocked=False, error_code="", saved_bytes=size,
+                                 error=RECOVERED_NOTICE if self._status["recovered"] else "",
+                                 capacity_warning=size >= MAX_STATE_BYTES * .8)
                 return result
+            except JSONBudgetError:
+                self._block_capacity()
+                return None
             except FutureState:
                 self._block_future()
                 return None
             except (OSError, ValueError, TypeError, KeyError, RuntimeError):
                 self._invalid_primary = True
                 try:
-                    payload = self._read(self.backup)
+                    payload, size = self._read_with_size(self.backup)
                     result = normalize(payload) if normalize else payload
+                except JSONBudgetError:
+                    self._block_capacity()
+                    return None
                 except FutureState:
                     self._block_future()
                     return None
@@ -190,7 +225,8 @@ class StateStore:
                     self._set_status(**status)
                     return None
                 self._set_status(healthy=True, blocked=False, recovered=True, backup_available=True,
-                    error=RECOVERED_NOTICE)
+                    error=RECOVERED_NOTICE, error_code="", saved_bytes=size,
+                    capacity_warning=size >= MAX_STATE_BYTES * .8)
                 return result
 
     def restore_failed(self):
@@ -217,13 +253,20 @@ class StateStore:
                 return False
             try:
                 payload = validate_state(payload)
-                contents = json.dumps(payload, ensure_ascii=False, indent=2, allow_nan=False).encode("utf-8")
-                if len(contents) > 64 * 1024 * 1024:
-                    raise ValueError("State too large")
+                try:
+                    contents = encode_json(payload, MAX_STATE_BYTES, indent=2)
+                except JSONBudgetError as exc:
+                    self._set_status(healthy=False, error=CAPACITY_ERROR, error_code="state_too_large",
+                        attempted_bytes=exc.observed_bytes, attempted_bytes_exact=False, capacity_warning=True)
+                    return False
+                self._set_status(attempted_bytes=len(contents), attempted_bytes_exact=True)
                 # A backup may be the only newer-version history left. Check it
                 # before replacing either file, including saves without load().
                 try:
                     self._read(self.backup)
+                except JSONBudgetError:
+                    self._block_capacity()
+                    return False
                 except FutureState:
                     self._block_future()
                     return False
@@ -231,8 +274,9 @@ class StateStore:
                     pass
                 self.filename.parent.mkdir(parents=True, exist_ok=True)
                 if self.filename.is_file():
+                    previous = self._read_contents(self.filename)
                     try:
-                        self._read(self.filename)
+                        validate_state(json.loads(previous.decode("utf-8-sig")))
                         if self._invalid_primary:
                             raise ValueError("Primary failed application normalization")
                     except FutureState:
@@ -242,15 +286,20 @@ class StateStore:
                         # Preserve the damaged input before replacing it; never
                         # copy it over the validated last-good backup.
                         damaged = self.filename.with_name(f"state.corrupt-{time.time_ns()}.json")
-                        self._atomic(damaged, self.filename.read_bytes())
+                        self._atomic(damaged, previous)
                     else:
-                        self._atomic(self.backup, self.filename.read_bytes())
+                        self._atomic(self.backup, previous)
                 self._atomic(self.filename, contents)
                 self._invalid_primary = False
                 self._set_status(healthy=True, last_saved_at=time.time(),
                                     backup_available=self.backup.is_file(),
-                                    error=RECOVERED_NOTICE if self._status["recovered"] else "")
+                                    error=RECOVERED_NOTICE if self._status["recovered"] else "",
+                                    error_code="", saved_bytes=len(contents),
+                                    capacity_warning=len(contents) >= MAX_STATE_BYTES * .8)
                 return True
+            except JSONBudgetError:
+                self._block_capacity()
+                return False
             except (OSError, ValueError, TypeError, KeyError):
                 self.record_failure()
                 return False

@@ -4,6 +4,7 @@ from __future__ import annotations
 import base64
 import binascii
 import json
+from .json_budget import encode_json, JSONBudgetError
 
 MAX_FRAME_BYTES = 16 * 1024 * 1024
 MAX_MESSAGE_BYTES = 64 * 1024 * 1024
@@ -18,9 +19,14 @@ class MessageTooLarge(ProtocolError):
     pass
 
 
+CAPACITY_ERROR = "下載工作資料超過 64 MiB 通訊容量；此工作已停止，已下載原檔保留，後續佇列會繼續。"
+
+
 def _encode(value):
     try:
-        return json.dumps(value, ensure_ascii=False, allow_nan=False, separators=(",", ":")).encode("utf-8")
+        return encode_json(value, MAX_MESSAGE_BYTES)
+    except JSONBudgetError as exc:
+        raise MessageTooLarge("Message exceeds total byte budget") from exc
     except (TypeError, ValueError, UnicodeError, RecursionError) as exc:
         raise ProtocolError("Invalid message") from exc
 

@@ -85,6 +85,15 @@ class RuntimeTests(unittest.TestCase):
                 with self.subTest(size=len(bad)), self.assertRaises(ipc.ProtocolError):
                     ipc.read_message(io.BytesIO(bad))
 
+    def test_production_child_capacity_errors_remain_compact_and_allow_next_job(self):
+        for mode in ("capacity_result", "capacity_progress", "capacity_error", "capacity_selection"):
+            with self.subTest(mode=mode), self.assertRaises(DownloadError) as failure:
+                self.run_fixture(mode, timeout=15)
+            self.assertEqual(failure.exception.code, "worker_message_too_large")
+            self.assertEqual(str(failure.exception), ipc.CAPACITY_ERROR)
+            self.assertEqual(failure.exception.files, [])
+        self.assertEqual(self.run_fixture()["title"], "fixture")
+
     def test_intentional_queue_wait_is_not_stall(self):
         phases = []
         self.assertEqual(self.run_fixture("wait", timeout=.6,

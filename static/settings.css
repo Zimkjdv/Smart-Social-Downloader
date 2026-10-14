@@ -26,6 +26,7 @@
 .settings-panel .path-input { padding: 0 12px; }
 .settings-panel .path-input input { height: 42px; font-size: 13px; }
 .settings-panel .field-hint { margin-top: 8px; color: #92a1b9; font-size: 11px; line-height: 1.7; }
+.settings-panel .field-hint.capacity-warning { color: #e9c481; }
 .settings-panel .auth-heading { margin-bottom: 12px; font-size: 14px; }
 .settings-panel .auth-description { margin-bottom: 16px; font-size: 12px; }
 .settings-panel .primary-button, .settings-panel .subtle-button { min-height: 36px; padding: 9px 12px; font-size: 12px; }

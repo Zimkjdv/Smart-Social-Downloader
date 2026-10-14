@@ -13,7 +13,7 @@ import time
 from .diagnostics import redact_fields
 from .media import DownloadError
 from .process_group import ProcessGroup
-from .ipc import read_message, write_message, ProtocolError, MessageTooLarge, MAX_FRAME_BYTES
+from .ipc import read_message, write_message, ProtocolError, MessageTooLarge, MAX_FRAME_BYTES, CAPACITY_ERROR
 
 NO_PROGRESS_SECONDS = 300
 MAX_MESSAGE = MAX_FRAME_BYTES  # Compatibility name: maximum wire frame, not logical message.
@@ -158,7 +158,7 @@ def run_job(payload, emit, gate, cancelled, policy, health=lambda value: None, *
                 raise DownloadError(data.get("error", "下載工作失敗。"), data.get("files", ()),
                                     code=data.get("error_code", "download_failed"), detail=data.get("error_detail", ""))
             elif kind == "message_too_large":
-                raise DownloadError("下載工作資料超過 64 MiB 通訊容量，請縮小批次後重試；後續佇列會繼續。", code="worker_message_too_large")
+                raise DownloadError(CAPACITY_ERROR, code="worker_message_too_large")
             elif kind == "protocol_error":
                 raise DownloadError("下載工作通訊不完整或格式錯誤，請重試；後續佇列會繼續。", code="worker_protocol")
             elif kind == "eof":

@@ -75,6 +75,7 @@ smart-social-downloader/
 │   ├── app.py                     組裝入口
 │   ├── app_context.py             具型別的狀態、服務與生命週期
 │   ├── state_writer.py            不可變快照、合併更新及保存確認
+│   ├── json_budget.py             保存及 IPC 的 UTF-8 JSON 容量限制
 │   ├── media.py                   相容的下載入口
 │   ├── media_contracts.py         共用來源識別、路徑與錯誤
 │   ├── media_coordinator.py       引擎調度、通用解析與去重
@@ -93,7 +94,8 @@ smart-social-downloader/
 │   └── controller_lifecycle.js    事件、計時器與清理
 ├── chrome-extension/              Chrome X 登入連接器
 ├── tools/                         安裝、診斷、量測及原始碼打包
-│   └── measure_persistence.py      隔離合成保存與 API 延遲量測
+│   ├── measure_persistence.py      隔離合成保存與 API 延遲量測
+│   └── measure_capacity.py         帳號掃描、IPC 及 64 MiB 邊界驗收
 ├── docs/                          操作、架構與維護文件
 │   └── images/dashboard-preview.svg  可公開的虛構介面示意
 ├── tests/                         本機 fixture 與回歸測試
@@ -111,6 +113,8 @@ smart-social-downloader/
 **應用程式版本**顯示在頂部名稱下方及設定 → 診斷；引擎版本另列於環境診斷。`update.bat` 更新引擎，不更新應用程式原始碼。詳見 [維護指南](docs/MAINTENANCE.md) 與 [CHANGELOG](CHANGELOG.md)。
 
 保存採用獨立背景 writer 與不可變快照；關鍵變更等待落盤時不持有佇列鎖，失敗仍有提示並可在診斷中重新保存。維護者可用 `python tools/measure_persistence.py` 重現快照／保存／API 延遲量測，結果及限制見 [保存效能文件](docs/PERSISTENCE_PERFORMANCE.md)。指令使用暫存資料，不下載媒體或恢復登入。
+
+設定 → 診斷會顯示已保存紀錄容量，達到 **64 MiB** 上限的 80% 時提醒。超限保存保留最後有效紀錄；子程序訊息超限有明確錯誤，後續佇列仍可繼續，已下載原檔保留。限制針對 JSON 資料，不是影片／圖片檔案大小。處理方式、合成帳號／IPC 量測及 `python tools/measure_capacity.py --full-limits` 見 [容量與限制](docs/CAPACITY.md)；SQLite 維護及索引檔案保存仍列於 [ROADMAP](ROADMAP.md)。
 
 GitHub repo 發布後，可使用 Issue 表單回報錯誤、安裝問題或功能建議。分享前先檢視診斷與截圖，避免個人資料外洩；流程見 [CONTRIBUTING](CONTRIBUTING.md)。漏洞請依 [SECURITY](SECURITY.md) 使用私人回報方式。
 

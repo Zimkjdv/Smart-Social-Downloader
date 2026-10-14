@@ -75,6 +75,7 @@ smart-social-downloader/
 │   ├── app.py                     Composition root
 │   ├── app_context.py             Typed state, owned services and lifecycle
 │   ├── state_writer.py            Immutable snapshots, coalescing and durability
+│   ├── json_budget.py             Bounded UTF-8 JSON for persistence and IPC
 │   ├── media.py                   Stable download entry points
 │   ├── media_contracts.py         Shared source identity, paths and errors
 │   ├── media_coordinator.py       Routing, generic discovery and manifest reuse
@@ -93,7 +94,8 @@ smart-social-downloader/
 │   └── controller_lifecycle.js    Owned listeners, timers and cleanup
 ├── chrome-extension/              Chrome X session connector
 ├── tools/                         Setup, diagnostics, measurement and packaging
-│   └── measure_persistence.py      Isolated synthetic saves and API latency
+│   ├── measure_persistence.py      Isolated synthetic saves and API latency
+│   └── measure_capacity.py         Account scan, IPC and 64 MiB boundary probes
 ├── docs/                          Usage, architecture and maintenance guides
 │   └── images/dashboard-preview.svg  Fictional public illustration
 ├── tests/                         Local fixtures and regression suites
@@ -111,6 +113,8 @@ smart-social-downloader/
 The **application version** appears beneath the app name and in Settings → Diagnostics. Engine versions appear separately in environment diagnostics. `update.bat` updates engines; it does not update application source. See [Maintenance](docs/MAINTENANCE.md) and [CHANGELOG](CHANGELOG.md).
 
 State saves use an owned background writer with immutable snapshots. Critical changes wait for durable writes without holding the queue lock; failed saves remain visible and can be retried in Diagnostics. Maintainers can reproduce synthetic capture/save/API latency measurements with `python tools/measure_persistence.py`. See [persistence performance](docs/PERSISTENCE_PERFORMANCE.md) for results and limits; the command uses disposable history and does not download media or restore login.
+
+Settings → Diagnostics shows saved history size and warns at 80% of its **64 MiB** limit. Capacity failures preserve the last good records and original media; oversized child messages report a specific error and allow subsequent jobs to continue. These limits apply to JSON metadata, not video/image file sizes. For recovery steps, synthetic account/IPC measurements and `python tools/measure_capacity.py --full-limits`, see [capacity and limits](docs/CAPACITY.md). SQLite maintenance and indexed file storage remain in [ROADMAP](ROADMAP.md).
 
 After the GitHub repository is published, use the Issue forms for bugs, installation or feature requests. Read [CONTRIBUTING](CONTRIBUTING.md) first and review diagnostics/screenshots before sharing them. Vulnerabilities use the private process in [SECURITY](SECURITY.md).
 

@@ -4,7 +4,7 @@
 
 `ssdl` 是 **Smart Social Downloader** 的縮寫，作為 Python 套件名稱，方便使用 `from ssdl import media` 等匯入。它不代表下載媒體的分類資料夾；平台分類仍使用 `youtube/`、`twitter/` 等名稱。中英文 README 均提供目錄結構及用途。
 
-這份文件描述目前結構。N06 的 AppContext、初始化生命週期、後端下載引擎及前端控制器拆分均已實作；N07 的 [保存量測與 writer](PERSISTENCE_PERFORMANCE.md) 已完成，容量維護及共用測試 fixture 仍列於 [Roadmap：架構與檔案結構](../ROADMAP.md#架構與檔案結構)。匯入 `ssdl.app` 不會建立管理器、恢復登入／歷史或啟動 HTTP／worker。
+這份文件描述目前結構。N06 的 AppContext、初始化生命週期、後端下載引擎及前端控制器拆分均已實作；N07 的 [保存量測與 writer](PERSISTENCE_PERFORMANCE.md) 及 [容量邊界](CAPACITY.md) 已完成，SQLite 維護及共用測試 fixture 仍列於 [Roadmap：架構與檔案結構](../ROADMAP.md#架構與檔案結構)。匯入 `ssdl.app` 不會建立管理器、恢復登入／歷史或啟動 HTTP／worker。
 
 ```text
 smart-social-downloader/
@@ -42,6 +42,7 @@ smart-social-downloader/
 │   ├── job_runtime.py        # 下載子程序監督、停止及無進度期限
 │   ├── job_runner.py         # 下載子程序與匿名管線通訊
 │   ├── ipc.py                # 16 MiB frame／64 MiB 訊息分段與驗證
+│   ├── json_budget.py        # 寫入前限制 UTF-8 JSON 位元組；共用保存／IPC
 │   ├── process_group.py      # 所屬程序樹／合併工具清理
 │   ├── network.py            # 公開 HTTP 目標及實際連線檢查
 │   ├── media.py              # 相容的下載入口，明確匯出各模組函式
@@ -80,7 +81,8 @@ smart-social-downloader/
 │   └── i18n.js               # 繁中／英文訊息
 ├── chrome-extension/         # Chrome X 本機連接器
 ├── tools/                    # 環境管理、量測與原始碼打包
-│   └── measure_persistence.py # 隔離合成歷史保存／API 延遲量測
+│   ├── measure_persistence.py # 隔離合成歷史保存／API 延遲量測
+│   └── measure_capacity.py    # 合成帳號掃描、IPC 及保存容量邊界
 ├── docs/                     # 使用、發布、去重及架構說明
 ├── tests/                    # 本機 API、下載、串流及發布測試
 ├── .github/workflows/        # Windows CI

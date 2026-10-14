@@ -49,7 +49,7 @@ def download_x_account(url: str, output_dir: Path, emit, *, archive_file: Path,
     scanned_posts = scanned_files = existing_files = downloaded_files = 0
     total_posts = total_files = None
     scan_complete = False
-    last_scan_report = 0.0
+    last_report = 0.0
     saved_total = sum(saved.values())
     pending_files = {}
     messages = []
@@ -64,12 +64,11 @@ def download_x_account(url: str, output_dir: Path, emit, *, archive_file: Path,
             saved[name] = size
 
     def report(stage="scanning", *, force=True, **extra):
-        nonlocal last_scan_report
-        if stage == "scanning" and not force:
-            now = time.monotonic()
-            if now - last_scan_report < .5:
-                return
-            last_scan_report = now
+        nonlocal last_report
+        now = time.monotonic()
+        if not force and now - last_report < .5:
+            return
+        last_report = now
         emit({"files": list(saved), "aggregate_bytes": saved_total,
               "downloaded_bytes": 0,
               "profile_posts": processed, "profile_skipped": skipped,
@@ -271,7 +270,10 @@ def download_x_account(url: str, output_dir: Path, emit, *, archive_file: Path,
                 else:
                     skipped += 1
                 processed += 1
-                report("downloading", status_text="下載帳號媒體中", profile_post_finished=not was_cached)
+                # Cached posts need no durable quota checkpoint. Throttle their
+                # aggregate list just like scan progress; ready/done and newly
+                # downloaded posts still force a full checkpoint.
+                report("downloading", force=not was_cached, status_text="下載帳號媒體中", profile_post_finished=not was_cached)
             report("done")
     except Exception as exc:
         report("downloading" if scan_complete else "scanning")

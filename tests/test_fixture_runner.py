@@ -17,6 +17,30 @@ if __name__ == "__main__":
         raise SystemExit(3)
     if mode == "error":
         send("error", data={"error": "fixture error", "error_code": "fixture_failure"})
+    elif mode.startswith("capacity_"):
+        # Run the production child exception paths with a scaled budget and
+        # synthetic adapters; no browser, network or media files are touched.
+        import io
+        from contextlib import nullcontext
+        from unittest.mock import patch
+        from ssdl import ipc, media, job_runner
+        from ssdl.media_selection import SelectionRequired, choice
+        payload = {"url": "https://example.org/synthetic", "output_dir": "fixture-only",
+                   "image_history_file": "fixture.sqlite3", "manifest_file": "fixture.sqlite3", **data}
+        sys.stdin = io.TextIOWrapper(io.BytesIO(json.dumps(payload).encode() + b'\n'))
+        def download(url, output, emit, **kwargs):
+            files = ["x" * 5000]
+            if mode == "capacity_error":
+                raise media.DownloadError("synthetic error", files, code="synthetic")
+            if mode == "capacity_selection":
+                raise SelectionRequired([choice(f"{index:024x}", "x" * 180,
+                    "https://" + "a" * 200 + ".example", variants=1) for index in range(12)])
+            if mode == "capacity_progress": emit({"files": files})
+            return {"files": files, "quality": "fixture", "title": "fixture"}
+        with patch.object(ipc, "MAX_MESSAGE_BYTES", 1024), patch.object(media, "download", download), \
+                patch("ssdl.browser_media.browser_driver", return_value=nullcontext()), \
+                patch("ssdl.network.public_network", return_value=nullcontext()):
+            job_runner.main()
     elif mode == "large_files":
         send("progress", data={"files": data["files"]})
         send("rpc", operation="before_post", id=1)

@@ -249,8 +249,10 @@ def phase_profile(app):
         phase = None
         if Path(filename).name == "diagnostics.py" and name == "redact_fields":
             phase = "redact"
-        elif Path(filename).name == "persistence.py" and name in {"validate_state", "_read", "_atomic"}:
+        elif Path(filename).name == "persistence.py" and name in {"validate_state", "_read", "_read_contents", "_atomic"}:
             phase = name
+        elif Path(filename).name == "json_budget.py" and name == "encode_json":
+            phase = "json_encode_bounded"
         elif Path(filename).name == "__init__.py" and name == "dumps":
             phase = "json_dumps"
         elif ".fsync" in name:
@@ -329,10 +331,10 @@ def main(argv=None):
     for name in args.workload or WORKLOADS:
         print(f"Measuring {name} ({args.repeats} samples per operation)...", file=sys.stderr, flush=True)
         cases.append(measure_case(name, args.repeats))
-    print(json.dumps({"format_version": 2, "environment": {"os": platform.system(),
+    print(json.dumps({"format_version": 3, "environment": {"os": platform.system(),
         "python": platform.python_version()}, "repeats": args.repeats,
         "scope": "Synthetic temporary state; immutable capture, real writer durable barriers and loopback APIs; no download worker",
-        "percentile": "Nearest-rank p95; five samples means the maximum, not a stable tail estimate",
+        "percentile": f"Nearest-rank p95; {args.repeats} samples (up to 19) selects the maximum, not a stable tail estimate",
         "profiling": "Separate cProfile run adds overhead; cumulative phases overlap and must not be summed",
         "cases": cases}, ensure_ascii=False, indent=2))
     return 0

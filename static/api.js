@@ -52,7 +52,10 @@
       typeof value.x_auth.phase === 'string' && object(value.safe_queue) && typeof value.safe_queue.enabled === 'boolean' &&
       object(value.rate_limit) && count(value.rate_limit.used) && count(value.rate_limit.limit) &&
       object(value.storage) && typeof value.storage.ready === 'boolean' &&
-      optional(value, 'persistence', (item) => object(item) && typeof item.healthy === 'boolean' && typeof item.error === 'string' && typeof item.blocked === 'boolean') &&
+      optional(value, 'persistence', (item) => object(item) && typeof item.healthy === 'boolean' && typeof item.error === 'string' && typeof item.blocked === 'boolean' &&
+        optional(item, 'max_bytes', (size) => count(size) && size > 0) &&
+        ['saved_bytes', 'attempted_bytes'].every((key) => optional(item, key, (size) => size === null || count(size))) &&
+        ['capacity_warning', 'attempted_bytes_exact'].every((key) => optional(item, key, (flag) => typeof flag === 'boolean'))) &&
       optional(value, 'worker', (item) => object(item) && typeof item.alive === 'boolean' && typeof item.phase === 'string') &&
       optional(value, 'environment', environment);
   }

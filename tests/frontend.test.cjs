@@ -121,6 +121,50 @@ test('controller modules load without DOM access or application globals', () => 
   assert.equal(typeof context.window.SSDLDiagnosticsController.create, 'function');
 });
 
+test('capacity health renders size, warning, blocked save and English messages', async () => {
+  const app = appHarness();
+  try {
+    await pause(10);
+    app.context.snapshot = state();
+    app.context.snapshot.persistence = {healthy:true, blocked:false, error:'', max_bytes:67108864,
+      saved_bytes:60000000, capacity_warning:true};
+    app.evaluate('render(snapshot)');
+    assert.match(app.get('#persistence-capacity').textContent, /已保存紀錄/);
+    assert.match(app.get('#persistence-capacity').textContent, /64 MiB/);
+    assert.match(app.get('#persistence-capacity').textContent, /接近或超過/);
+    assert.equal(app.get('#engine-status').classList.contains('hidden'), false);
+    assert.equal(app.get('#state-save').disabled, false);
+    await app.get('#language-toggle').fire('click');
+    assert.match(app.get('#persistence-capacity').textContent, /Saved history:/);
+    assert.match(app.get('#persistence-capacity').textContent, /near or above/);
+    assert.match(app.get('#engine-subtitle').textContent, /Back it up/);
+    assert.match(app.context.I18n.message(app.context.SSDLMessages['ui.state_too_large']['zh-Hant']), /64 MiB save limit/);
+    assert.match(app.context.I18n.message(app.context.SSDLMessages['ui.worker_message_too_large']['zh-Hant']), /queue will continue/);
+    app.context.snapshot.persistence = {healthy:false, blocked:true, error:app.context.SSDLMessages['ui.state_read_too_large']['zh-Hant'],
+      max_bytes:67108864, saved_bytes:null, capacity_warning:true};
+    app.evaluate('render(snapshot)');
+    assert.equal(app.get('#state-save').disabled, true);
+    assert.match(app.get('#persistence-summary').textContent, /64 MiB read limit/);
+    assert.match(app.get('#persistence-capacity').textContent, /size not yet available/);
+    app.context.snapshot.persistence = {healthy:true, blocked:false, error:''};
+    app.evaluate('render(snapshot)');
+    assert.equal(app.get('#persistence-capacity').classList.contains('hidden'), true);
+    assert.equal(app.get('#state-save').disabled, false);
+  } finally {app.close();}
+});
+
+test('API validates optional capacity byte counts and warning flags', () => {
+  const api = apiContext(async () => json(state()));
+  for (const capacity of [{max_bytes:-1}, {saved_bytes:'large'}, {attempted_bytes:-1},
+    {capacity_warning:1}, {attempted_bytes_exact:'false'}]) {
+    const value = state(); value.persistence = {...value.persistence, ...capacity};
+    assert.equal(api.isState(value), false);
+  }
+  const value = state(); value.persistence = {...value.persistence, max_bytes:67108864,
+    saved_bytes:null, attempted_bytes:67108865, attempted_bytes_exact:false, capacity_warning:true};
+  assert.equal(api.isState(value), true);
+});
+
 test('controller lifecycle initializes once and releases listeners timers and queued callbacks', async () => {
   const context = vm.createContext({window:{}});
   vm.runInContext(source('static/controller_lifecycle.js'), context);

@@ -1,5 +1,17 @@
 # Regression and acceptance tests
 
+## N07 account scan, IPC and state capacity — 2026-10-15
+
+**203 Python tests passed in 89.881 seconds; 20 Node tests passed; zero skips.** Windows / Python 3.12.10. The reviewed source allowlist validates **139 files**, including `json_budget.py`, `measure_capacity.py`, the capacity acceptance module and [CAPACITY](CAPACITY.md). Existing real Chrome UI/capture, stream integrity, worker, source policy, quality, lifecycle and writer suites remain enabled.
+
+Eleven new capacity cases cover byte-exact UTF-8/Unicode/escaping, early budget rejection, invalid JSON producing no IPC bytes, primary/backup preservation and smaller retries, oversized read/write protection, growth after stat, warning after save/restore, writer error preservation and recovery, real temporary account plans with deterministic cached-progress throttling, codec/scaled boundary probes, cleanup and source-package inclusion. A new runtime case exercises all four production child terminal paths (oversized result/progress/error/selection) through real pipes with a scaled budget, then runs another job. Two new Node cases cover capacity contracts, MiB size/warnings, save blocking/recovery and English translation. Existing queue tests also cover a capacity failure followed by another queued item.
+
+The first full run caught an outdated measurement assertion: primary preservation now validates and copies the same bounded bytes, so `_read` is no longer called twice. Update attribution to `_read_contents` (two reads) and `json_encode_bounded`, retaining three schema validations/two atomic writes/two fsyncs. The corrected full run passed. No speed thresholds are asserted in CI.
+
+After regressions finished, actual **64 MiB / limit + 1 byte** probes accepted exact-size state/IPC, rejected over-limit data, checked unchanged primary/backup content fingerprints and validated both reads, verified no partial IPC/temporary residue, and recovered with smaller history. Separate cached synthetic 5,000/50,000-post scans, 90,000 Unicode filename IPC and a three-sample 400,180-path full-history follow-up are documented with workload exclusions and slower bounded-encoding observations in [CAPACITY](CAPACITY.md). The source archive was built and its allowlisted entries verified.
+
+Tests use temporary synthetic files and isolated helpers; no personal history/Cookie read, production service restart or live platform download occurred. Remaining SQLite diagnostics/backup/maintenance and indexed metadata are in [ROADMAP](../ROADMAP.md).
+
 ## N07 owned writer and durable barriers — 2026-10-14
 
 **191 Python tests passed in 86.888 seconds; 18 Node tests passed; zero skips.** Windows / Python 3.12.10. The reviewed source allowlist validates 135 files, including `state_writer.py` and its new acceptance module. Chrome UI/capture, HLS/DASH, IPC, worker, source-policy, recovery and quality regressions remain enabled. Twenty-four new focused cases passed in 0.189 seconds; final writer/harness reruns cover idle snapshot release and recovered retry notices.
@@ -10,7 +22,7 @@ The initial new fault case exposed an older accepted generation being misclassif
 
 The same three-workload benchmark ran separately after full tests, with five samples per operation. At 400,180 paths / 20.29 MiB, capture median/p95 was 27.50/28.43 ms, snapshot retained/peak allocation 3,286,608/3,448,880 bytes, and durable save median/p95 862.53/868.75 ms. Contended summary median fell from 1,044.32 to 130.56 ms; pause/stop acknowledgement remained 1,856.81/1,901.52 ms because they wait for durable writes. Allocation excludes existing strings, other snapshots and serialization buffers; cProfile runs in the actual writer and is separate from latency timing. Details/limitations are in [PERSISTENCE_PERFORMANCE](PERSISTENCE_PERFORMANCE.md).
 
-No personal Cookie/history access, production service restart or live platform media download occurred. Writer completion is a scoped N07 milestone; large-account scan/IPC/64 MiB capacity and SQLite maintenance remain in [ROADMAP](../ROADMAP.md).
+No personal Cookie/history access, production service restart or live platform media download occurred. Writer completion was a scoped N07 milestone; account/IPC/64 MiB capacity is covered by the later section above, while SQLite maintenance remains in [ROADMAP](../ROADMAP.md).
 
 ## N07 persistence measurement milestone — 2026-10-14
 

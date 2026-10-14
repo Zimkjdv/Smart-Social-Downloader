@@ -6,7 +6,15 @@ from pathlib import Path
 import sys
 import threading
 import time
-from .ipc import read_message, write_message
+from .ipc import read_message, write_message, MessageTooLarge, CAPACITY_ERROR
+
+
+def send_failure(send, data):
+    """An oversized result's error must not resend the same oversized files."""
+    try:
+        send("error", data=data)
+    except MessageTooLarge:
+        send("error", data={"error": CAPACITY_ERROR, "error_code": "worker_message_too_large"})
 
 
 def main():
@@ -84,9 +92,14 @@ def main():
                     dynamic_capture=payload.get("dynamic_capture") is True, browser=browser)
         send("result", data=redact_fields(result))
     except SelectionRequired as exc:
-        send("selection", options=exc.options)
+        try:
+            send("selection", options=exc.options)
+        except MessageTooLarge:
+            send_failure(send, {"error": CAPACITY_ERROR, "error_code": "worker_message_too_large"})
+    except MessageTooLarge:
+        send_failure(send, {"error": CAPACITY_ERROR, "error_code": "worker_message_too_large"})
     except Exception as exc:
-        send("error", data={**media.error_info(exc), "files": getattr(exc, "files", [])})
+        send_failure(send, {**media.error_info(exc), "files": getattr(exc, "files", [])})
     return 0
 
 

@@ -1,5 +1,25 @@
 /* Stable message keys: edit copy here without renaming keys. */
 window.SSDLMessages = {
+  "ui.state_too_large": {
+    "zh-Hant": "下載紀錄超過 64 MiB 保存容量；變更僅在記憶體中。請先備份，再清理不需要的下載項目並重新保存；媒體原檔不會刪除。",
+    "en": "Download history exceeds the 64 MiB save limit; changes are only in memory. Back up the history, clear unneeded jobs, then save again. Original media files will not be deleted."
+  },
+  "ui.state_read_too_large": {
+    "zh-Hant": "下載紀錄或備份超過 64 MiB 讀取上限；原檔保留，請先備份並修復紀錄後重新啟動。",
+    "en": "Download history or its backup exceeds the 64 MiB read limit. Original records are preserved. Back up and repair the history before restarting."
+  },
+  "ui.history_capacity": {
+    "zh-Hant": "已保存紀錄：{size} / {limit}。",
+    "en": "Saved history: {size} / {limit}."
+  },
+  "ui.not_yet_saved": {
+    "zh-Hant": "尚無已保存容量",
+    "en": "size not yet available"
+  },
+  "ui.history_capacity_warning": {
+    "zh-Hant": "紀錄接近或超過保存上限；請先備份並清理不需要的下載項目。",
+    "en": "History is near or above the save limit. Back it up and clear unneeded jobs."
+  },
   "ui.pause_requires_boolean": {
     "zh-Hant": "暫停設定必須是 true 或 false。",
     "en": "The pause setting must be true or false."
@@ -17,8 +37,8 @@ window.SSDLMessages = {
     "en": "The local service is busy. Please try again shortly."
   },
   "ui.worker_message_too_large": {
-    "zh-Hant": "下載工作資料超過 64 MiB 通訊容量，請縮小批次後重試；後續佇列會繼續。",
-    "en": "Job data exceeds the 64 MiB communication limit. Retry with a smaller batch; the queue will continue."
+    "zh-Hant": "下載工作資料超過 64 MiB 通訊容量；此工作已停止，已下載原檔保留，後續佇列會繼續。",
+    "en": "Job data exceeds the 64 MiB communication limit. This job has stopped; downloaded originals are preserved and the queue will continue."
   },
   "ui.worker_protocol_error": {
     "zh-Hant": "下載工作通訊不完整或格式錯誤，請重試；後續佇列會繼續。",

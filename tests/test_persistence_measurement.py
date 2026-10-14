@@ -51,11 +51,11 @@ class PersistenceMeasurementTests(unittest.TestCase):
             self.assertEqual(values["contended"]["writer_save_ms"]["n"], 1)
             self.assertGreaterEqual(values["contended"]["lock_wait_ms"]["median_ms"], 0)
         phases = result["profiled_save"]["phases"]
-        self.assertEqual(phases["_read"]["calls"], 2)
+        self.assertEqual(phases["_read_contents"]["calls"], 2)
         self.assertEqual(phases["validate_state"]["calls"], 3)
         self.assertEqual(phases["_atomic"]["calls"], 2)
         self.assertEqual(phases["fsync"]["calls"], 2)
-        self.assertIn("json_dumps", phases)
+        self.assertIn("json_encode_bounded", phases)
         self.assertIn("redact", phases)
         app = created[0]
         self.assertFalse(app._started)

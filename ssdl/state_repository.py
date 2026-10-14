@@ -35,6 +35,7 @@ class StateRepository:
         try:
             snapshot = self.snapshot_locked()
         except (ValueError, TypeError, RecursionError):
+            self.app.STATE_STORE.record_failure()
             return self.app.STATE_WRITER.reject_snapshot()
         return self.app.STATE_WRITER.submit(snapshot, checkpoint=checkpoint)
 

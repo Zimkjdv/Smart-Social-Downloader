@@ -113,7 +113,7 @@ class AppContext:
         self._closed = False
         self.STATE_WRITER: StateWriter = StateWriter(
             lambda snapshot: self.STATE_STORE.save(self.redact_fields(thaw_snapshot(snapshot))),
-            lambda: self.STATE_STORE.record_failure())
+            lambda: self.STATE_STORE.record_failure(preserve=True))
         self._SCHEDULER = QueueScheduler(self)
         self._REPOSITORY = StateRepository(self)
         self._quota_locked = self._SCHEDULER.quota_locked

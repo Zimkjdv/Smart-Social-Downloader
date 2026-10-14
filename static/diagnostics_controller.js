@@ -104,6 +104,16 @@
       const message = persistence?.error || '紀錄保存正常。';
       if ($('#persistence-summary').textContent !== uiMessage(message)) uiText($('#persistence-summary'), message);
       $('#persistence-summary').classList.toggle('error', Boolean(persistence && !persistence.healthy));
+      const capacity = $('#persistence-capacity');
+      const knownCapacity = Number.isSafeInteger(persistence?.max_bytes) && persistence.max_bytes > 0;
+      capacity.classList.toggle('hidden', !knownCapacity);
+      capacity.classList.toggle('capacity-warning', Boolean(persistence?.capacity_warning));
+      if (knownCapacity) {
+        const mib = (bytes) => (bytes / 1048576).toLocaleString(I18n.locale, { maximumFractionDigits: 2 }) + ' MiB';
+        const size = Number.isSafeInteger(persistence.saved_bytes) ? mib(persistence.saved_bytes) : t('ui.not_yet_saved');
+        capacity.textContent = t('ui.history_capacity', { size, limit: mib(persistence.max_bytes) });
+        if (persistence.capacity_warning) capacity.textContent += ' ' + t('ui.history_capacity_warning');
+      }
       $('#state-save').disabled = busyControls.has('state-save') || Boolean(persistence?.blocked);
       const worker = data.worker;
       const workerMessage = !worker?.alive ? '下載排程未運作' : worker.phase === 'idle' ? '下載排程正常，等待新任務。' :
@@ -153,10 +163,10 @@
       renderEnvironment(data.environment);
       renderLocalHealth(data);
       const environmentIssue = lastEnvironment?.checked_at > 0 && lastEnvironment.status !== 'ok';
-      const savingIssue = data.persistence && (!data.persistence.healthy || data.persistence.recovered);
+      const savingIssue = data.persistence && (!data.persistence.healthy || data.persistence.recovered || data.persistence.capacity_warning);
       const workerIssue = data.worker && !data.worker.alive;
       renderEngineStatus(t(savingIssue ? 'ui.local_history_needs_attention' : workerIssue ? 'ui.download_worker_unavailable' : !state.ready ? 'ui.engines_need_repair' : environmentIssue ? 'ui.environment_needs_attention' : 'ui.engines_ready'),
-        savingIssue ? uiMessage(data.persistence.error) : workerIssue ? t('ui.restart_the_service_or_export_diagnostics_for') : !state.ready || environmentIssue ? t('ui.open_environment_diagnostics_in_settings_for_repair') : t('ui.image_and_video_engines_ready_original_encoding'),
+        savingIssue ? uiMessage(data.persistence.error || t('ui.history_capacity_warning')) : workerIssue ? t('ui.restart_the_service_or_export_diagnostics_for') : !state.ready || environmentIssue ? t('ui.open_environment_diagnostics_in_settings_for_repair') : t('ui.image_and_video_engines_ready_original_encoding'),
         savingIssue && !data.persistence.healthy || workerIssue || !state.ready, savingIssue || workerIssue || !state.ready || environmentIssue);
     }
     scope.onDispose(() => { for (const url of exportUrls) browser.URL.revokeObjectURL(url); exportUrls.clear(); });
