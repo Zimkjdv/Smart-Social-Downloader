@@ -73,7 +73,7 @@ class P2AppTests(unittest.TestCase):
 
     def test_pause_requires_explicit_boolean_without_saving_invalid_input(self):
         self.prepare()
-        with patch.object(self.app, "_save_locked") as save:
+        with patch.object(self.app, "_save_locked", return_value=0) as save:
             for starting in (False, True):
                 self.app.state.paused = starting
                 for body in ({}, *({"paused": value} for value in ("false", "true", 0, 1, None, [], {}))):

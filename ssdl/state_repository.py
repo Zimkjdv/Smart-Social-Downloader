@@ -13,20 +13,39 @@ import math
 import time
 from collections import deque
 from pathlib import Path
+from .state_writer import freeze_snapshot
 
 
 class StateRepository:
     def __init__(self, app: AppContext):
         self.app = app
 
-    def save_locked(self) -> None:
-        """Write terminal/queue changes atomically. Cookie values are never serialized."""
+    def save_locked(self, *, checkpoint=False) -> int:
+        """Capture under the queue lock; callers wait for the returned generation outside it.
+
+        Explicit calls without the lock retain synchronous save behavior. Cookie
+        values are never part of a snapshot. Writer construction starts no thread.
+        """
+        if not self.app.lock._is_owned():
+            with self.app.condition:
+                generation = self.save_locked(checkpoint=checkpoint)
+            if not checkpoint:
+                self.app._wait_saved(generation)
+            return generation
+        try:
+            snapshot = self.snapshot_locked()
+        except (ValueError, TypeError, RecursionError):
+            return self.app.STATE_WRITER.reject_snapshot()
+        return self.app.STATE_WRITER.submit(snapshot, checkpoint=checkpoint)
+
+    def snapshot_locked(self):
+        """Immutable operational state; caller owns the queue condition."""
         payload = {"jobs": list(self.app.state.jobs.values()), "queue": list(self.app.state.queue), "paused": self.app.state.paused,
                    "download_dir": str(self.app.state.download_dir), "x_cookie_file": self.app.state.x_cookie_file,
                    "safe_queue": {**self.app.POLICY.snapshot(), "next_job_at": self.app.state.next_job_at},
                    "job_starts": list(self.app.state.job_starts), "hourly_job_limit": self.app.state.hourly_job_limit,
                    "no_progress_timeout": self.app.state.no_progress_timeout, "dynamic_capture": self.app.state.dynamic_capture}
-        self.app.STATE_STORE.save(self.app.redact_fields(payload))
+        return freeze_snapshot(payload)
 
     def file_total_bytes(self, files, directory: Path) -> int | None:
         if not files or not isinstance(files, (list, tuple)):
@@ -81,7 +100,6 @@ class StateRepository:
             retained["attempts"] = retained.get("attempts", 0) + duplicate.get("attempts", 0)
             retained["retry_count"] = retained.get("retry_count", 0) + duplicate.get("retry_count", 0) + 1
             self.app.state.jobs.pop(duplicate["id"], None)
-        self.app._save_locked()
         print(f"已合併 {len(duplicates)} 個指向相同檔案的完成紀錄，下載檔案保留。")
 
     def _prepare_state(self, payload):
@@ -149,6 +167,10 @@ class StateRepository:
 
     def load_saved_state(self) -> None:
         try:
+            # Startup normally has generation zero; explicit fixture/recovery
+            # reloads must not race a previously submitted checkpoint.
+            if not self.app._wait_saved(self.app.STATE_WRITER.status()["generation"]):
+                return
             with self.app.condition:
                 ready = self.app.STATE_STORE.load(normalize=self._prepare_state)
                 if ready is None:
@@ -156,7 +178,8 @@ class StateRepository:
                 # All potentially failing work completed before any live field changes.
                 self.app.state, self.app.POLICY = ready
                 self.app._merge_completed_duplicates_locked()
-                self.app._save_locked()
+                generation = self.app._save_locked()
+            self.app._wait_saved(generation)
         except (OSError, ValueError, TypeError, KeyError, RuntimeError) as exc:
             self.app.STATE_STORE.restore_failed()
             print(f"無法讀取已保存下載清單：{type(exc).__name__}")

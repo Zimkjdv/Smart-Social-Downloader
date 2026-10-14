@@ -74,6 +74,7 @@ smart-social-downloader/
 │   ├── version.py                 Single application version
 │   ├── app.py                     Composition root
 │   ├── app_context.py             Typed state, owned services and lifecycle
+│   ├── state_writer.py            Immutable snapshots, coalescing and durability
 │   ├── media.py                   Stable download entry points
 │   ├── media_contracts.py         Shared source identity, paths and errors
 │   ├── media_coordinator.py       Routing, generic discovery and manifest reuse
@@ -109,7 +110,7 @@ smart-social-downloader/
 
 The **application version** appears beneath the app name and in Settings → Diagnostics. Engine versions appear separately in environment diagnostics. `update.bat` updates engines; it does not update application source. See [Maintenance](docs/MAINTENANCE.md) and [CHANGELOG](CHANGELOG.md).
 
-Maintainers can reproduce synthetic save and API latency measurements with `python tools/measure_persistence.py`. See [persistence performance](docs/PERSISTENCE_PERFORMANCE.md) for results, limits and the planned writer; the command uses disposable history and does not download media or restore login.
+State saves use an owned background writer with immutable snapshots. Critical changes wait for durable writes without holding the queue lock; failed saves remain visible and can be retried in Diagnostics. Maintainers can reproduce synthetic capture/save/API latency measurements with `python tools/measure_persistence.py`. See [persistence performance](docs/PERSISTENCE_PERFORMANCE.md) for results and limits; the command uses disposable history and does not download media or restore login.
 
 After the GitHub repository is published, use the Issue forms for bugs, installation or feature requests. Read [CONTRIBUTING](CONTRIBUTING.md) first and review diagnostics/screenshots before sharing them. Vulnerabilities use the private process in [SECURITY](SECURITY.md).
 

@@ -17,7 +17,8 @@ class HttpServerTests(unittest.TestCase):
     def setUp(self):
         self.app = SimpleNamespace(PORT=0, EXTENSION_ID=EXTENSION_ID, EXTENSION_ORIGIN=EXTENSION_ORIGIN,
                                    AuthError=AuthError, X_AUTH=Mock(), state=SimpleNamespace(paused=False),
-                                   condition=threading.Condition(), _save_locked=Mock(),
+                                   condition=threading.Condition(), _save_locked=Mock(return_value=0),
+                                   _wait_saved=Mock(return_value=True),
                                    redact_text=lambda value: value, redact_fields=lambda value: value)
         self.app._state = Mock(side_effect=lambda *args, **kwargs: {"paused": self.app.state.paused})
         handler = type("FixtureHandler", (ApiHandler,), {"app": self.app, "log_message": Mock()})

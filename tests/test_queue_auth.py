@@ -228,7 +228,7 @@ class QueueAndAuthTests(unittest.TestCase):
                     str(Path(__file__).with_name('test_fixture_runner.py'))])
             finally:
                 self.app.state.shutdown.set()
-        with patch.object(self.app, 'run_job', execute), patch.object(self.app, '_save_locked'):
+        with patch.object(self.app, 'run_job', execute), patch.object(self.app, '_save_locked', return_value=0):
             self.app._worker_loop()
         self.assertEqual(len(calls), 1)
         self.assertEqual(self.app.state.jobs['new']['status'], 'completed')

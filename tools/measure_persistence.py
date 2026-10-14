@@ -16,6 +16,7 @@ import sys
 import tempfile
 import threading
 import time
+import tracemalloc
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -152,11 +153,16 @@ def isolated_app():
                 raise RuntimeError("Benchmark HTTP service did not finish cleanly")
 
 
-def save(app):
+def save(app, captures=None):
     started = time.perf_counter()
     with app.condition:
-        app._save_locked()
-    if not app.STATE_STORE.status()["healthy"]:
+        capture_started = time.perf_counter()
+        generation = app._save_locked()
+        captured = (time.perf_counter() - capture_started) * 1000
+    saved = app._wait_saved(generation)
+    if captures is not None:
+        captures.append(captured)
+    if not saved or not app._persistence_status()["healthy"]:
         raise RuntimeError("Synthetic state could not be saved; no measurement is valid")
     return (time.perf_counter() - started) * 1000
 
@@ -203,7 +209,13 @@ def contended_request(app, metrics, operation):
                 # No artificial sleep is included in the timed save.
                 if not arrival.wait(30):
                     raise RuntimeError("Benchmark handler never reached the queue lock")
-                writer_samples.append(save(app))
+                started = time.perf_counter()
+                generation = app._save_locked()
+                capture_ms = (time.perf_counter() - started) * 1000
+            if not app._wait_saved(generation):
+                raise RuntimeError("Synthetic state could not be saved")
+            writer_samples.append({"writer_save_ms": (time.perf_counter() - started) * 1000,
+                                   "writer_capture_ms": capture_ms})
         except BaseException as exc:
             errors.append(exc)
 
@@ -221,18 +233,17 @@ def contended_request(app, metrics, operation):
         raise RuntimeError("Benchmark writer did not finish")
     if errors:
         raise RuntimeError("Benchmark writer failed") from errors[0]
-    result["writer_save_ms"] = writer_samples[0]
+    result.update(writer_samples[0])
     return result
 
 
 def phase_profile(app):
     """Separate instrumented run: cumulative rows overlap; never sum them."""
     profile = cProfile.Profile()
-    profile.enable()
-    try:
+    original = app.STATE_WRITER._save
+    # Profile the real writer thread, not the caller merely waiting on a barrier.
+    with patch.object(app.STATE_WRITER, "_save", side_effect=lambda snapshot: profile.runcall(original, snapshot)):
         elapsed = save(app)
-    finally:
-        profile.disable()
     rows = {}
     for (filename, _line, name), (_primitive, calls, own, cumulative, _callers) in pstats.Stats(profile).stats.items():
         phase = None
@@ -252,14 +263,29 @@ def phase_profile(app):
     return {"save_ms": round(elapsed, 3), "phases": rows}
 
 
+def snapshot_memory(app):
+    """Separate allocation run; excludes existing immutable strings and writer I/O."""
+    tracemalloc.start()
+    try:
+        with app.condition:
+            snapshot = app._REPOSITORY.snapshot_locked()
+        retained, peak = tracemalloc.get_traced_memory()
+        del snapshot
+        return {"retained_bytes": retained, "peak_bytes": peak}
+    finally:
+        tracemalloc.stop()
+
+
 def measure_case(name, repeats):
     count, account_files = WORKLOADS[name]
     with isolated_app() as (app, metrics):
         app.state.jobs, app.state.active_id = synthetic_jobs(count, account_files)
         cold = save(app)  # No primary/backup yet.
         save(app)  # Warm up and establish both files before steady-state samples.
-        steady = [save(app) for _ in range(repeats)]
+        captures = []
+        steady = [save(app, captures) for _ in range(repeats)]
         profiled = phase_profile(app)
+        memory = snapshot_memory(app)
         operations = {}
         for operation in ("summary", "pause", "cancel"):
             samples = {}
@@ -284,6 +310,8 @@ def measure_case(name, repeats):
                 "file_paths": sum(len(job["files"]) for job in app.state.jobs.values()),
                 "state_bytes": app.STATE_FILE.stat().st_size,
                 "cold_save_ms": round(cold, 3), "steady_save": distribution(steady),
+                "snapshot_capture": distribution(captures),
+                "snapshot_allocation": memory,
                 "profiled_save": profiled, "operations": operations,
                 "verified": {"primary_valid": True, "backup_valid": True,
                              "pause_saved": True, "stop_request_saved": True}}
@@ -301,9 +329,9 @@ def main(argv=None):
     for name in args.workload or WORKLOADS:
         print(f"Measuring {name} ({args.repeats} samples per operation)...", file=sys.stderr, flush=True)
         cases.append(measure_case(name, args.repeats))
-    print(json.dumps({"format_version": 1, "environment": {"os": platform.system(),
+    print(json.dumps({"format_version": 2, "environment": {"os": platform.system(),
         "python": platform.python_version()}, "repeats": args.repeats,
-        "scope": "Synthetic temporary state; real atomic/fsync saves and loopback APIs; no download worker",
+        "scope": "Synthetic temporary state; immutable capture, real writer durable barriers and loopback APIs; no download worker",
         "percentile": "Nearest-rank p95; five samples means the maximum, not a stable tail estimate",
         "profiling": "Separate cProfile run adds overhead; cumulative phases overlap and must not be summed",
         "cases": cases}, ensure_ascii=False, indent=2))

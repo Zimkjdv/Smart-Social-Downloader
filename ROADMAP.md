@@ -1,6 +1,6 @@
 # Roadmap
 
-更新：2026-10-14。此檔是**未完成工作與最新審查發現的唯一總清單**；完成紀錄移至 [CHANGELOG](CHANGELOG.md)。目前基準為 Windows／Python 3.12，沒有 Python 3.10 驗收工作。下列核取方塊均尚未完成，不代表已修正或已發布。N01～N06 及 N07 的保存成本量測已完成並移到 [CHANGELOG](CHANGELOG.md#unreleased)，回歸結果見 [TESTING](docs/TESTING.md)。
+更新：2026-10-14。此檔是**未完成工作與最新審查發現的唯一總清單**；完成紀錄移至 [CHANGELOG](CHANGELOG.md)。目前基準為 Windows／Python 3.12，沒有 Python 3.10 驗收工作。下列核取方塊均尚未完成，不代表已修正或已發布。N01～N06 及 N07 的保存量測／writer 已完成並移到 [CHANGELOG](CHANGELOG.md#unreleased)，回歸結果見 [TESTING](docs/TESTING.md)。
 
 ## 本輪整體審查
 
@@ -10,10 +10,10 @@
 
 | 編號 | 優先度 | 狀態 | 問題／改善 |
 | --- | --- | --- | --- |
-| N07 | P2 | 保存量測完成；優化待辦 | 保存 writer、大量檔案容量、SQLite 長期維護 |
+| N07 | P2 | 保存 writer 完成；容量待辦 | 大帳號掃描／IPC／保存容量、SQLite 長期維護 |
 | N08 | P2 | 維護改善建議 | 測試 fixture、來源打包規則與檔案結構配套 |
 
-N01～N06 及 N07 的保存成本量測已移至 [CHANGELOG](CHANGELOG.md#unreleased)。[N07 量測與 writer 設計](docs/PERSISTENCE_PERFORMANCE.md) 使用隔離合成歷史重現共用鎖等待，不宣稱真實使用者資料已出現卡頓。下一項是實作保存 writer；容量維護與 N08 的 fixture／來源包驗收仍待辦。HTTP 讀取期限、併發限制與輸入契約見 [可靠性文件](docs/RELIABILITY.md)。
+N01～N06 及 N07 的保存量測／writer 已移至 [CHANGELOG](CHANGELOG.md#unreleased)。[N07 量測與 writer](docs/PERSISTENCE_PERFORMANCE.md) 使用隔離合成歷史驗證等待成本與改造，不宣稱真實使用者資料已出現卡頓。下一項是大帳號掃描／IPC／64 MiB 保存容量及明確提示；SQLite 維護與 N08 的 fixture／來源包驗收仍待辦。HTTP 讀取期限、併發限制與輸入契約見 [可靠性文件](docs/RELIABILITY.md)。
 
 ## 架構與檔案結構
 
@@ -23,7 +23,6 @@ N01～N06 及 N07 的保存成本量測已移至 [CHANGELOG](CHANGELOG.md#unrele
 
 ### N07：保存成本與長期資料維護
 
-- [ ] 依 [量測與設計](docs/PERSISTENCE_PERFORMANCE.md#writer-design-for-the-next-milestone) 實作不可變 snapshot、單一保存 writer 與合併更新。將序列化／驗證／磁碟 I/O 移出共用 condition，關鍵操作依保存 generation 等待落盤且不持有佇列鎖；保留失敗提示、關機 flush、新版備份保護與恢復順序。snapshot 的檔案清單複製成本也須量測，不以單純延遲保存增加資料遺失。
 - [ ] 量測大帳號掃描、IPC 與 64 MiB 保存容量，對容量限制提供明確提示；檔案明細可改由索引分頁取得。
 - [ ] 提供 SQLite 資料庫容量診斷、備份及使用者控制的整理；不得順便刪除媒體，也不得清掉有效去重紀錄。保留「原位置檔案已不存在就重新取得」規則。
 

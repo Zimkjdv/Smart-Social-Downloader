@@ -10,6 +10,7 @@ import mimetypes
 import os
 import time
 import uuid
+from contextlib import contextmanager
 from http.server import BaseHTTPRequestHandler
 from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlparse
@@ -18,6 +19,10 @@ from .http_server import DeadlineReader, READ_SECONDS, WRITE_SECONDS
 
 class RequestFormatError(ValueError):
     """A public, payload-free request validation message."""
+
+
+class ApplicationClosedError(RuntimeError):
+    pass
 
 
 class ApiHandler(BaseHTTPRequestHandler):
@@ -222,8 +227,23 @@ class ApiHandler(BaseHTTPRequestHandler):
         self._send(200, target.read_bytes(), content_type + ("; charset=utf-8" if content_type.startswith("text/") else ""))
 
     def do_POST(self) -> None:
+        try:
+            self._post()
+        except ApplicationClosedError:
+            self._json(503, {"error": "本機服務正在關閉，請重新啟動後再操作。"})
+
+    @contextmanager
+    def _mutation(self):
+        with self.app.condition:
+            if getattr(self.app, "_closed", False):
+                raise ApplicationClosedError()
+            yield
+
+    def _post(self) -> None:
         if not (self._local_request() or self._extension_request()):
             return self._json(403, {"error": "僅允許本機操作"})
+        if getattr(self.app, "_closed", False):
+            raise ApplicationClosedError()
         path = urlparse(self.path).path
         try:
             data = self._read_json()
@@ -246,8 +266,9 @@ class ApiHandler(BaseHTTPRequestHandler):
             return self._json(202, self._state())
 
         if path == "/api/state/save":
-            with self.app.lock:
-                self.app._save_locked()
+            with self._mutation():
+                generation = self.app._save_locked()
+            self.app._wait_saved(generation)
             return self._json(200, self._state())
 
         if path == "/api/auth/x/prepare":
@@ -292,10 +313,11 @@ class ApiHandler(BaseHTTPRequestHandler):
                 self.app.X_AUTH.disconnect()
             except self.app.AuthError as exc:
                 return self._json(400, {"error": str(exc)})
-            with self.app.lock:
+            with self._mutation():
                 # Stopping login also stops a legacy Cookie-file login if one was selected.
                 self.app.state.x_cookie_file = ""
-                self.app._save_locked()
+                generation = self.app._save_locked()
+            self.app._wait_saved(generation)
             return self._json(200, self._state())
 
         if path == "/api/jobs":
@@ -342,7 +364,7 @@ class ApiHandler(BaseHTTPRequestHandler):
                     continue
                 seen.add(identity)
                 accepted.append((result, account))
-            with self.app.condition:
+            with self._mutation():
                 pending_accounts = {job.get("account") for job in self.app.state.jobs.values()
                     if job.get("mode") == "x_profile" and job["status"] in {"queued", "active"}}
                 ready = []
@@ -414,8 +436,9 @@ class ApiHandler(BaseHTTPRequestHandler):
                     self.app.state.jobs[job_id] = job
                     self.app.state.queue.append(job_id)
                     created.append(job_id)
-                self.app._save_locked()
+                generation = self.app._save_locked()
                 self.app.condition.notify_all()
+            self.app._wait_saved(generation)
             return self._json(201, {"added": created, "reused": reused,
                 "already_pending": already_pending, "rejected": rejected, "state": self._state()})
 
@@ -423,15 +446,16 @@ class ApiHandler(BaseHTTPRequestHandler):
             paused = data.get("paused")
             if type(paused) is not bool:
                 return self._json(400, {"error": "暫停設定必須是 true 或 false。"})
-            with self.app.condition:
+            with self._mutation():
                 self.app.state.paused = paused
-                self.app._save_locked()
+                generation = self.app._save_locked()
                 self.app.condition.notify_all()
+            self.app._wait_saved(generation)
             return self._json(200, self._state())
 
         if path.startswith("/api/jobs/") and path.endswith("/select-media"):
             job_id = path.removeprefix("/api/jobs/").removesuffix("/select-media")
-            with self.app.condition:
+            with self._mutation():
                 job = self.app.state.jobs.get(job_id)
                 if not job:
                     return self._json(404, {"error": "找不到這個下載項目"})
@@ -443,16 +467,18 @@ class ApiHandler(BaseHTTPRequestHandler):
                 job["selected_media"] = selected
                 job.pop("selection_options", None)
                 self.app._retry_locked(job)
-                self.app._save_locked()
+                generation = self.app._save_locked()
                 self.app.condition.notify_all()
+            self.app._wait_saved(generation)
             return self._json(200, self._state())
 
         if path == "/api/rate/reset":
-            with self.app.condition:
+            with self._mutation():
                 previous_used = self.app._quota_locked()["used"]
                 self.app.state.job_starts.clear()
-                self.app._save_locked()
+                generation = self.app._save_locked()
                 self.app.condition.notify_all()
+            self.app._wait_saved(generation)
             return self._json(200, {"reset": True, "previous_used": previous_used, "state": self._state()})
 
         if path == "/api/downloads/open":
@@ -502,27 +528,29 @@ class ApiHandler(BaseHTTPRequestHandler):
                     raise ValueError("指定路徑不是資料夾")
             except (OSError, RuntimeError, ValueError) as exc:
                 return self._json(400, {"error": f"無法使用此資料夾：{exc}"})
-            with self.app.condition:
+            with self._mutation():
                 self.app.state.download_dir = target_dir
                 self.app.state.x_cookie_file = cookie_file
                 self.app.state.hourly_job_limit = raw_limit
                 self.app.state.no_progress_timeout = raw_timeout
                 self.app.state.dynamic_capture = dynamic_capture
                 self.app.POLICY.configure(cooldown_mode)
-                self.app._save_locked()
+                generation = self.app._save_locked()
                 self.app.condition.notify_all()
+            self.app._wait_saved(generation)
             return self._json(200, self._state())
 
         if path == "/api/jobs/clear-done":
-            with self.app.lock:
+            with self._mutation():
                 removed = [job_id for job_id, job in self.app.state.jobs.items() if job["status"] == "completed"]
                 for job_id in removed:
                     self.app.state.jobs.pop(job_id, None)
-                self.app._save_locked()
+                generation = self.app._save_locked()
+            self.app._wait_saved(generation)
             return self._json(200, {"removed": len(removed), "state": self._state()})
 
         if path == "/api/jobs/clear-all":
-            with self.app.condition:
+            with self._mutation():
                 removed = [job_id for job_id in self.app.state.jobs if job_id != self.app.state.active_id]
                 for job_id in removed:
                     self.app.state.jobs.pop(job_id, None)
@@ -530,16 +558,18 @@ class ApiHandler(BaseHTTPRequestHandler):
                 active = self.app.state.jobs.get(self.app.state.active_id)
                 if active:
                     active["remove_when_finished"] = True
-                self.app._save_locked()
+                generation = self.app._save_locked()
                 self.app.condition.notify_all()
+            self.app._wait_saved(generation)
             return self._json(200, {"removed": len(removed), "pending_active": bool(active), "state": self._state()})
 
         if path == "/api/jobs/retry-failed":
-            with self.app.condition:
+            with self._mutation():
                 failed = [job for job in self.app.state.jobs.values() if job["status"] == "failed"]
                 retried = sum(self.app._retry_locked(job) for job in sorted(failed, key=lambda item: item["created_at"]))
-                self.app._save_locked()
+                generation = self.app._save_locked()
                 self.app.condition.notify_all()
+            self.app._wait_saved(generation)
             return self._json(200, {"retried": retried, "state": self._state()})
 
         if path.startswith("/api/jobs/") and path.endswith(("/open-file", "/open-folder")):
@@ -576,7 +606,7 @@ class ApiHandler(BaseHTTPRequestHandler):
 
         if path.startswith("/api/jobs/") and path.endswith("/retry"):
             job_id = path.removeprefix("/api/jobs/").removesuffix("/retry")
-            with self.app.condition:
+            with self._mutation():
                 job = self.app.state.jobs.get(job_id)
                 if not job:
                     return self._json(404, {"error": "找不到這個項目"})
@@ -584,26 +614,28 @@ class ApiHandler(BaseHTTPRequestHandler):
                     return self._json(409, {"error": "此項目已在佇列或下載中，請等處理完成"})
                 if not self.app._retry_locked(job, force=True):
                     return self._json(409, {"error": "此 X 帳號已有等待中或下載中的工作。"})
-                self.app._save_locked()
+                generation = self.app._save_locked()
                 self.app.condition.notify_all()
+            self.app._wait_saved(generation)
             return self._json(200, self._state())
 
         if path.startswith("/api/jobs/") and path.endswith("/stop"):
             job_id = path.removeprefix("/api/jobs/").removesuffix("/stop")
-            with self.app.condition:
+            with self._mutation():
                 job = self.app.state.jobs.get(job_id)
                 if not job:
                     return self._json(404, {"error": "找不到這個下載項目"})
                 if job["status"] != "active":
                     return self._json(409, {"error": "只有進行中的下載可以停止。"})
                 job.update(stop_requested=True, status_text="正在停止，保留已下載檔案", updated_at=time.time())
-                self.app._save_locked()
+                generation = self.app._save_locked()
                 self.app.condition.notify_all()
+            self.app._wait_saved(generation)
             return self._json(200, self._state())
 
         if path.startswith("/api/jobs/") and path.removeprefix("/api/jobs/") and "/" not in path.removeprefix("/api/jobs/"):
             job_id = path.removeprefix("/api/jobs/")
-            with self.app.condition:
+            with self._mutation():
                 job = self.app.state.jobs.get(job_id)
                 if not job:
                     return self._json(404, {"error": "找不到這個項目"})
@@ -614,8 +646,9 @@ class ApiHandler(BaseHTTPRequestHandler):
                     self.app.state.queue.remove(job_id)
                 except ValueError:
                     pass
-                self.app._save_locked()
+                generation = self.app._save_locked()
                 self.app.condition.notify_all()
+            self.app._wait_saved(generation)
             return self._json(200, self._state())
 
         return self._json(404, {"error": "找不到 API"})

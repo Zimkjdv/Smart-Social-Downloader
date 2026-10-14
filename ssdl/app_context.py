@@ -27,6 +27,7 @@ from .persistence import StateStore
 from .request_policy import RequestPolicy, JOB_DELAY_MIN, JOB_DELAY_MAX, REQUEST_INTERVAL, JOB_RATE_LIMIT, JOB_RATE_WINDOW, platform_key
 from .scheduler import QueueScheduler
 from .state_repository import StateRepository
+from .state_writer import StateWriter, thaw_snapshot, SAVE_ERROR
 from .thumbnails import ThumbnailCache
 from .version import __version__
 from .video_quality import validate_video_quality
@@ -110,6 +111,9 @@ class AppContext:
         self._lifecycle_lock = threading.RLock()
         self._started = False
         self._closed = False
+        self.STATE_WRITER: StateWriter = StateWriter(
+            lambda snapshot: self.STATE_STORE.save(self.redact_fields(thaw_snapshot(snapshot))),
+            lambda: self.STATE_STORE.record_failure())
         self._SCHEDULER = QueueScheduler(self)
         self._REPOSITORY = StateRepository(self)
         self._quota_locked = self._SCHEDULER.quota_locked
@@ -136,6 +140,7 @@ class AppContext:
             self._load_saved_state()
             self.X_AUTH.restore()
             self.ENVIRONMENT.refresh()
+            self.STATE_WRITER.start()
             self.state.worker_thread = threading.Thread(target=self._worker, name="download-queue", daemon=True)
             try:
                 self.state.worker_thread.start()
@@ -153,16 +158,32 @@ class AppContext:
             self.state.shutdown.set()
             with self.condition:
                 self.condition.notify_all()
-            self.X_AUTH.shutdown()
-            worker = self.state.worker_thread
-            if worker and worker.is_alive() and worker is not threading.current_thread():
-                worker.join(timeout=10)
-            self.THUMBNAILS.shutdown()
-            self.STORAGE.shutdown()
-            self.ENVIRONMENT.shutdown()
-            if self._started and not (worker and worker.is_alive()):
-                with self.condition:
-                    self._save_locked()
+            try:
+                self.X_AUTH.shutdown()
+                worker = self.state.worker_thread
+                if worker and worker.is_alive() and worker is not threading.current_thread():
+                    worker.join()
+                self.THUMBNAILS.shutdown()
+                self.STORAGE.shutdown()
+                self.ENVIRONMENT.shutdown()
+                if self._started and not (worker and worker.is_alive()):
+                    with self.condition:
+                        generation = self._save_locked()
+                    self._wait_saved(generation)
+            finally:
+                self.STATE_WRITER.close()
+
+    def _wait_saved(self, generation: int) -> bool:
+        if self.lock._is_owned():
+            raise RuntimeError("Durability barriers must not hold the queue lock")
+        return self.STATE_WRITER.wait(generation)
+
+    def _persistence_status(self):
+        status = self.STATE_STORE.status()
+        writer = self.STATE_WRITER.status()
+        if writer["failed_generation"] > writer["saved_generation"]:
+            status.update(healthy=False, error=status.get("error") or SAVE_ERROR)
+        return {**status, **writer}
 
     def __enter__(self):
         return self
@@ -207,8 +228,9 @@ class AppContext:
                       and not job.get("stop_requested")]
             for job in sorted(failed, key=lambda item: item["created_at"]):
                 self._retry_locked(job)
-            self._save_locked()
+            generation = self._save_locked()
             self.condition.notify_all()
+        self._wait_saved(generation)
 
 
     def _platform(self, url: str) -> str:
@@ -312,7 +334,7 @@ class AppContext:
                 "version": engines["video_version"],  # Legacy API field: yt-dlp version.
                 "engines": engines,
                 "environment": self.ENVIRONMENT.snapshot(),
-                "persistence": self.STATE_STORE.status(),
+                "persistence": self._persistence_status(),
                 "worker": {**self.state.worker_status, "alive": bool(self.state.worker_thread and self.state.worker_thread.is_alive())},
                 "no_progress_timeout": self.state.no_progress_timeout,
                 "dynamic_capture": self.state.dynamic_capture,
@@ -346,7 +368,7 @@ class AppContext:
             counts = {name: sum(job["status"] == name for job in self.state.jobs.values())
                       for name in ("queued", "active", "completed", "failed")}
             result = {"format_version": 1, "app_version": __version__, "created_at": time.time(), "counts": counts,
-                      "environment": self.ENVIRONMENT.snapshot(), "persistence": self.STATE_STORE.status(),
+                      "environment": self.ENVIRONMENT.snapshot(), "persistence": self._persistence_status(),
                       "worker": dict(self.state.worker_status), "rate_limit": self._quota_locked(),
                       "x_auth": {key: self.X_AUTH.status().get(key) for key in ("connected", "phase")},
                       "jobs": [{"id": job["id"], "platform": job["platform"], "status": job["status"],

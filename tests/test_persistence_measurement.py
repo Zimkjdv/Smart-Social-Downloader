@@ -43,6 +43,8 @@ class PersistenceMeasurementTests(unittest.TestCase):
         self.assertEqual(result["file_paths"], 20)
         self.assertTrue(all(result["verified"].values()))
         self.assertGreater(result["state_bytes"], 0)
+        self.assertEqual(result["snapshot_capture"]["n"], 1)
+        self.assertGreater(result["snapshot_allocation"]["retained_bytes"], 0)
         self.assertEqual(set(result["operations"]), {"summary", "pause", "cancel"})
         for values in result["operations"].values():
             self.assertEqual(values["uncontended"]["http_ms"]["n"], 1)
@@ -57,6 +59,7 @@ class PersistenceMeasurementTests(unittest.TestCase):
         self.assertIn("redact", phases)
         app = created[0]
         self.assertFalse(app._started)
+        self.assertTrue(app.STATE_WRITER.status()["writer_closed"])
         self.assertIsNone(app.state.worker_thread)
         self.assertFalse(app.ROOT.exists())
         encoded = json.dumps(result)
@@ -72,7 +75,7 @@ class PersistenceMeasurementTests(unittest.TestCase):
 
             def observed_save():
                 observations.append((app.lock.arrival.is_set(), app.lock.raw._is_owned()))
-                original()
+                return original()
 
             with patch.object(app, "_save_locked", side_effect=observed_save):
                 result = bench.contended_request(app, metrics, "summary")

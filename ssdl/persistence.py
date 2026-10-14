@@ -8,11 +8,13 @@ import os
 from pathlib import Path
 import threading
 import time
+from .state_writer import SAVE_ERROR
 from urllib.parse import urlsplit
 from .video_quality import validate_video_quality
 from .media_selection import validate_choices
 
 SCHEMA_VERSION = 2
+RECOVERED_NOTICE = "已從最後有效備份恢復；損壞紀錄會另行保留。"
 
 
 class FutureState(ValueError):
@@ -131,14 +133,24 @@ class StateStore:
         self.filename = filename
         self.backup = filename.with_suffix(filename.suffix + ".bak")
         self._lock = threading.RLock()
+        self._status_lock = threading.Lock()
         self._invalid_primary = False
         self._status = {"healthy": True, "schema_version": SCHEMA_VERSION,
                         "last_saved_at": 0, "error": "", "recovered": False,
                         "backup_available": self.backup.is_file(), "blocked": False}
 
     def status(self):
-        with self._lock:
+        with self._status_lock:
             return dict(self._status)
+
+    def _set_status(self, **values):
+        with self._status_lock:
+            self._status.update(values)
+
+    def record_failure(self):
+        with self._status_lock:
+            if not self._status["blocked"]:
+                self._status.update(healthy=False, error=SAVE_ERROR)
 
     def _read(self, path):
         if path.stat().st_size > 64 * 1024 * 1024:
@@ -146,7 +158,7 @@ class StateStore:
         return validate_state(json.loads(path.read_text(encoding="utf-8-sig")))
 
     def _block_future(self):
-        self._status.update(healthy=False, blocked=True,
+        self._set_status(healthy=False, blocked=True,
             error="紀錄來自較新版本，請使用相容版本；目前不覆寫原紀錄。")
 
     def load(self, normalize=None):
@@ -157,7 +169,7 @@ class StateStore:
                 payload = self._read(self.filename)
                 result = normalize(payload) if normalize else payload
                 self._invalid_primary = False
-                self._status.update(healthy=True, blocked=False)
+                self._set_status(healthy=True, blocked=False)
                 return result
             except FutureState:
                 self._block_future()
@@ -171,19 +183,20 @@ class StateStore:
                     self._block_future()
                     return None
                 except (OSError, ValueError, TypeError, KeyError, RuntimeError):
-                    self._status.update(healthy=False,
-                        error="下載紀錄無法讀取，且沒有有效備份；原檔保留，請查看排錯說明。")
+                    status = {"healthy": False,
+                        "error": "下載紀錄無法讀取，且沒有有效備份；原檔保留，請查看排錯說明。"}
                     if normalize:
-                        self._status["blocked"] = True
+                        status["blocked"] = True
+                    self._set_status(**status)
                     return None
-                self._status.update(healthy=True, blocked=False, recovered=True, backup_available=True,
-                    error="已從最後有效備份恢復；損壞紀錄會另行保留。")
+                self._set_status(healthy=True, blocked=False, recovered=True, backup_available=True,
+                    error=RECOVERED_NOTICE)
                 return result
 
     def restore_failed(self):
         """Never auto-save an app snapshot that could not be fully reconstructed."""
         with self._lock:
-            self._status.update(healthy=False, blocked=True,
+            self._set_status(healthy=False, blocked=True,
                 error="下載紀錄無法完整恢復；原檔與備份保留，請修復紀錄後重新啟動。")
 
     @staticmethod
@@ -234,11 +247,10 @@ class StateStore:
                         self._atomic(self.backup, self.filename.read_bytes())
                 self._atomic(self.filename, contents)
                 self._invalid_primary = False
-                self._status.update(healthy=True, last_saved_at=time.time(),
-                                    backup_available=self.backup.is_file())
-                if not self._status["recovered"]:
-                    self._status["error"] = ""
+                self._set_status(healthy=True, last_saved_at=time.time(),
+                                    backup_available=self.backup.is_file(),
+                                    error=RECOVERED_NOTICE if self._status["recovered"] else "")
                 return True
             except (OSError, ValueError, TypeError, KeyError):
-                self._status.update(healthy=False, error="本機紀錄保存失敗，變更目前只在記憶體中；請檢查磁碟權限與空間後重新嘗試保存。")
+                self.record_failure()
                 return False

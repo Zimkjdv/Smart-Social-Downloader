@@ -119,7 +119,7 @@ class QueueScheduler:
                         job["size"] = self.app._format_bytes(data["aggregate_bytes"])
                     if data.get("profile_post_finished") or (data.get("profile_scan_finished") and data.get("profile_files_to_download")):
                         self.app.state.next_job_at = time.time() + random.uniform(self.app.JOB_DELAY_MIN, self.app.JOB_DELAY_MAX)
-                        self.app._save_locked()
+                        self.app._save_locked(checkpoint=True)
                     if data.get("profile_post_finished"):
                         files = job.get("files") or []
                         stats_files = files[stats_file_count:] if len(files) >= stats_file_count else files[:]
@@ -149,12 +149,27 @@ class QueueScheduler:
                     job["status_text"] = "下載帳號媒體中" if downloading else "正在掃描 X 帳號媒體清單"
                     if start_post:
                         self.app.state.job_starts.append(time.time())
-                        self.app._save_locked()
+                        generation = self.app._save_locked()
+                        break
                     return
                 stage = "paused" if self.app.state.paused else "cooldown" if cooling else "quota" if quota["limited"] else "waiting"
                 job.update(profile_stage=stage, profile_wait_seconds=wait, speed="", eta="",
                            status_text="帳號下載已暫停" if self.app.state.paused else "帳號下載等待每小時額度" if stage == "quota" else
                            f"限流冷卻，等待 {wait} 秒" if stage == "cooldown" else f"安全延時，等待 {wait} 秒")
+                self.app.condition.wait(timeout=.5)
+        self.app._wait_saved(generation)
+        # Pause/stop may arrive while the quota generation is being persisted.
+        # A charged post must not charge again or wait on its own quota entry.
+        with self.app.condition:
+            while True:
+                job = self.app.state.jobs.get(job_id)
+                if (self.app.state.shutdown.is_set() or not job or job.get("stop_requested")
+                        or job.get("remove_when_finished")):
+                    raise self.app.media.DownloadError("帳號下載已停止；已保存的檔案保留，可按同步繼續。", code="profile_stopped")
+                if not self.app.state.paused:
+                    job.update(profile_stage="downloading", profile_wait_seconds=0, status_text="下載帳號媒體中")
+                    return
+                job.update(profile_stage="paused", profile_wait_seconds=0, status_text="帳號下載已暫停")
                 self.app.condition.wait(timeout=.5)
 
     def job_cancelled(self, job_id):
@@ -180,8 +195,9 @@ class QueueScheduler:
                                        **self.app.media.error_info(exc), finished_at=time.time())
                     self.app.state.active_id = self.app.state.active_started_monotonic = None
                     self.app.state.worker_status.update(phase="recovering", pid=None)
-                    self.app._save_locked()
+                    generation = self.app._save_locked()
                     self.app.condition.notify_all()
+                self.app._wait_saved(generation)
                 time.sleep(.5)
 
     def worker_loop(self) -> None:
@@ -193,7 +209,7 @@ class QueueScheduler:
                     self.app.condition.wait(timeout=.5)
                 if not self.app.state.next_job_at:
                     self.app.state.next_job_at = time.time() + random.uniform(self.app.JOB_DELAY_MIN, self.app.JOB_DELAY_MAX)
-                    self.app._save_locked()
+                    self.app._save_locked(checkpoint=True)
                 # Preserve order within a platform; let other platforms proceed during its cooldown.
                 eligible = next((key for key in self.app.state.queue if key in self.app.state.jobs and not
                     self.app.POLICY.snapshot(self.app.platform_key(self.app.state.jobs[key]["url"]))["cooldown_seconds"]), None)
@@ -239,9 +255,12 @@ class QueueScheduler:
                     job.update(self.app._PROFILE_COUNT_DEFAULTS)
                 else:
                     self.app.state.job_starts.append(job["started_at"])
-                self.app._save_locked()
+                generation = self.app._save_locked()
 
             try:
+                self.app._wait_saved(generation)
+                if self.app._job_cancelled(job_id):
+                    raise self.app.media.DownloadError("下載已停止；已保存檔案保留。", code="download_cancelled")
                 x_cookies = self.app.X_AUTH.cookies() if job["platform"] == "X" else {}
                 result = self.app.run_job({"url": job["url"], "output_dir": str(output_dir), "cookie_file": cookie_file,
                     "x_cookies": x_cookies, "profile": bool(profile), "force": force,
@@ -330,5 +349,6 @@ class QueueScheduler:
                         self.app.state.active_id = None
                         self.app.state.active_started_monotonic = None
                     self.app.state.next_job_at = time.time() + random.uniform(self.app.JOB_DELAY_MIN, self.app.JOB_DELAY_MAX)
-                    self.app._save_locked()
+                    generation = self.app._save_locked()
                     self.app.condition.notify_all()
+                self.app._wait_saved(generation)

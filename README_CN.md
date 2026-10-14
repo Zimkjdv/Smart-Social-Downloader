@@ -74,6 +74,7 @@ smart-social-downloader/
 │   ├── version.py                 唯一應用程式版本來源
 │   ├── app.py                     組裝入口
 │   ├── app_context.py             具型別的狀態、服務與生命週期
+│   ├── state_writer.py            不可變快照、合併更新及保存確認
 │   ├── media.py                   相容的下載入口
 │   ├── media_contracts.py         共用來源識別、路徑與錯誤
 │   ├── media_coordinator.py       引擎調度、通用解析與去重
@@ -109,7 +110,7 @@ smart-social-downloader/
 
 **應用程式版本**顯示在頂部名稱下方及設定 → 診斷；引擎版本另列於環境診斷。`update.bat` 更新引擎，不更新應用程式原始碼。詳見 [維護指南](docs/MAINTENANCE.md) 與 [CHANGELOG](CHANGELOG.md)。
 
-維護者可用 `python tools/measure_persistence.py` 重現合成紀錄保存與 API 延遲量測，結果、限制及後續 writer 設計見 [保存效能文件](docs/PERSISTENCE_PERFORMANCE.md)。指令使用暫存資料，不下載媒體或恢復登入。
+保存採用獨立背景 writer 與不可變快照；關鍵變更等待落盤時不持有佇列鎖，失敗仍有提示並可在診斷中重新保存。維護者可用 `python tools/measure_persistence.py` 重現快照／保存／API 延遲量測，結果及限制見 [保存效能文件](docs/PERSISTENCE_PERFORMANCE.md)。指令使用暫存資料，不下載媒體或恢復登入。
 
 GitHub repo 發布後，可使用 Issue 表單回報錯誤、安裝問題或功能建議。分享前先檢視診斷與截圖，避免個人資料外洩；流程見 [CONTRIBUTING](CONTRIBUTING.md)。漏洞請依 [SECURITY](SECURITY.md) 使用私人回報方式。
 

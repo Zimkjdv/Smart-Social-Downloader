@@ -1,5 +1,17 @@
 # Regression and acceptance tests
 
+## N07 owned writer and durable barriers — 2026-10-14
+
+**191 Python tests passed in 86.888 seconds; 18 Node tests passed; zero skips.** Windows / Python 3.12.10. The reviewed source allowlist validates 135 files, including `state_writer.py` and its new acceptance module. Chrome UI/capture, HLS/DASH, IPC, worker, source-policy, recovery and quality regressions remain enabled. Twenty-four new focused cases passed in 0.189 seconds; final writer/harness reruns cover idle snapshot release and recovered retry notices.
+
+Tests cover immutable files/last-success/selection/pacing containers; passive construction/idempotent lifecycle; one in-flight/latest pending snapshot; checkpoint deadline, automatic flush and barriers; failure/dirty retention/manual recovery; invalid capture while an older write succeeds; future-backup and corrupt-primary preservation; independent contexts; closing producer guards/flush/join; all 13 route barrier locations; stop during startup persistence; account pause/stop during quota persistence without another charge. Real loopback requests read summary and cancel intent while native-write substitutes remain gated, and check critical replies do not return before release. No timing threshold is used for CI assertions.
+
+The initial new fault case exposed an older accepted generation being misclassified after a newer capture failed. Waiting now checks whether an in-flight/pending accepted snapshot can still satisfy that barrier; the corrected case and all existing assertions pass. Review also found that a recovered store could retain an obsolete failure notice after a successful retry; it now restores the recovery notice and has a dedicated regression. Route-only no-op save mocks use generation zero or an explicit wait stub; production barriers retain strict generation validation and real save/API tests retain their durability checks. Idle writers release completed snapshots to avoid retaining a large history unnecessarily.
+
+The same three-workload benchmark ran separately after full tests, with five samples per operation. At 400,180 paths / 20.29 MiB, capture median/p95 was 27.50/28.43 ms, snapshot retained/peak allocation 3,286,608/3,448,880 bytes, and durable save median/p95 862.53/868.75 ms. Contended summary median fell from 1,044.32 to 130.56 ms; pause/stop acknowledgement remained 1,856.81/1,901.52 ms because they wait for durable writes. Allocation excludes existing strings, other snapshots and serialization buffers; cProfile runs in the actual writer and is separate from latency timing. Details/limitations are in [PERSISTENCE_PERFORMANCE](PERSISTENCE_PERFORMANCE.md).
+
+No personal Cookie/history access, production service restart or live platform media download occurred. Writer completion is a scoped N07 milestone; large-account scan/IPC/64 MiB capacity and SQLite maintenance remain in [ROADMAP](../ROADMAP.md).
+
 ## N07 persistence measurement milestone — 2026-10-14
 
 **167 Python tests passed in 86.091 seconds; 18 Node tests passed; zero skips.** Windows / Python 3.12.10. The reviewed source allowlist validates 133 files, including the new measurement tool, acceptance module and performance report. Existing Chrome UI/capture, HLS/DASH integrity, worker supervision, source policy, lifecycle and quality suites remain enabled.
@@ -8,7 +20,7 @@ Eight new cases validate synthetic counts and offline schema, nearest-rank stati
 
 The full three-workload benchmark was repeated **separately after regression tests finished**, with five samples per operation. The 400,180-path / 20.29 MiB state saved in a median 927.67 ms (nearest-rank p95 1,267.31 ms). Contended summary/pause/stop acknowledgement medians were 1,044.32 / 2,057.78 / 1,930.42 ms. Measurements and cProfile-overhead limits are in [PERSISTENCE_PERFORMANCE](PERSISTENCE_PERFORMANCE.md).
 
-No production service restart, personal Cookie/history access or external platform download occurred. Stop measures saved intent rather than actual subprocess termination; scan/IPC/64 MiB capacity and SQLite maintenance are outside this milestone. N07's first measurement is complete; the writer is designed but not implemented, with remaining work in [ROADMAP](../ROADMAP.md).
+No production service restart, personal Cookie/history access or external platform download occurred. Stop measures saved intent rather than actual subprocess termination; scan/IPC/64 MiB capacity and SQLite maintenance are outside this milestone. The writer was designed but not implemented at this first measurement; the follow-up above completes it, with remaining work in [ROADMAP](../ROADMAP.md).
 
 ## N06 frontend controller completion — 2026-10-13
 
