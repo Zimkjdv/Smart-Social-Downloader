@@ -16,7 +16,7 @@ class ReleaseTests(unittest.TestCase):
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory(prefix="ssdl-release-")
         self.addCleanup(self.temporary.cleanup)
-        self.root = Path(self.temporary.name)
+        self.root = Path(self.temporary.name).resolve()
         for name in ROOT_FILES:
             (self.root / name).write_text("source fixture\n", encoding="utf-8")
 
@@ -124,6 +124,14 @@ class ReleaseTests(unittest.TestCase):
             with self.assertRaises(subprocess.CalledProcessError):
                 run_checks(self.root)
         run.assert_called_once()
+
+    def test_extraction_normalizes_the_same_root_alias_as_packaging(self):
+        (self.root / "alias-part").mkdir()
+        alias = self.root / "alias-part" / ".."
+        archive = self.root / "dist/source.zip"
+        files = create_archive(alias, archive)
+        extracted = extract_verified(archive, self.root / "unpacked", alias, files)
+        self.assertEqual((extracted / "README.md").read_bytes(), (self.root / "README.md").read_bytes())
 
 
 if __name__ == "__main__":

@@ -19,6 +19,9 @@ from tools.package_source import create_archive
 
 def extract_verified(archive: Path, destination: Path, root: Path, files: list[Path]) -> Path:
     """Extract only the exact members selected by our source packager."""
+    # source_files returns canonical paths. Windows TEMP may use an 8.3 alias
+    # (RUNNER~1); normalize the caller's root before lexical relative_to checks.
+    root = root.resolve()
     prefix = "smart-social-downloader/"
     expected = {prefix + path.relative_to(root).as_posix(): path for path in files}
     with zipfile.ZipFile(archive) as zipped:

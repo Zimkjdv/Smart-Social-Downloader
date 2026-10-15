@@ -73,6 +73,10 @@ dependencies and system Chrome/Node are intentionally available. Failures stop
 acceptance with a nonzero exit code; temporary outputs are cleaned on success
 and failure. The command does not install dependencies or restart the service.
 
+Roots are canonicalized before relative-path comparisons, including Windows
+TEMP short-name aliases. The release fixture uses the same normalization; a
+noncanonical-root regression protects this contract without relaxing link checks.
+
 Windows CI runs both checkout and extracted-source checks on Python 3.12 / Node
 22 and requires real Chrome availability. This verifies source completeness and
 test imports; it does **not** verify a fresh operating system, a new dependency
