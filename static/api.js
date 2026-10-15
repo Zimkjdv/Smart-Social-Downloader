@@ -6,6 +6,21 @@
   const count = (value) => Number.isInteger(value) && value >= 0;
   const strings = (value) => Array.isArray(value) && value.every((item) => typeof item === 'string');
   const optional = (value, key, check) => value[key] === undefined || check(value[key]);
+  function databases(value) {
+    return object(value) && typeof value.instance === 'string' && /^[a-f0-9]{32}$/.test(value.instance) && count(value.revision) &&
+      typeof value.ready === 'boolean' && typeof value.busy === 'boolean' && number(value.checked_at) &&
+      ['idle', 'running', 'complete', 'partial', 'failed', 'cancelled'].includes(value.phase) &&
+      ['', 'refresh', 'backup', 'compact'].includes(value.operation) &&
+      ['total_bytes', 'reclaimable_bytes', 'backup_bytes'].every(key => count(value[key])) &&
+      typeof value.backup_name === 'string' && /^(?:|backup-\d{8}-\d{6}-[a-f0-9]{12})$/.test(value.backup_name) &&
+      typeof value.error_code === 'string' && typeof value.result_code === 'string' &&
+      Array.isArray(value.entries) && value.entries.length <= 3 && new Set(value.entries.map(item => item?.id)).size === value.entries.length &&
+      value.entries.every(item => object(item) && ['images', 'media', 'profiles'].includes(item.id) &&
+        typeof item.filename === 'string' && ['ok', 'error', 'missing'].includes(item.status) && typeof item.error_code === 'string' &&
+        ['size_bytes', 'wal_bytes', 'shm_bytes', 'journal_bytes', 'page_count', 'page_size', 'free_pages', 'reclaimable_bytes'].every(key => optional(item, key, count)) &&
+        optional(item, 'records', value => value === null || count(value)) &&
+        ['schema_ok', 'compacted', 'checkpoint_busy'].every(key => optional(item, key, flag => typeof flag === 'boolean')));
+  }
   function environment(value) {
     return object(value) && ['idle', 'checking', 'complete'].includes(value.phase) &&
       typeof value.busy === 'boolean' && typeof value.ready === 'boolean' && number(value.checked_at) &&
@@ -57,10 +72,11 @@
         ['saved_bytes', 'attempted_bytes'].every((key) => optional(item, key, (size) => size === null || count(size))) &&
         ['capacity_warning', 'attempted_bytes_exact'].every((key) => optional(item, key, (flag) => typeof flag === 'boolean'))) &&
       optional(value, 'worker', (item) => object(item) && typeof item.alive === 'boolean' && typeof item.phase === 'string') &&
-      optional(value, 'environment', environment);
+      optional(value, 'databases', databases) && optional(value, 'environment', environment);
   }
   function contract(path, method = 'GET') {
     path = path.split('?')[0];
+    if (path === '/api/databases') return databases;
     if (/^\/api\/jobs\/[^/]+\/select-media$/.test(path)) return state;
     if (/^\/api\/jobs\/[^/]+\/details$/.test(path)) return (value) => job(value) &&
       strings(value.warnings) && typeof value.error_detail === 'string';

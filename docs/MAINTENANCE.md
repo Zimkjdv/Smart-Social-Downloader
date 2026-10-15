@@ -52,6 +52,8 @@ The demonstration in `docs/images/dashboard-preview.svg` is a hand-built UI illu
 
 ## Triage and security
 
+SQLite capacity checks, consistent backups, manual compaction and offline restore steps are documented in [Database maintenance](DATABASE_MAINTENANCE.md). Use Settings → Diagnostics; pause the queue and wait for active downloads before backup/compaction. Backups contain private runtime metadata and are excluded from source archives. No automatic pruning of dedup records or media is performed.
+
 Issue forms ask separately for application, engine and connector versions. Reproduce ordinary reports with synthetic/local data first. When an upstream extractor is responsible, document the relevant engine version and update path. Do not ask users to post cookies or unredacted diagnostic data.
 
 Follow [SECURITY.md](../SECURITY.md) for vulnerabilities. When private reporting is unavailable, the public contact-request form only asks for a private channel; it must not contain reproduction details or secrets. Provide a private channel before asking for those details.

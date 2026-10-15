@@ -15,6 +15,7 @@ from http.server import BaseHTTPRequestHandler
 from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlparse
 from .http_server import DeadlineReader, READ_SECONDS, WRITE_SECONDS
+from .database_maintenance import MaintenanceError
 
 
 class RequestFormatError(ValueError):
@@ -180,6 +181,8 @@ class ApiHandler(BaseHTTPRequestHandler):
             return self._send(200, content, "image/jpeg", cache_control="private, max-age=86400", etag=etag)
         if path == "/api/summary":
             return self._json(200, self.app._state(summary_only=True))
+        if path == "/api/databases":
+            return self._json(200, self.app.DATABASES.status())
         if path.startswith("/api/jobs/") and path.endswith(("/files", "/details")):
             job_id, kind = path.removeprefix("/api/jobs/").rsplit("/", 1)
             with self.app.lock:
@@ -256,6 +259,22 @@ class ApiHandler(BaseHTTPRequestHandler):
 
         if path == "/api/environment/refresh":
             return self._json(202, self.app.ENVIRONMENT.refresh())
+
+        if path == "/api/databases":
+            action = data.get("action")
+            if not isinstance(action, str) or action not in {"refresh", "backup", "compact"} or set(data) - {"action", "confirmed"}:
+                return self._json(400, {"error": "資料庫操作參數不正確。"})
+            if action == "compact" and data.get("confirmed") is not True:
+                return self._json(400, {"error": "請先確認資料庫整理操作。"})
+            try:
+                with self._mutation():
+                    if action != "refresh" and (not self.app.state.paused or self.app.state.active_id is not None
+                            or any(job["status"] == "active" for job in self.app.state.jobs.values())):
+                        raise MaintenanceError("database_pause_required")
+                    result = self.app.DATABASES.request(action)
+            except MaintenanceError as exc:
+                return self._json(409, {"error": str(exc), "error_code": exc.code})
+            return self._json(202, result)
 
         if path == "/api/storage/rescan":
             self.app.STORAGE.rescan(self.app.state.download_dir)

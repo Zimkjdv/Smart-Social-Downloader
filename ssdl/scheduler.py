@@ -203,7 +203,7 @@ class QueueScheduler:
     def worker_loop(self) -> None:
         while not self.app.state.shutdown.is_set():
             with self.app.condition:
-                while self.app.state.paused or not self.app.state.queue:
+                while self.app.state.paused or not self.app.state.queue or self.app.DATABASES.blocks_downloads():
                     if self.app.state.shutdown.is_set():
                         return
                     self.app.condition.wait(timeout=.5)
@@ -264,9 +264,9 @@ class QueueScheduler:
                 x_cookies = self.app.X_AUTH.cookies() if job["platform"] == "X" else {}
                 result = self.app.run_job({"url": job["url"], "output_dir": str(output_dir), "cookie_file": cookie_file,
                     "x_cookies": x_cookies, "profile": bool(profile), "force": force,
-                    "archive_file": str(self.app.ROOT / "data" / "x-profiles.sqlite3"),
-                    "image_history_file": str(self.app.ROOT / "data" / "image-history.sqlite3"),
-                    "manifest_file": str(self.app.ROOT / "data" / "media-manifest.sqlite3"),
+                    "archive_file": str(self.app.DATABASES.path_for("profiles")),
+                    "image_history_file": str(self.app.DATABASES.path_for("images")),
+                    "manifest_file": str(self.app.DATABASES.path_for("media")),
                     "video_quality": job.get("video_quality", "best"),
                     "dynamic_capture": dynamic_capture,
                     "selected_media": job.get("selected_media", ""), "policy_platform": self.app.platform_key(job["url"]),

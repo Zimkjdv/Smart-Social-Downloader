@@ -7,6 +7,7 @@
     const render = scope.effect(dependencies.render);
     const toast = scope.effect(dependencies.toast);
     const { scheduleStatusRefresh, timeLabel, fileSize } = dependencies;
+    const databases = window.SSDLDatabaseController.create(dependencies);
     let lastEnvironment = null;
     let environmentRenderKey = '';
     let environmentRequestBusy = false;
@@ -162,15 +163,18 @@
       renderStorageMaintenance(data);
       renderEnvironment(data.environment);
       renderLocalHealth(data);
+      databases.render(data);
       const environmentIssue = lastEnvironment?.checked_at > 0 && lastEnvironment.status !== 'ok';
       const savingIssue = data.persistence && (!data.persistence.healthy || data.persistence.recovered || data.persistence.capacity_warning);
       const workerIssue = data.worker && !data.worker.alive;
-      renderEngineStatus(t(savingIssue ? 'ui.local_history_needs_attention' : workerIssue ? 'ui.download_worker_unavailable' : !state.ready ? 'ui.engines_need_repair' : environmentIssue ? 'ui.environment_needs_attention' : 'ui.engines_ready'),
-        savingIssue ? uiMessage(data.persistence.error || t('ui.history_capacity_warning')) : workerIssue ? t('ui.restart_the_service_or_export_diagnostics_for') : !state.ready || environmentIssue ? t('ui.open_environment_diagnostics_in_settings_for_repair') : t('ui.image_and_video_engines_ready_original_encoding'),
-        savingIssue && !data.persistence.healthy || workerIssue || !state.ready, savingIssue || workerIssue || !state.ready || environmentIssue);
+      const databaseIssue = data.databases?.error_code && !data.databases.busy;
+      renderEngineStatus(t(savingIssue ? 'ui.local_history_needs_attention' : workerIssue ? 'ui.download_worker_unavailable' : databaseIssue ? 'ui.database_needs_attention' : !state.ready ? 'ui.engines_need_repair' : environmentIssue ? 'ui.environment_needs_attention' : 'ui.engines_ready'),
+        savingIssue ? uiMessage(data.persistence.error || t('ui.history_capacity_warning')) : workerIssue ? t('ui.restart_the_service_or_export_diagnostics_for') : databaseIssue ? t('ui.' + data.databases.error_code) : !state.ready || environmentIssue ? t('ui.open_environment_diagnostics_in_settings_for_repair') : t('ui.image_and_video_engines_ready_original_encoding'),
+        savingIssue && !data.persistence.healthy || workerIssue || !state.ready, savingIssue || workerIssue || databaseIssue || !state.ready || environmentIssue);
     }
     scope.onDispose(() => { for (const url of exportUrls) browser.URL.revokeObjectURL(url); exportUrls.clear(); });
-    return Object.freeze({ init: scope.init, dispose: scope.dispose, render: renderSnapshot, renderStorageMaintenance, renderEngineStatus, load: loadEnvironment, get report() { return lastEnvironment; } });
+    scope.onDispose(databases.dispose);
+    return Object.freeze({ init() {scope.init(); databases.init();}, dispose: scope.dispose, render: renderSnapshot, renderStorageMaintenance, renderEngineStatus, load: loadEnvironment, get report() { return lastEnvironment; } });
   }
   window.SSDLDiagnosticsController = Object.freeze({ create });
 })();

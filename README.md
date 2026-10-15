@@ -75,6 +75,7 @@ smart-social-downloader/
 │   ├── app.py                     Composition root
 │   ├── app_context.py             Typed state, owned services and lifecycle
 │   ├── state_writer.py            Immutable snapshots, coalescing and durability
+│   ├── database_maintenance.py    SQLite diagnostics, checked backups and VACUUM
 │   ├── json_budget.py             Bounded UTF-8 JSON for persistence and IPC
 │   ├── media.py                   Stable download entry points
 │   ├── media_contracts.py         Shared source identity, paths and errors
@@ -90,6 +91,7 @@ smart-social-downloader/
 │   ├── app.js                     Composition, state publishing and refresh
 │   ├── settings_controller.js     Settings, drafts, tabs and Rate confirmation
 │   ├── diagnostics_controller.js  Environment, health and cache maintenance
+│   ├── database_controller.js     SQLite status, confirmation and owned polling
 │   ├── jobs_controller.js         List actions, filters, pages and file picker
 │   └── controller_lifecycle.js    Owned listeners, timers and cleanup
 ├── chrome-extension/              Chrome X session connector
@@ -114,7 +116,9 @@ The **application version** appears beneath the app name and in Settings → Dia
 
 State saves use an owned background writer with immutable snapshots. Critical changes wait for durable writes without holding the queue lock; failed saves remain visible and can be retried in Diagnostics. Maintainers can reproduce synthetic capture/save/API latency measurements with `python tools/measure_persistence.py`. See [persistence performance](docs/PERSISTENCE_PERFORMANCE.md) for results and limits; the command uses disposable history and does not download media or restore login.
 
-Settings → Diagnostics shows saved history size and warns at 80% of its **64 MiB** limit. Capacity failures preserve the last good records and original media; oversized child messages report a specific error and allow subsequent jobs to continue. These limits apply to JSON metadata, not video/image file sizes. For recovery steps, synthetic account/IPC measurements and `python tools/measure_capacity.py --full-limits`, see [capacity and limits](docs/CAPACITY.md). SQLite maintenance and indexed file storage remain in [ROADMAP](ROADMAP.md).
+Settings → Diagnostics shows saved history size and warns at 80% of its **64 MiB** limit. Capacity failures preserve the last good records and original media; oversized child messages report a specific error and allow subsequent jobs to continue. These limits apply to JSON metadata, not video/image file sizes. For recovery steps, synthetic account/IPC measurements and `python tools/measure_capacity.py --full-limits`, see [capacity and limits](docs/CAPACITY.md).
+
+The same tab offers SQLite capacity checks, consistent local backups and manual compaction. Pause the queue and wait for active downloads to finish before backup/compaction; compaction first creates a checked backup and retains dedup records and original media. Backups stay under `data/database-backups/` and need additional space. See [database maintenance and recovery](docs/DATABASE_MAINTENANCE.md); indexed file storage remains a future feature in [ROADMAP](ROADMAP.md).
 
 After the GitHub repository is published, use the Issue forms for bugs, installation or feature requests. Read [CONTRIBUTING](CONTRIBUTING.md) first and review diagnostics/screenshots before sharing them. Vulnerabilities use the private process in [SECURITY](SECURITY.md).
 

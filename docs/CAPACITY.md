@@ -1,6 +1,6 @@
 # Account scans and metadata capacity
 
-Updated **2026-10-15**, Windows / Python **3.12.10**; measurements were collected during the October 14–15 implementation. This completes the N07 account-scan/IPC/state-boundary milestone. SQLite maintenance and indexed file storage remain in [ROADMAP](../ROADMAP.md#n07保存成本與長期資料維護). Earlier writer measurements are in [PERSISTENCE_PERFORMANCE](PERSISTENCE_PERFORMANCE.md).
+Updated **2026-10-15**, Windows / Python **3.12.10**; measurements were collected during the October 14–15 implementation. This completes the N07 account-scan/IPC/state-boundary milestone. The following milestone adds [SQLite maintenance and index assessment](DATABASE_MAINTENANCE.md); actual indexed file storage remains a future feature in [ROADMAP](../ROADMAP.md#大型媒體清單索引選配). Earlier writer measurements are in [PERSISTENCE_PERFORMANCE](PERSISTENCE_PERFORMANCE.md).
 
 ## What the limits mean
 

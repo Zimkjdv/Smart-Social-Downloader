@@ -75,6 +75,7 @@ smart-social-downloader/
 │   ├── app.py                     組裝入口
 │   ├── app_context.py             具型別的狀態、服務與生命週期
 │   ├── state_writer.py            不可變快照、合併更新及保存確認
+│   ├── database_maintenance.py    SQLite 診斷、有效備份及 VACUUM
 │   ├── json_budget.py             保存及 IPC 的 UTF-8 JSON 容量限制
 │   ├── media.py                   相容的下載入口
 │   ├── media_contracts.py         共用來源識別、路徑與錯誤
@@ -90,6 +91,7 @@ smart-social-downloader/
 │   ├── app.js                     組裝、狀態發布與刷新排程
 │   ├── settings_controller.js     設定草稿、分頁及 Rate 確認
 │   ├── diagnostics_controller.js  環境診斷、健康與快取維護
+│   ├── database_controller.js     SQLite 狀態、整理確認與輪詢
 │   ├── jobs_controller.js         清單操作、篩選、分頁及檔案選擇
 │   └── controller_lifecycle.js    事件、計時器與清理
 ├── chrome-extension/              Chrome X 登入連接器
@@ -114,7 +116,9 @@ smart-social-downloader/
 
 保存採用獨立背景 writer 與不可變快照；關鍵變更等待落盤時不持有佇列鎖，失敗仍有提示並可在診斷中重新保存。維護者可用 `python tools/measure_persistence.py` 重現快照／保存／API 延遲量測，結果及限制見 [保存效能文件](docs/PERSISTENCE_PERFORMANCE.md)。指令使用暫存資料，不下載媒體或恢復登入。
 
-設定 → 診斷會顯示已保存紀錄容量，達到 **64 MiB** 上限的 80% 時提醒。超限保存保留最後有效紀錄；子程序訊息超限有明確錯誤，後續佇列仍可繼續，已下載原檔保留。限制針對 JSON 資料，不是影片／圖片檔案大小。處理方式、合成帳號／IPC 量測及 `python tools/measure_capacity.py --full-limits` 見 [容量與限制](docs/CAPACITY.md)；SQLite 維護及索引檔案保存仍列於 [ROADMAP](ROADMAP.md)。
+設定 → 診斷會顯示已保存紀錄容量，達到 **64 MiB** 上限的 80% 時提醒。超限保存保留最後有效紀錄；子程序訊息超限有明確錯誤，後續佇列仍可繼續，已下載原檔保留。限制針對 JSON 資料，不是影片／圖片檔案大小。處理方式、合成帳號／IPC 量測及 `python tools/measure_capacity.py --full-limits` 見 [容量與限制](docs/CAPACITY.md)。
+
+同一個診斷分頁也能檢查 SQLite 容量、建立一致性備份及手動整理。備份／整理前需暫停佇列並等待目前下載結束；整理會先建立有效備份，保留去重紀錄與媒體原檔。備份保存在 `data/database-backups/` 並占用額外空間。操作與恢復方式見 [資料庫維護](docs/DATABASE_MAINTENANCE.md)；索引檔案保存仍是 [ROADMAP](ROADMAP.md) 中的後續選配。
 
 GitHub repo 發布後，可使用 Issue 表單回報錯誤、安裝問題或功能建議。分享前先檢視診斷與截圖，避免個人資料外洩；流程見 [CONTRIBUTING](CONTRIBUTING.md)。漏洞請依 [SECURITY](SECURITY.md) 使用私人回報方式。
 

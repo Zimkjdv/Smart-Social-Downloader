@@ -1,5 +1,15 @@
 # Regression and acceptance tests
 
+## N07 SQLite diagnostics, backup and compaction — 2026-10-15
+
+**223 Python tests passed in 90.368 seconds; 23 Node tests passed; zero skips.** Windows / Python 3.12.10. The reviewed source allowlist validates **143 files**, including the owned database service, UI controller, real SQLite acceptance module and [database maintenance guide](DATABASE_MAINTENANCE.md). Existing real Chrome/capture, streaming, quality, source policy, writer and capacity cases remain enabled. No production service restart, personal database/Cookie access or live platform media download occurred.
+
+Nineteen new Python cases verify passive/missing-database behavior; physical size/freelist/count diagnostics without row/path leaks; complete pre-compaction backup and exact row/schema/media preservation; moved-file refetch behavior through all three real dedup stores; committed WAL snapshots and retained old backups; failure before VACUUM without partial publication; corrupt/unknown/locked databases; reparse paths and orphan journals; deadline/owned shutdown; partial compaction; WAL reader deferral; Unicode/space/URI characters in roots; Host/Origin and strict confirmation contracts; pause/active/busy/closing responses; and scheduler admission fencing. SQLite tests use real temporary files and native SQLite backup/VACUUM. Fault injection covers fsync, per-database failure and cancellation; no host-specific speed threshold is used.
+
+Three new Node cases cover one confirmed submission, cancellation, concurrent clicks, report contracts, language switching, stale revisions, active-download button guards, health warnings and disposed late responses. A new real headless Chrome case opens the compaction dialog from Settings → Diagnostics, cancels with Escape and returns focus to its trigger, submits exactly one `{action: compact, confirmed: true}` request, and checks the translated backup result. A synthetic screenshot was inspected for the settings layout; it is ignored runtime output, not a public screenshot of a real account.
+
+The source ZIP was built and each allowlisted entry and CRC checked against current sources. The maintenance service never deletes media or prunes dedup rows; backups do not bypass original-path verification. SQLite/index evaluation is complete in [DATABASE_MAINTENANCE](DATABASE_MAINTENANCE.md); actual indexed storage remains a future feature and N08 is the next P2 item in [ROADMAP](../ROADMAP.md).
+
 ## N07 account scan, IPC and state capacity — 2026-10-15
 
 **203 Python tests passed in 89.881 seconds; 20 Node tests passed; zero skips.** Windows / Python 3.12.10. The reviewed source allowlist validates **139 files**, including `json_budget.py`, `measure_capacity.py`, the capacity acceptance module and [CAPACITY](CAPACITY.md). Existing real Chrome UI/capture, stream integrity, worker, source policy, quality, lifecycle and writer suites remain enabled.
@@ -10,7 +20,7 @@ The first full run caught an outdated measurement assertion: primary preservatio
 
 After regressions finished, actual **64 MiB / limit + 1 byte** probes accepted exact-size state/IPC, rejected over-limit data, checked unchanged primary/backup content fingerprints and validated both reads, verified no partial IPC/temporary residue, and recovered with smaller history. Separate cached synthetic 5,000/50,000-post scans, 90,000 Unicode filename IPC and a three-sample 400,180-path full-history follow-up are documented with workload exclusions and slower bounded-encoding observations in [CAPACITY](CAPACITY.md). The source archive was built and its allowlisted entries verified.
 
-Tests use temporary synthetic files and isolated helpers; no personal history/Cookie read, production service restart or live platform download occurred. Remaining SQLite diagnostics/backup/maintenance and indexed metadata are in [ROADMAP](../ROADMAP.md).
+Tests use temporary synthetic files and isolated helpers; no personal history/Cookie read, production service restart or live platform download occurred. SQLite diagnostics/backup/maintenance is completed by the subsequent milestone above; actual indexed metadata remains a future feature in [ROADMAP](../ROADMAP.md).
 
 ## N07 owned writer and durable barriers — 2026-10-14
 
@@ -22,7 +32,7 @@ The initial new fault case exposed an older accepted generation being misclassif
 
 The same three-workload benchmark ran separately after full tests, with five samples per operation. At 400,180 paths / 20.29 MiB, capture median/p95 was 27.50/28.43 ms, snapshot retained/peak allocation 3,286,608/3,448,880 bytes, and durable save median/p95 862.53/868.75 ms. Contended summary median fell from 1,044.32 to 130.56 ms; pause/stop acknowledgement remained 1,856.81/1,901.52 ms because they wait for durable writes. Allocation excludes existing strings, other snapshots and serialization buffers; cProfile runs in the actual writer and is separate from latency timing. Details/limitations are in [PERSISTENCE_PERFORMANCE](PERSISTENCE_PERFORMANCE.md).
 
-No personal Cookie/history access, production service restart or live platform media download occurred. Writer completion was a scoped N07 milestone; account/IPC/64 MiB capacity is covered by the later section above, while SQLite maintenance remains in [ROADMAP](../ROADMAP.md).
+No personal Cookie/history access, production service restart or live platform media download occurred. Writer completion was a scoped N07 milestone; account/IPC/64 MiB capacity and SQLite maintenance are covered by the subsequent sections above. Actual indexed storage remains a future feature in [ROADMAP](../ROADMAP.md).
 
 ## N07 persistence measurement milestone — 2026-10-14
 

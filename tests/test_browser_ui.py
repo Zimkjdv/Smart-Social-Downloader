@@ -40,7 +40,8 @@ class BrowserUITests(unittest.TestCase):
                     "total_jobs": len(cls.jobs), "platforms": ["Web"], "active_job": None,
                     "counts": {name: sum(job["status"] == name for job in cls.jobs) for name in
                                ["queued", "active", "completed", "failed", "selecting"]},
-                    "paused": False, "ready": True, "download_dir": "fixture-downloads", "x_cookie_file": "",
+                    "paused": cls.paused, "ready": True, "download_dir": "fixture-downloads", "x_cookie_file": "",
+                    "databases": cls.database_report,
                     "x_auth": {"connected": False, "busy": False, "phase": "idle"},
                     "safe_queue": {"enabled": True, "phase": "idle", "cooldown_mode": "platform"},
                     "rate_limit": {"used": cls.rate_used, "limit": 40}, "storage": {"ready": True},
@@ -51,6 +52,7 @@ class BrowserUITests(unittest.TestCase):
             def do_GET(self):
                 path = urlparse(self.path).path
                 if path == "/api/environment": return self.send_json(environment())
+                if path == "/api/databases": return self.send_json(cls.database_report)
                 if path.startswith("/api/jobs/") and path.endswith("/files"):
                     params = parse_qs(urlparse(self.path).query)
                     offset, limit = int(params.get("offset", [0])[0]), int(params.get("limit", [100])[0])
@@ -69,6 +71,10 @@ class BrowserUITests(unittest.TestCase):
             def do_POST(self):
                 payload = json.loads(self.rfile.read(int(self.headers.get("Content-Length", 0))))
                 path = urlparse(self.path).path; cls.writes.append((path, payload))
+                if path == "/api/databases":
+                    cls.database_report.update(revision=cls.database_report["revision"] + 1, ready=True,
+                        phase="complete", operation=payload["action"], backup_name="backup-20261015-000000-aaaaaaaaaaaa", backup_bytes=4096)
+                    return self.send_json(cls.database_report, 202)
                 if path == "/api/jobs":
                     key = str(len(cls.jobs) + 1)
                     cls.jobs.append({"id": key, "url": payload["urls"][0], "title": "Fixture " + key,
@@ -98,6 +104,10 @@ class BrowserUITests(unittest.TestCase):
     def setUp(self):
         self.jobs.clear(); self.writes.clear(); self.settings.clear()
         type(self).rate_used = 3
+        type(self).paused = False
+        type(self).database_report = {"instance": "a" * 32, "revision": 0, "ready": False, "busy": False,
+            "phase": "idle", "operation": "", "checked_at": 0, "entries": [], "total_bytes": 0,
+            "reclaimable_bytes": 0, "backup_name": "", "backup_bytes": 0, "error_code": "", "result_code": ""}
         self.context = self.browser.new_context(viewport={"width": 1440, "height": 1000}, reduced_motion="reduce")
         self.addCleanup(self.context.close)
         self.page = self.context.new_page(); self.errors = []
@@ -249,6 +259,27 @@ class BrowserUITests(unittest.TestCase):
         self.assertGreater(result['count'], 610)
         self.assertEqual(result['invalid'], [])
         self.assertEqual(result['missing'], [])
+        self.assert_no_errors()
+
+    def test_database_confirmation_nested_in_settings_cancels_and_submits_once(self):
+        type(self).paused = True
+        self.load(); page = self.page
+        page.locator("#settings-open").click()
+        page.locator("#settings-tab-diagnostics").click()
+        page.locator("#database-compact").click()
+        self.assertTrue(page.locator("#database-confirm-dialog").evaluate("el => el.open"))
+        page.keyboard.press("Escape")
+        page.wait_for_function("!document.querySelector('#database-confirm-dialog').open")
+        page.wait_for_function("document.activeElement.id === 'database-compact'")
+        self.assertFalse([entry for entry in self.writes if entry[0] == "/api/databases"])
+        page.locator("#database-compact").click()
+        with page.expect_response(lambda response: response.request.method == "POST" and urlparse(response.url).path == "/api/databases"):
+            page.locator("#database-confirm-submit").click()
+        page.wait_for_function("document.querySelector('#database-backup-result').textContent.includes('backup-20261015')")
+        self.assertEqual([entry for entry in self.writes if entry[0] == "/api/databases"],
+                         [("/api/databases", {"action": "compact", "confirmed": True})])
+        page.locator("#language-toggle").evaluate("el => el.click()")
+        self.assertIn("Latest backup", page.locator("#database-backup-result").inner_text())
         self.assert_no_errors()
 
 

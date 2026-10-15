@@ -1,6 +1,6 @@
 # Roadmap
 
-更新：2026-10-15。此檔是**未完成工作與最新審查發現的唯一總清單**；完成紀錄移至 [CHANGELOG](CHANGELOG.md)。目前基準為 Windows／Python 3.12，沒有 Python 3.10 驗收工作。下列核取方塊均尚未完成，不代表已修正或已發布。N01～N06 及 N07 的保存量測／writer／容量邊界已完成並移到 [CHANGELOG](CHANGELOG.md#unreleased)，回歸結果見 [TESTING](docs/TESTING.md)。
+更新：2026-10-15。此檔是**未完成工作與最新審查發現的唯一總清單**；完成紀錄移至 [CHANGELOG](CHANGELOG.md)。目前基準為 Windows／Python 3.12，沒有 Python 3.10 驗收工作。下列核取方塊均尚未完成，不代表已修正或已發布。N01～N07 已完成並移到 [CHANGELOG](CHANGELOG.md#unreleased)，回歸結果見 [TESTING](docs/TESTING.md)。N07 的索引評估已記錄，實際索引／游標儲存列為後續選配，尚未實作。
 
 ## 本輪整體審查
 
@@ -10,20 +10,15 @@
 
 | 編號 | 優先度 | 狀態 | 問題／改善 |
 | --- | --- | --- | --- |
-| N07 | P2 | writer／容量邊界完成；維護待辦 | SQLite 長期容量診斷、備份及整理 |
 | N08 | P2 | 維護改善建議 | 測試 fixture、來源打包規則與檔案結構配套 |
 
-N01～N06 及 N07 的保存量測／writer／容量邊界已移至 [CHANGELOG](CHANGELOG.md#unreleased)。[N07 量測與 writer](docs/PERSISTENCE_PERFORMANCE.md) 及 [容量驗收](docs/CAPACITY.md) 使用隔離合成資料，不宣稱真實平台帳號有相同速度或無限容量。下一項是 SQLite 長期容量診斷、備份及使用者控制的整理；N08 的 fixture／來源包驗收仍待辦。HTTP 讀取期限、併發限制與輸入契約見 [可靠性文件](docs/RELIABILITY.md)。
+N01～N07 已移至 [CHANGELOG](CHANGELOG.md#unreleased)。[N07 量測與 writer](docs/PERSISTENCE_PERFORMANCE.md)、[容量驗收](docs/CAPACITY.md) 及 [SQLite 維護與索引評估](docs/DATABASE_MAINTENANCE.md) 使用隔離合成資料，不宣稱真實平台帳號有相同速度或無限容量。下一個最高優先項目是 N08 共用 fixture 與來源包驗收。HTTP 讀取期限、併發限制與輸入契約見 [可靠性文件](docs/RELIABILITY.md)。
 
 ## 架構與檔案結構
 
 目前根目錄入口＋`ssdl/`／`static/`／`chrome-extension/`／`tools/`／`docs/`／`tests/` 的分層保留。AppContext 已實作，runtime 位置保持相容；以下列出剩餘調整，目前完整樹見 [ARCHITECTURE](docs/ARCHITECTURE.md)。
 
 每次只改一個責任邊界，維持入口、API、資料路徑及 Chrome extension ID 相容；共用鎖與關閉順序已列於架構文件。
-
-### N07：保存成本與長期資料維護
-
-- [ ] 提供 SQLite 資料庫容量診斷、備份及使用者控制的整理；不得順便刪除媒體，也不得清掉有效去重紀錄。保留「原位置檔案已不存在就重新取得」規則。評估將大型檔案明細移至索引／游標分頁，減少整份 JSON 與 IPC 檔案清單；目前 HTTP 檔案分頁仍從記憶體清單取得，64 MiB 限制維持。
 
 ### N08：測試與打包跟隨架構調整
 
@@ -42,6 +37,11 @@ N01～N06 及 N07 的保存量測／writer／容量邊界已移至 [CHANGELOG](C
 - [ ] **依賴維護**：評估固定 GitHub action commit SHA、建立明確更新與回歸流程，追蹤 SSL 棄用／socket ResourceWarning；未宣稱目前有已知第三方 CVE。引擎／Chrome／Playwright 升級後重跑相關驗收，二進位散布另行核對第三方授權。
 
 ## 後續功能
+
+### 大型媒體清單索引（選配）
+
+- [ ] 實作獨立的工作檔案索引及游標分頁，配套增量 IPC、snapshot generation 發布、恢復／回退、舊資料遷移及精確檔案操作。N07 的[評估與取捨](docs/DATABASE_MAINTENANCE.md#indexed-file-detail-assessment)已完成；此實作是後續功能，不影響 N08 優先度。
+- [ ] 工作清單生命週期與有效去重紀錄分開；原位置檔案不存在就重新取得。現有 HTTP 分頁仍從記憶體清單取得，64 MiB 限制維持，不以直接提高上限取代索引設計。
 
 ### Docker 化部署
 

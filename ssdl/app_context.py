@@ -17,6 +17,7 @@ from .browser_media import available as browser_capture_available
 from .config import configured_port
 from .diagnostics import redact_text, redact_fields
 from .download_stats import DownloadStats, MEDIA_EXTENSIONS
+from .database_maintenance import DatabaseMaintenance
 from .environment import EnvironmentDiagnostics
 from .http_api import ApiHandler
 from .job_runtime import run_job, NO_PROGRESS_SECONDS
@@ -108,6 +109,7 @@ class AppContext:
         self.state: AppState = AppState(selected_dir.expanduser().resolve())
         self.lock = threading.RLock()
         self.condition = threading.Condition(self.lock)
+        self.DATABASES = DatabaseMaintenance(self.ROOT / "data")
         self._lifecycle_lock = threading.RLock()
         self._started = False
         self._closed = False
@@ -160,6 +162,7 @@ class AppContext:
                 self.condition.notify_all()
             try:
                 self.X_AUTH.shutdown()
+                self.DATABASES.shutdown()
                 worker = self.state.worker_thread
                 if worker and worker.is_alive() and worker is not threading.current_thread():
                     worker.join()
@@ -344,6 +347,7 @@ class AppContext:
                 "hourly_job_limit": self.state.hourly_job_limit,
                 "storage": self.STORAGE.snapshot(self.state.download_dir),
                 "thumbnail_cache": self.THUMBNAILS.status(),
+                "databases": self.DATABASES.status(),
                 "safe_queue": {**pacing, "enabled": True, "workers": 1, "phase": phase,
                                "delay_min": JOB_DELAY_MIN, "delay_max": JOB_DELAY_MAX,
                                "request_interval": REQUEST_INTERVAL, "wait_seconds": wait_seconds,
@@ -369,6 +373,7 @@ class AppContext:
                       for name in ("queued", "active", "completed", "failed")}
             result = {"format_version": 1, "app_version": __version__, "created_at": time.time(), "counts": counts,
                       "environment": self.ENVIRONMENT.snapshot(), "persistence": self._persistence_status(),
+                      "databases": self.DATABASES.status(),
                       "worker": dict(self.state.worker_status), "rate_limit": self._quota_locked(),
                       "x_auth": {key: self.X_AUTH.status().get(key) for key in ("connected", "phase")},
                       "jobs": [{"id": job["id"], "platform": job["platform"], "status": job["status"],

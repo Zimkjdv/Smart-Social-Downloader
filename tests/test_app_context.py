@@ -50,7 +50,7 @@ with patch('ssdl.x_auth.XAuthManager._restore', side_effect=AssertionError('auth
         first.state.job_starts.append(time.time())
         first.POLICY.ensure_cooldown(platform="X")
         for field in ("state", "lock", "condition", "POLICY", "STORAGE", "X_AUTH", "STATE_STORE",
-                      "THUMBNAILS", "ENVIRONMENT", "Handler"):
+                      "THUMBNAILS", "ENVIRONMENT", "DATABASES", "Handler"):
             self.assertIsNot(getattr(first, field), getattr(second, field), field)
         self.assertIs(first.Handler.app, first)
         self.assertIs(second.Handler.app, second)

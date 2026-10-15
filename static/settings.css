@@ -27,6 +27,10 @@
 .settings-panel .path-input input { height: 42px; font-size: 13px; }
 .settings-panel .field-hint { margin-top: 8px; color: #92a1b9; font-size: 11px; line-height: 1.7; }
 .settings-panel .field-hint.capacity-warning { color: #e9c481; }
+.settings-dialog.database-confirm-dialog { color: var(--text); width: min(460px, calc(100vw - 36px)); }
+.database-confirm-dialog::backdrop { background: rgba(4,6,12,.72); backdrop-filter: blur(5px); }
+.database-confirm-dialog .dialog-copy { color: #b2bdd0; font-size: 12px; line-height: 1.7; }
+#database-entries p { margin: 8px 0 0; color: #aebbd0; font-size: 11px; line-height: 1.6; }
 .settings-panel .auth-heading { margin-bottom: 12px; font-size: 14px; }
 .settings-panel .auth-description { margin-bottom: 16px; font-size: 12px; }
 .settings-panel .primary-button, .settings-panel .subtle-button { min-height: 36px; padding: 9px 12px; font-size: 12px; }

@@ -210,6 +210,15 @@
         <div class="auth-buttons"><button type="button" class="subtle-button" id="state-save" data-i18n-key="ui.retry_saving">重新嘗試保存</button><button type="button" class="subtle-button" id="diagnostics-export" data-i18n-key="ui.export_diagnostics">匯出診斷</button></div>
         <p class="field-hint" data-i18n-key="ui.diagnostics_omit_source_urls_file_lists_and">診斷不包含來源網址、檔案清單或 Cookie；錯誤文字會遮蔽憑證與本機路徑，分享前仍可自行查看內容。</p>
       </section>
+      <section class="environment-setting" aria-labelledby="database-health-heading">
+        <h3 class="auth-heading" id="database-health-heading" data-i18n-key="ui.databases">下載紀錄資料庫</h3>
+        <p class="field-hint" id="database-summary" role="status"></p>
+        <p class="field-hint" id="database-capacity"></p>
+        <ul class="environment-checks" id="database-entries"></ul>
+        <div class="auth-buttons"><button type="button" class="subtle-button" id="database-refresh" data-i18n-key="ui.database_check">檢查資料庫</button><button type="button" class="subtle-button" id="database-backup" data-i18n-key="ui.database_backup">建立備份</button><button type="button" class="subtle-button" id="database-compact" data-i18n-key="ui.database_compact">整理空間</button></div>
+        <p class="field-hint" id="database-backup-result"></p>
+        <p class="field-hint" data-i18n-key="ui.database_maintenance_hint">備份或整理前請暫停佇列，等待下載結束。整理會先建立備份，再回收資料庫未使用空間，保留去重紀錄與媒體原檔。備份含私人來源與路徑，請勿公開分享。</p>
+      </section>
       <section class="environment-setting" aria-labelledby="storage-health-heading">
         <h3 class="auth-heading" id="storage-health-heading" data-i18n-key="ui.storage_and_thumbnail_cache">容量與縮圖快取</h3>
         <p class="field-hint" id="storage-scan-summary" role="status"></p>
@@ -256,6 +265,11 @@
       <div class="dialog-actions"><button type="button" class="subtle-button" id="media-selection-cancel" data-i18n-key="ui.choose_later">稍後選擇</button></div>
     </div>
   </div>
+  <dialog class="settings-dialog database-confirm-dialog" id="database-confirm-dialog" aria-labelledby="database-confirm-title" aria-describedby="database-confirm-copy">
+    <div class="dialog-top"><h2 id="database-confirm-title" data-i18n-key="ui.database_confirm_title">整理資料庫空間？</h2><button type="button" class="icon-button close-modal" id="database-confirm-close" aria-label="取消" data-i18n-aria-label="ui.cancel">×</button></div>
+    <p class="dialog-copy" id="database-confirm-copy" data-i18n-key="ui.database_confirm_copy">將先備份全部現有資料庫，再回收未使用空間。保留全部紀錄與媒體原檔；備份需要額外磁碟空間，維護期間不會開始新下載。</p>
+    <div class="dialog-actions"><button type="button" class="subtle-button" id="database-confirm-cancel" autofocus data-i18n-key="ui.cancel">取消</button><button type="button" class="primary-button" id="database-confirm-submit" data-i18n-key="ui.database_confirm">備份並整理</button></div>
+  </dialog>
   <div class="toast-region" id="toast-region" aria-live="polite"></div>
   <script src="/static/locales.js" defer></script>
   <script src="/static/i18n.js" defer></script>
@@ -267,6 +281,7 @@
   <script src="/static/media_selection.js" defer></script>
   <script src="/static/ui_accessibility.js" defer></script>
   <script src="/static/controller_lifecycle.js" defer></script>
+  <script src="/static/database_controller.js" defer></script>
   <script src="/static/diagnostics_controller.js" defer></script>
   <script src="/static/jobs_controller.js" defer></script>
   <script src="/static/settings_controller.js" defer></script>

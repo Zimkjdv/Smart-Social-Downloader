@@ -7,6 +7,8 @@ const vm = require('node:vm');
 const root = path.resolve(__dirname, '..');
 const source = (name) => fs.readFileSync(path.join(root, name), 'utf8');
 const environment = () => ({phase:'complete', busy:false, ready:true, checked_at:1, status:'ok', errors:0, warnings:0, port:8765, checks:[]});
+const databases = (values = {}) => ({instance:'a'.repeat(32), revision:1, ready:true, busy:false, phase:'complete', operation:'refresh',
+  checked_at:1, entries:[], total_bytes:0, reclaimable_bytes:0, backup_name:'', backup_bytes:0, error_code:'', result_code:'', ...values});
 const state = (jobs = []) => ({
   jobs, counts: Object.fromEntries(['queued','active','completed','failed'].map(status => [status, jobs.filter(job => job.status === status).length])),
   paused:false, ready:true, download_dir:'fixture-downloads', x_cookie_file:'',
@@ -103,7 +105,7 @@ function appHarness() {
   vm.runInContext(source('static/api.js'), context);
   const request = context.SSDLApi.request;
   context.SSDLApi.request = (url, options) => request(url, {...options, timeoutMs:20});
-  for (const name of ['ui_state.js', 'job_presentation.js', 'x_login.js', 'media_selection.js', 'controller_lifecycle.js', 'diagnostics_controller.js', 'jobs_controller.js', 'settings_controller.js', 'app.js']) {
+  for (const name of ['ui_state.js', 'job_presentation.js', 'x_login.js', 'media_selection.js', 'controller_lifecycle.js', 'database_controller.js', 'diagnostics_controller.js', 'jobs_controller.js', 'settings_controller.js', 'app.js']) {
     vm.runInContext(source('static/' + name), context);
   }
   return {context, elements, calls, scheduled, get:key => document.querySelector(key), document,
@@ -113,7 +115,7 @@ function appHarness() {
 
 test('controller modules load without DOM access or application globals', () => {
   const context = vm.createContext({window:{}, document:new Proxy({}, {get() {throw new Error('unexpected DOM access');}})});
-  for (const name of ['controller_lifecycle.js','settings_controller.js','jobs_controller.js','diagnostics_controller.js']) {
+  for (const name of ['controller_lifecycle.js','settings_controller.js','jobs_controller.js','database_controller.js','diagnostics_controller.js']) {
     vm.runInContext(source('static/' + name), context);
   }
   assert.equal(typeof context.window.SSDLSettingsController.create, 'function');
@@ -163,6 +165,73 @@ test('API validates optional capacity byte counts and warning flags', () => {
   const value = state(); value.persistence = {...value.persistence, max_bytes:67108864,
     saved_bytes:null, attempted_bytes:67108865, attempted_bytes_exact:false, capacity_warning:true};
   assert.equal(api.isState(value), true);
+});
+
+test('database maintenance validates contracts and requires confirmation before a single compact request', async () => {
+  const app = appHarness();
+  try {
+    await pause(10);
+    const next = state(); next.paused = true; next.databases = databases();
+    app.context.snapshot = next; app.evaluate('render(snapshot)');
+    await app.get('#database-compact').fire('click');
+    assert.equal(app.get('#database-confirm-dialog').open, true);
+    await app.get('#database-confirm-cancel').fire('click');
+    assert.equal(app.get('#database-confirm-dialog').open, false);
+    assert.equal(app.calls.filter(call => call.url === '/api/databases').length, 0);
+    await app.get('#database-compact').fire('click');
+    let finish;
+    app.response(() => new Promise(resolve => {finish = resolve;}));
+    const first = app.get('#database-confirm-submit').fire('click');
+    await app.get('#database-confirm-submit').fire('click');
+    assert.equal(app.calls.filter(call => call.url === '/api/databases' && call.method === 'POST').length, 1);
+    finish(json(databases({revision:2, operation:'compact', backup_name:'backup-20261015-000000-aaaaaaaaaaaa', backup_bytes:4096})));
+    await first;
+    assert.match(app.get('#database-backup-result').textContent, /backup-20261015/);
+    await app.get('#language-toggle').fire('click');
+    assert.match(app.get('#database-backup-result').textContent, /Latest backup/);
+    const api = apiContext(async () => json({}));
+    assert.equal(api.isState(next), true);
+    for (const invalid of [databases({total_bytes:-1}), databases({entries:[{id:'foreign'}]}), databases({backup_name:'../outside'})]) {
+      assert.equal(api.isState({...next, databases:invalid}), false);
+    }
+  } finally {app.close();}
+});
+
+test('database UI retains newer maintenance status and blocks writes during active downloads', async () => {
+  const app = appHarness();
+  try {
+    await pause(10);
+    const next = state(); next.databases = databases({revision:2, busy:true, phase:'running', operation:'backup'});
+    app.context.snapshot = next; app.evaluate('render(snapshot)');
+    assert.equal(app.get('#database-backup').disabled, true);
+    assert.match(app.get('#database-summary').textContent, /正在處理/);
+    next.databases = databases({revision:1}); app.evaluate('render(snapshot)');
+    assert.match(app.get('#database-summary').textContent, /正在處理/);
+    next.databases = databases({revision:3}); next.paused = true; next.counts.active = 1;
+    app.evaluate('render(snapshot)');
+    assert.equal(app.get('#database-compact').disabled, true);
+    next.counts.active = 0; app.evaluate('render(snapshot)');
+    assert.equal(app.get('#database-compact').disabled, false);
+    next.databases = databases({revision:4, phase:'partial', error_code:'database_invalid'});
+    app.evaluate('render(snapshot)');
+    assert.match(app.get('#engine-title').textContent, /資料庫需要注意/);
+    assert.equal(app.get('#engine-status').classList.contains('hidden'), false);
+  } finally {app.close();}
+});
+
+test('disposed database controller discards late maintenance responses', async () => {
+  const app = appHarness();
+  try {
+    await pause(10);
+    let finish;
+    app.response(() => new Promise(resolve => {finish = resolve;}));
+    const reading = app.get('#database-refresh').fire('click');
+    app.evaluate('diagnosticsController.dispose()');
+    const before = app.get('#database-summary').textContent;
+    finish(json(databases({error_code:'database_invalid', phase:'partial'})));
+    await reading;
+    assert.equal(app.get('#database-summary').textContent, before);
+  } finally {app.close();}
 });
 
 test('controller lifecycle initializes once and releases listeners timers and queued callbacks', async () => {

@@ -1,6 +1,6 @@
 # Persistence and queue-lock measurements
 
-Measured on **2026-10-14**, Windows / Python **3.12.10**. The original baseline below uses `432a575` plus the measurement tool. The follow-up implements the N07 writer and repeats the same workloads with durable barriers, snapshot capture and allocation measurements. Later account/IPC/capacity acceptance is recorded separately in [CAPACITY](CAPACITY.md); SQLite maintenance remains in [ROADMAP](../ROADMAP.md#n07保存成本與長期資料維護).
+Measured on **2026-10-14**, Windows / Python **3.12.10**. The original baseline below uses `432a575` plus the measurement tool. The follow-up implements the N07 writer and repeats the same workloads with durable barriers, snapshot capture and allocation measurements. Later account/IPC/capacity acceptance is recorded separately in [CAPACITY](CAPACITY.md), followed by [SQLite maintenance and index assessment](DATABASE_MAINTENANCE.md). Actual indexed file storage remains a future feature in [ROADMAP](../ROADMAP.md).
 
 ## Reproduce
 

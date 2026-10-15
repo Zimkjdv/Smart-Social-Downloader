@@ -4,7 +4,7 @@
 
 `ssdl` 是 **Smart Social Downloader** 的縮寫，作為 Python 套件名稱，方便使用 `from ssdl import media` 等匯入。它不代表下載媒體的分類資料夾；平台分類仍使用 `youtube/`、`twitter/` 等名稱。中英文 README 均提供目錄結構及用途。
 
-這份文件描述目前結構。N06 的 AppContext、初始化生命週期、後端下載引擎及前端控制器拆分均已實作；N07 的 [保存量測與 writer](PERSISTENCE_PERFORMANCE.md) 及 [容量邊界](CAPACITY.md) 已完成，SQLite 維護及共用測試 fixture 仍列於 [Roadmap：架構與檔案結構](../ROADMAP.md#架構與檔案結構)。匯入 `ssdl.app` 不會建立管理器、恢復登入／歷史或啟動 HTTP／worker。
+這份文件描述目前結構。N06 的 AppContext、初始化生命週期、後端下載引擎及前端控制器拆分均已實作；N07 的 [保存量測與 writer](PERSISTENCE_PERFORMANCE.md)、[容量邊界](CAPACITY.md) 及 [SQLite 維護／索引評估](DATABASE_MAINTENANCE.md) 已完成。共用測試 fixture 與後續索引實作見 [Roadmap](../ROADMAP.md)。匯入 `ssdl.app` 不會建立管理器、恢復登入／歷史或啟動 HTTP／worker。
 
 ```text
 smart-social-downloader/
@@ -38,6 +38,7 @@ smart-social-downloader/
 │   ├── diagnostics.py        # 錯誤／提醒共用遮蔽
 │   ├── persistence.py        # schema、原子保存及有效備份恢復
 │   ├── state_writer.py       # 不可變快照、合併更新、generation 落盤確認
+│   ├── database_maintenance.py # 固定 SQLite 目錄、診斷／備份／整理及生命週期
 │   ├── media_manifest.py     # 一般媒體來源及完成檔案核對
 │   ├── job_runtime.py        # 下載子程序監督、停止及無進度期限
 │   ├── job_runner.py         # 下載子程序與匿名管線通訊
@@ -74,6 +75,7 @@ smart-social-downloader/
 │   ├── app.js                # 組裝、已驗證 snapshot 發布與刷新
 │   ├── settings_controller.js # 設定草稿、分頁及 Rate 確認
 │   ├── diagnostics_controller.js # 診斷、健康、容量與快取操作
+│   ├── database_controller.js # SQLite 報告版本、背景狀態輪詢及整理確認
 │   ├── jobs_controller.js    # 清單、篩選／分頁及檔案選擇
 │   ├── controller_lifecycle.js # 控制器事件、計時器及清理
 │   ├── job_rows.js           # 資料列保留與變動欄位更新
@@ -164,12 +166,13 @@ Windows Job Object 在傳入工作前綁定子程序，其啟動的 FFmpeg／JS 
 
 `app.js` 組裝設定、診斷與清單控制器，保留快照順序／實例判定、未確認寫入後的讀取核對、30 秒閒置／2 秒活動刷新及新增網址表單。原先 966 行縮為約 390 行；職責比行數重要，雙語資料仍保留於 locales.js。
 
-- 三個 factory 透過 `create(dependencies)` 接收 DOM、共用 state、語系／格式函式、API、最新 snapshot getter 及 render／refresh 回呼。載入模組只公開 factory，不存取 DOM 或 API；私有忙碌旗標、對話框 epoch、設定分頁與診斷快取留在各實例。原 API client、keyed row rendering、i18n、X 登入、播放器選擇及焦點模組保留。
+- factory 透過 `create(dependencies)` 接收 DOM、共用 state、語系／格式函式、API、最新 snapshot getter 及 render／refresh 回呼。載入模組只公開 factory，不存取 DOM 或 API；私有忙碌旗標、對話框 epoch、設定分頁與診斷快取留在各實例。原 API client、keyed row rendering、i18n、X 登入、播放器選擇及焦點模組保留。
 - settings_controller 管理草稿、分頁／鍵盤／返回焦點、保存及 Rate 確認。輪詢／語言切換不覆蓋未儲存欄位；重複保存被阻擋。關閉／重開設定會更新 epoch，較晚的開啟／保存回應及舊 auto-close 不會干擾另一輪視窗。
 - diagnostics_controller 管理環境檢查與翻譯快取、保存／worker 健康、容量重掃、縮圖清理、診斷匯出與 object URL 回收。jobs_controller 管理列操作、篩選／搜尋 debounce／分頁、錯誤／提醒及每批最多 100 個檔案的選擇；file index 與 filename 一起送出，較晚彈窗回應受 epoch／生命週期保護。
+- diagnostics_controller 擁有 database_controller 的 init／dispose。後者負責 SQLite 確認視窗、單一狀態輪詢與 instance／revision 防舊回應；未確認不提交整理，未知寫入結果以讀取校正，不重送操作。
 - controller_lifecycle 擁有靜態 listener 與 timer。init 可重複而不增加 listener；dispose 會移除 listener、取消 timer 與回收匯出 URL，已 dispose 的控制器不可再次 init。動態檔案按鈕隨清單 DOM 回收，不為追蹤事件而永久持有它們。
 - dispose 不重送或撤回已送出的 mutation；寫入可能已在後端生效，較晚回應不再發布至已清理的控制器。頁面離開時停止刷新與控制器；進入瀏覽器返回快取時保留實例，避免返回後操作失效。
-- HTML 明列既有模組、lifecycle、三個 factory 與 app 的載入順序。沒有新增框架、bundler 或 npm 依賴；node 測試與真實 Chrome 驗收涵蓋設定草稿、焦點、分頁、Rate 及檔案選擇。
+- HTML 明列既有模組、lifecycle、database／diagnostics／jobs／settings factory 與 app 的載入順序。沒有新增框架、bundler 或 npm 依賴；node 測試與真實 Chrome 驗收涵蓋設定草稿、焦點、分頁、Rate、SQLite 整理確認及檔案選擇。
 
 ## AppContext 與生命週期（N06）
 
@@ -177,7 +180,9 @@ Windows Job Object 在傳入工作前綁定子程序，其啟動的 FFmpeg／JS 
 - `main()` 先綁定 HTTP port，成功後才呼叫 `start()`：完整恢復歷史與 pacing，再恢復 X 登入、刷新診斷並啟動 writer／單一下載 worker。恢復成功後的正規化保存也可啟動 writer；明確呼叫保存可在未 start 的隔離實例啟動它。重複 start 不會再次恢復或啟動 worker；僅建構或綁定失敗不啟動 writer、不保存歷史。
 - `AppContext.condition` 使用同一把 RLock，保護 AppState 與不可變快照擷取；序列化、遮蔽、驗證、fsync／備份寫入在專用 writer 執行，不持有佇列鎖。關鍵變更回傳 generation，呼叫者在鎖外等待保存；新快照可合併尚未寫入的舊進度，但保留全部最新狀態。repository 仍先重建完整候選 AppState／policy，再於 condition 內交換，保護損壞主檔及有效備份。
 - writer 最多持有一份正在保存及一份待保存快照。帳號貼文／掃描進度及初始延時 checkpoint 的等待期限固定為首份待保存快照後 0.5 秒，後續 checkpoint 不延後；關鍵變更立即要求保存。磁碟寫入時間另計，完成／失敗結果、Rate 收費、設定／加入／暫停／停止及手動重存均等待 generation。`StateStore.status()` 用獨立短鎖，避免狀態讀取又等待 writer 的磁碟鎖。
-- HTTP 服務先關閉 listener／所屬連線。`close()` 拒絕新及已受理但尚未進入變更區的寫入，發出 shutdown、停止登入配對並等待下載 worker，關閉縮圖／容量／診斷，擷取最後佇列快照，再 flush／join writer。登入 callback 在 shutdown 後不會新增重試。失敗快照保留於記憶體且不持續忙重試；新提交或關閉 flush 可再嘗試，失敗不能回報成已落盤。
+- HTTP 服務先關閉 listener／所屬連線。`close()` 拒絕新及已受理但尚未進入變更區的寫入，發出 shutdown、停止登入配對、取消並 join SQLite 維護、等待下載 worker，關閉縮圖／容量／診斷，擷取最後佇列快照，再 flush／join writer。登入 callback 在 shutdown 後不會新增重試。失敗快照保留於記憶體且不持續忙重試；新提交或關閉 flush 可再嘗試，失敗不能回報成已落盤。
+
+SQLite 維護每個 AppContext 各自擁有服務／執行緒／取消狀態；建構與 status 不做 SQLite I/O。HTTP 在 condition 下驗證暫停／無 active，並原子設定維護 busy；scheduler 在同一 condition 下檢查維護 fence，再選取工作。SQLite 作業不持有 queue condition；status 只持有服務短鎖。固定三個檔名目錄同時供 scheduler 子程序參數與維護使用。整理只用 VACUUM，先完成 SQLite backup／檢查／flush／整組發布；讀寫期限、WAL、恢復及索引取捨見 [資料庫維護](DATABASE_MAINTENANCE.md)。
 - 登入、縮圖、容量、診斷的 join 期限仍為 8／5／5／15 秒。下載 worker 及 writer 關閉會等待所屬工作／保存完成，不以原先的 10 秒 worker join 提早返回而遺失最後狀態；阻塞的原生檔案系統操作仍可能延長關閉，沒有新增磁碟 I/O 硬期限。這不取代下載子程序的監督與清理。跨程序共寫同一 root 仍不支援。
 - close 可重複呼叫；已關閉的 context 不可重新 start，需建立新實例。關閉未啟動的 context 不會讀寫歷史／登入檔；關閉其中一個實例不會停止另一個。
 

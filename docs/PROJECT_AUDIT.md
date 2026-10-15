@@ -49,4 +49,4 @@ CI 使用的 v7 action 已核對官方發布頁：[checkout](https://github.com/
 
 ## 後續工作
 
-本文件保留前輪六項修正的歷史證據。容量／IPC、HTTP 期限、SQLite 維護、架構、GitHub 及 Docker 等未完成工作，以及後續複查的新發現，統一追蹤於 [Roadmap](../ROADMAP.md)。
+本文件保留前輪六項修正的歷史證據。後續容量／IPC、HTTP 期限、SQLite 維護及架構修正已記錄於 [CHANGELOG](../CHANGELOG.md)；目前未完成工作與發布／Docker 等驗收統一追蹤於 [Roadmap](../ROADMAP.md)。
