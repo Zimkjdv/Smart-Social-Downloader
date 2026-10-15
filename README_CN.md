@@ -96,11 +96,15 @@ smart-social-downloader/
 │   └── controller_lifecycle.js    事件、計時器與清理
 ├── chrome-extension/              Chrome X 登入連接器
 ├── tools/                         安裝、診斷、量測及原始碼打包
+│   ├── package_source.py           允許清單原始碼 ZIP
+│   ├── check_source_archive.py     解壓來源包後執行完整回歸
 │   ├── measure_persistence.py      隔離合成保存與 API 延遲量測
 │   └── measure_capacity.py         帳號掃描、IPC 及 64 MiB 邊界驗收
 ├── docs/                          操作、架構與維護文件
 │   └── images/dashboard-preview.svg  可公開的虛構介面示意
-├── tests/                         本機 fixture 與回歸測試
+├── tests/                         可匯入的本機回歸測試套件
+│   ├── helpers/app.py             共用隔離 AppContext fixture
+│   └── test_*.py / frontend.test.cjs  Python／Node 測試
 ├── .github/
 │   ├── ISSUE_TEMPLATE/            錯誤、安裝、功能及私人聯絡表單
 │   ├── pull_request_template.md   修改及驗證摘要
@@ -125,6 +129,8 @@ GitHub repo 發布後，可使用 Issue 表單回報錯誤、安裝問題或功�
 原始碼 ZIP 包含程式、文件、公開展示圖及授權，排除下載檔案、歷史、Cookie 與 Python 環境。檔名包含應用程式版本；它不是可執行安裝程式。原始碼 repo 為 [Zimkjdv/Smart-Social-Downloader](https://github.com/Zimkjdv/Smart-Social-Downloader)。啟用 GitHub 私人漏洞回報及發布有 tag 的預覽 Release 仍待進行。
 
 ## 未來規劃
+
+維護者可執行 `python tools/check_source_archive.py`，在隔離目錄建立、核對並解壓來源 ZIP，再用目前環境的依賴執行完整回歸。打包邊界與 fixture 用法見 [來源包與測試驗收](docs/SOURCE_TESTING.md)。
 
 待修問題、架構改善與發布驗收統一列於 [Roadmap](ROADMAP.md)，已完成里程碑見 [CHANGELOG](CHANGELOG.md)。
 

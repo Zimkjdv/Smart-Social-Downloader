@@ -4,7 +4,7 @@
 
 `ssdl` 是 **Smart Social Downloader** 的縮寫，作為 Python 套件名稱，方便使用 `from ssdl import media` 等匯入。它不代表下載媒體的分類資料夾；平台分類仍使用 `youtube/`、`twitter/` 等名稱。中英文 README 均提供目錄結構及用途。
 
-這份文件描述目前結構。N06 的 AppContext、初始化生命週期、後端下載引擎及前端控制器拆分均已實作；N07 的 [保存量測與 writer](PERSISTENCE_PERFORMANCE.md)、[容量邊界](CAPACITY.md) 及 [SQLite 維護／索引評估](DATABASE_MAINTENANCE.md) 已完成。共用測試 fixture 與後續索引實作見 [Roadmap](../ROADMAP.md)。匯入 `ssdl.app` 不會建立管理器、恢復登入／歷史或啟動 HTTP／worker。
+這份文件描述目前結構。N06 的 AppContext、初始化生命週期、後端下載引擎及前端控制器拆分均已實作；N07 的 [保存量測與 writer](PERSISTENCE_PERFORMANCE.md)、[容量邊界](CAPACITY.md) 及 [SQLite 維護／索引評估](DATABASE_MAINTENANCE.md) 已完成。N08 的 [共用測試 fixture 與來源包驗收](SOURCE_TESTING.md) 已實作；後續索引實作與環境驗收見 [Roadmap](../ROADMAP.md)。匯入 `ssdl.app` 不會建立管理器、恢復登入／歷史或啟動 HTTP／worker。
 
 ```text
 smart-social-downloader/
@@ -83,10 +83,14 @@ smart-social-downloader/
 │   └── i18n.js               # 繁中／英文訊息
 ├── chrome-extension/         # Chrome X 本機連接器
 ├── tools/                    # 環境管理、量測與原始碼打包
+│   ├── package_source.py      # 有界來源樹與允許清單 ZIP
+│   ├── check_source_archive.py # 解壓後匯入檢查與完整回歸
 │   ├── measure_persistence.py # 隔離合成歷史保存／API 延遲量測
 │   └── measure_capacity.py    # 合成帳號掃描、IPC 及保存容量邊界
 ├── docs/                     # 使用、發布、去重及架構說明
 ├── tests/                    # 本機 API、下載、串流及發布測試
+│   ├── __init__.py            # 明確測試套件，discovery 以專案根為 top level
+│   └── helpers/app.py         # 共用隔離實例、覆寫及暫存資料清理
 ├── .github/workflows/        # Windows CI
 ├── data/                     # 本機歷史、設定、登入及快取，排除 Git
 ├── downloads/                # 預設下載檔，排除 Git
@@ -112,12 +116,14 @@ smart-social-downloader/
 狀態介面使用後端分頁與全域摘要，按需讀取完整檔案／診斷；資料列依 ID 保留。容量索引與縮圖快取維護獨立於清單呈現，原始媒體不由快取清理刪除。API、量測與限制見 [PERFORMANCE.md](PERFORMANCE.md)。
 
 ```powershell
-.\.venv\Scripts\python.exe -m unittest discover -s tests -v
+.\.venv\Scripts\python.exe -m unittest discover -s tests -t . -v
 node --test tests/frontend.test.cjs
 .\.venv\Scripts\python.exe tools/package_source.py --check
 ```
 
 測試使用暫存資料夾與本機 HTTP fixture，不需要 X 登入或真實平台下載。API 測試明確建立獨立 AppContext，不須為了匯入 app 預先 mock 登入恢復。
+
+共用支援放在 `tests/helpers/`，不借用其他測試類別的 setUp。來源打包只遞迴明確的 Python／測試邊界，拒絕連結與 Windows reparse 目錄，排除 runtime 目錄；CI 在 checkout 及來源 ZIP 解壓後各執行完整回歸。詳細政策與限制見 [SOURCE_TESTING](SOURCE_TESTING.md)。
 
 已拆出共用設定、環境診斷、保存、manifest、程序監督、網路政策、遮蔽及瀏覽器 API 客戶端。`ssdl/app.py` 的 HTTP 路由、排程與保存已拆出獨立元件；`ssdl/media.py` 現在只保留相容入口，下載實作的責任邊界如下。
 

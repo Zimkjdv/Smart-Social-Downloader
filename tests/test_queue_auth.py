@@ -1,46 +1,23 @@
-from collections import deque
-from contextlib import ExitStack
 import json
 from pathlib import Path
-import tempfile
-import threading
 import sys
 import time
 import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 from ssdl import media, x_auth
-from ssdl.persistence import StateStore
 from ssdl.request_policy import RequestPolicy
 from ssdl.job_runtime import run_job
-from ssdl.app import create_app
+from tests.helpers.app import IsolatedApp, seed_jobs
 
 
 class QueueAndAuthTests(unittest.TestCase):
     def setUp(self):
-        self.temp = tempfile.TemporaryDirectory(prefix="ssdl-queue-")
-        self.addCleanup(self.temp.cleanup)
-        self.root = Path(self.temp.name).resolve()
-        self.app = create_app(self.root, download_dir=self.root)
-        self.addCleanup(self.app.close)
-        self.stack = ExitStack()
-        self.addCleanup(self.stack.close)
-        values = {"_jobs": {}, "_queue": deque(), "_job_starts": deque(), "_paused": False,
-                  "_active_id": None, "_active_started_monotonic": None, "_next_job_at": 0,
-                  "_download_dir": self.root, "_x_cookie_file": "", "_hourly_job_limit": 40,
-                  "_shutdown": threading.Event(), "POLICY": RequestPolicy(), "STORAGE": Mock(),
-                  "STATE_STORE": StateStore(self.root / "state.json"), "STATE_FILE": self.root / "state.json"}
-        for key, value in values.items():
-            target, name = (self.app.state, key[1:]) if key.startswith("_") else (self.app, key)
-            self.stack.enter_context(patch.object(target, name, value))
-        self.stack.enter_context(patch.object(self.app.random, "uniform", return_value=0))
+        fixture = self.enterContext(IsolatedApp())
+        self.app, self.root, self.stack = fixture.app, fixture.root, fixture.stack
 
     def jobs(self):
-        for index in range(2):
-            key = str(index)
-            self.app.state.jobs[key] = {"id": key, "url": f"https://example.org/{key}", "status": "queued",
-                                  "platform": "Web", "created_at": 100 + index, "files": []}
-            self.app.state.queue.append(key)
+        return seed_jobs(self.app)
 
     def test_failed_job_does_not_block_next_job(self):
         self.jobs()

@@ -32,7 +32,8 @@ python tools/manage.py --version
 - [ ] If the connector changed, decide whether its independent version needs a bump and document reloading/pairing requirements. Retain its identity unless intentionally migrating.
 - [ ] Review migration behavior before changing a state schema; keep newer-schema overwrite protection.
 - [ ] Build the source-only archive with `tools/package_source.py`; review the explicit file list and contents. Runtime data must remain excluded.
-- [ ] Initialize the chosen GitHub repository, inspect staged files/diff, and confirm no personal data is being submitted.
+- [ ] Run `tools/check_source_archive.py` to verify exact source bytes/member set/CRC and run the complete regression from the extracted source with current installed dependencies.
+- [ ] Inspect the repository's staged files/diff and confirm no personal data is being submitted.
 - [ ] Enable private vulnerability reporting and verify the channel described in SECURITY.md.
 - [ ] Confirm GitHub CI results. Do not describe configured CI as passing CI.
 - [ ] Create a tag matching the application version and publish a **prerelease** for a preview. Summarize known limitations and pending checks in its notes.
@@ -44,9 +45,12 @@ These are maintainer actions, not steps every user must perform. The application
 ```powershell
 .\.venv\Scripts\python.exe tools/package_source.py --check
 .\.venv\Scripts\python.exe tools/package_source.py
+.\.venv\Scripts\python.exe tools/check_source_archive.py
 ```
 
 Default output: `dist/smart-social-downloader-<application-version>-source.zip`. The containing source directory remains `smart-social-downloader/` so users can preserve the same project root. Use `--output` to select another archive location. Code, documentation, the public illustration, Issue forms and licenses are allowlisted; packaging does not traverse runtime directories. The archive is source code, not an executable installer, and users still run `setup.bat`.
+
+The acceptance command uses disposable output, not the versioned ZIP in `dist/`. It verifies import origins and runs Python/Node suites inside the extraction; CI runs this after checkout regressions. Shared fixtures, recursive code boundaries and clean-OS limitations are documented in [Source testing](SOURCE_TESTING.md).
 
 The demonstration in `docs/images/dashboard-preview.svg` is a hand-built UI illustration with fictional data. It is safe to publish and is not evidence that real-browser acceptance passed. Future screenshots should replace personal accounts, URLs and paths before committing.
 

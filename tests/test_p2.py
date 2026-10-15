@@ -1,6 +1,4 @@
 """P2 contracts and fault simulations against an isolated app context."""
-from contextlib import ExitStack
-from collections import deque
 import http.client
 from http.server import ThreadingHTTPServer
 import json
@@ -12,7 +10,7 @@ import time
 import unittest
 from unittest.mock import Mock, patch
 
-import test_queue_auth as queue_fixture
+from tests.helpers.app import IsolatedApp, seed_jobs
 from ssdl import media, thumbnails
 from ssdl.download_stats import DownloadStats
 from ssdl.job_views import job_summary, job_page, file_page
@@ -22,7 +20,9 @@ from ssdl.video_quality import VIDEO_QUALITIES
 
 
 class P2AppTests(unittest.TestCase):
-    setUp = queue_fixture.QueueAndAuthTests.setUp
+    def setUp(self):
+        fixture = self.enterContext(IsolatedApp())
+        self.app, self.root, self.stack = fixture.app, fixture.root, fixture.stack
 
     def prepare(self):
         values = {"ROOT": self.root, "_dynamic_capture": False, "_no_progress_timeout": 300,
@@ -179,7 +179,7 @@ class P2AppTests(unittest.TestCase):
 
     def test_selecting_releases_worker_and_propagates_dynamic_quality(self):
         self.prepare()
-        queue_fixture.QueueAndAuthTests.jobs(self)
+        seed_jobs(self.app)
         self.app.state.dynamic_capture = True
         self.app.state.jobs["0"]["video_quality"] = "720"
         seen = []

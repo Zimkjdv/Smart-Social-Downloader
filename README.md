@@ -96,11 +96,15 @@ smart-social-downloader/
 │   └── controller_lifecycle.js    Owned listeners, timers and cleanup
 ├── chrome-extension/              Chrome X session connector
 ├── tools/                         Setup, diagnostics, measurement and packaging
+│   ├── package_source.py           Reviewed source-only ZIP
+│   ├── check_source_archive.py     Full regression from the extracted ZIP
 │   ├── measure_persistence.py      Isolated synthetic saves and API latency
 │   └── measure_capacity.py         Account scan, IPC and 64 MiB boundary probes
 ├── docs/                          Usage, architecture and maintenance guides
 │   └── images/dashboard-preview.svg  Fictional public illustration
-├── tests/                         Local fixtures and regression suites
+├── tests/                         Importable local regression package
+│   ├── helpers/app.py             Shared isolated AppContext fixture
+│   └── test_*.py / frontend.test.cjs  Python / Node suites
 ├── .github/
 │   ├── ISSUE_TEMPLATE/            Bug, installation, feature and contact forms
 │   ├── pull_request_template.md   Change and validation summary
@@ -123,6 +127,8 @@ The same tab offers SQLite capacity checks, consistent local backups and manual 
 After the GitHub repository is published, use the Issue forms for bugs, installation or feature requests. Read [CONTRIBUTING](CONTRIBUTING.md) first and review diagnostics/screenshots before sharing them. Vulnerabilities use the private process in [SECURITY](SECURITY.md).
 
 Source archives include code, docs, public artwork and licenses. They exclude downloaded media, history, cookies and your Python environment. The versioned archive is source code, not an executable installer. The source repository is [Zimkjdv/Smart-Social-Downloader](https://github.com/Zimkjdv/Smart-Social-Downloader). GitHub private reporting activation and a tagged preview Release are still pending.
+
+Maintainers can run `python tools/check_source_archive.py` to build, verify and test the extracted source ZIP using the current installed dependencies. See [test fixtures and source acceptance](docs/SOURCE_TESTING.md) for package boundaries and commands.
 
 ## Planned work
 

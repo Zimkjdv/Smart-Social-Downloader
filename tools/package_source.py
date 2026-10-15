@@ -2,8 +2,11 @@
 from __future__ import annotations
 
 import argparse
+import fnmatch
+import os
 from pathlib import Path
 import re
+import stat
 import sys
 import zipfile
 
@@ -15,13 +18,18 @@ ROOT_FILES = (".gitignore", "LICENSE", "THIRD_PARTY_NOTICES.md", "README.md", "R
               "CHANGELOG.md", "SECURITY.md", "CONTRIBUTING.md", "ROADMAP.md", "requirements.txt",
               "requirements.lock.txt", "requirements-browser.txt", "start.bat", "setup.bat", "update.bat",
               "app.py")
-SOURCE_GLOBS = {"ssdl": ("*.py",), "static": ("*.js", "*.css", "*.html"),
+SOURCE_GLOBS = {"static": ("*.js", "*.css", "*.html"),
                 "chrome-extension": ("*.js", "*.html", "manifest.json", "README.md"),
-                "tests": ("test_*.py", "*.test.cjs"), "tools": ("manage.py", "package_source.py", "measure_state.py", "measure_persistence.py", "measure_capacity.py"),
+                "tools": ("manage.py", "package_source.py", "check_source_archive.py", "measure_state.py", "measure_persistence.py", "measure_capacity.py"),
                 "docs": ("*.md",), "docs/images": ("dashboard-preview.svg",),
                 ".github/ISSUE_TEMPLATE": ("*.yml", "*.yaml"),
                 ".github": ("pull_request_template.md",),
                 ".github/workflows": ("*.yml", "*.yaml")}
+# Recursive review boundaries, never a recursive search of the workspace.
+# Test helpers may have ordinary module names; test suites retain name filters.
+SOURCE_TREES = {"ssdl": ("*.py",), "tests": ("__init__.py", "test_*.py", "*.test.cjs"),
+                "tests/helpers": ("*.py",)}
+EXCLUDED_DIRS = {"__pycache__", "data", "downloads", "dist", "node_modules"}
 PRIVATE_CONTENT = (
     ("private key", re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----")),
     ("personal Windows path", re.compile(r"(?i)[a-z]:[\\/](?:Users|Documents and Settings)[\\/](?!Public[\\/])[^\s\"'<>]+")),
@@ -29,16 +37,47 @@ PRIVATE_CONTENT = (
 )
 
 
+def _safe_path(path: Path, root: Path) -> None:
+    for component in (path, *path.parents):
+        if component == root:
+            break
+        metadata = component.lstat()
+        if (stat.S_ISLNK(metadata.st_mode)
+                or getattr(metadata, "st_file_attributes", 0) & stat.FILE_ATTRIBUTE_REPARSE_POINT):
+            raise ValueError(f"Linked source path is not allowed: {component.relative_to(root)}")
+    if not path.resolve().is_relative_to(root):
+        raise ValueError(f"Unsafe source path: {path.relative_to(root)}")
+
+
 def source_files(root: Path) -> list[Path]:
     root = root.resolve()
     files = [root / name for name in ROOT_FILES]
     for folder, patterns in SOURCE_GLOBS.items():
+        directory = root / folder
+        if not directory.exists():
+            continue
+        _safe_path(directory, root)
         for pattern in patterns:
-            files.extend((root / folder).glob(pattern))
+            files.extend(directory.glob(pattern))
+    for folder, patterns in SOURCE_TREES.items():
+        directory = root / folder
+        if not directory.exists():
+            continue
+        _safe_path(directory, root)
+        def walk_error(error):
+            raise error
+        for current, directories, names in os.walk(directory, followlinks=False, onerror=walk_error):
+            directories[:] = sorted(name for name in directories
+                                    if not name.startswith(".") and name not in EXCLUDED_DIRS)
+            for name in directories:
+                _safe_path(Path(current) / name, root)
+            files.extend(Path(current) / name for name in names
+                         if any(fnmatch.fnmatchcase(name, pattern) for pattern in patterns))
     selected = []
     for path in sorted(set(files)):
         if not path.is_file() or path.is_symlink() or not path.resolve().is_relative_to(root):
             raise ValueError(f"Missing or unsafe source file: {path.relative_to(root)}")
+        _safe_path(path, root)
         if path.stat().st_size > 2_000_000:
             raise ValueError(f"Unexpected source file size: {path.relative_to(root)}")
         contents = path.read_text(encoding="utf-8")

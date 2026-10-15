@@ -301,9 +301,10 @@ HLS／DASH 片段最多重試 3 次；仍無法取得任何必要片段時，工
 維護測試使用暫存 fixture、合成 DOM／連接器 API 及臨時無頭 Chrome，不需要私人帳號；Node.js 22+ 的前端測試不用安裝 npm 套件。先以 `python tools/manage.py browser-setup` 安裝選配套件並安裝一般 Chrome，才會執行瀏覽器測試；缺少時會明確略過，不算完整驗收。結果與剩餘環境驗收見 [TESTING.md](TESTING.md)：
 
 ```powershell
-.\.venv\Scripts\python.exe -m unittest discover -s tests -v
+.\.venv\Scripts\python.exe -m unittest discover -s tests -t . -v
 node --test tests/frontend.test.cjs
 .\.venv\Scripts\python.exe tools/package_source.py --check
+.\.venv\Scripts\python.exe tools/check_source_archive.py
 ```
 
 ## 授權與發布
@@ -387,9 +388,12 @@ smart-social-downloader/
 │   └── i18n.js               繁中／英文翻譯
 ├── chrome-extension/         Chrome X 本機連接器
 ├── tools/                    安裝、檢查、更新與打包
+│   ├── package_source.py      明確允許清單原始碼 ZIP
+│   ├── check_source_archive.py 來源包解壓後完整回歸
 │   └── measure_state.py      不讀私人資料的合成清單量測
 ├── docs/                     架構、排錯、發布、去重與可靠性說明
 ├── tests/                    本機測試及 fixture
+│   └── helpers/app.py         共用隔離 AppContext fixture
 ├── .github/workflows/        Windows CI
 ├── data/                     本機設定、歷史、登入及快取 *
 ├── downloads/                預設下載媒體 *
@@ -402,5 +406,7 @@ smart-social-downloader/
 請只下載你有權保存的公開內容，並遵守平台條款及著作權規定。
 
 ## 應用程式版本與回報
+
+來源包驗收會在隔離暫存目錄建立／核對 ZIP、確認匯入來源並執行完整 Python／Node 測試，沿用目前安裝的依賴，不等於乾淨作業系統驗收。共用 fixture、巢狀來源與打包邊界見 [SOURCE_TESTING](SOURCE_TESTING.md)。
 
 頂部及設定 → 診斷的應用程式版本來自執行中的後端，引擎版本另列。詳見 [維護指南](MAINTENANCE.md)、[CHANGELOG](../CHANGELOG.md)、[CONTRIBUTING](../CONTRIBUTING.md) 與 [SECURITY](../SECURITY.md)。更新原始碼後，重新啟動後端並更新網頁才會使用新版本。

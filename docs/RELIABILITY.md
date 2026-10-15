@@ -89,7 +89,7 @@ API 狀態快照附帶服務實例 ID 與遞增序號。較早輪詢若較晚返
 ## 6．回歸範圍（R13）
 
 ```powershell
-.\.venv\Scripts\python.exe -m unittest discover -s tests -v
+.\.venv\Scripts\python.exe -m unittest discover -s tests -t . -v
 node --test tests/frontend.test.cjs
 .\.venv\Scripts\python.exe tools/package_source.py --check
 ```
@@ -98,7 +98,7 @@ node --test tests/frontend.test.cjs
 
 HLS／DASH 使用本機 fixture，以測試替身將已核對的公開數字位址路由到 fixture；驗證正常串流下載後 FFmpeg 可解碼，內網片段／金鑰／初始化未收到任何請求。這不是以真實平台內容測試。
 
-CI 使用 Python 3.12，安裝 Node.js 22 並執行相同前端測試；官方 action 用法見 [setup-node](https://github.com/actions/setup-node)。GitHub CI 尚未執行，乾淨 Windows／真實 Chrome 自訂連接埠仍待環境驗收。DOM 與 Chrome 測試替身不代表真實瀏覽器排版或實際 cookies API 已在所有版本通過。
+CI 使用 Python 3.12，安裝 Node.js 22 並執行相同前端測試，也驗證來源 ZIP 解壓後的完整回歸。GitHub CI 已有通過紀錄，每個新 commit 仍需個別確認；乾淨 Windows／真實 Chrome 自訂連接埠仍待環境驗收。DOM 與 Chrome 測試替身不代表實際 cookies API 已在所有版本通過。N08 補強帶 body 的未授權 POST、延後 body 與斷線後恢復覆蓋，原先偶發 10053 未穩定重現，未宣稱已確定修復根因；細節見 [SOURCE_TESTING](SOURCE_TESTING.md)。
 
 2026-10-11 後續完整回歸：**104 項 Python＋10 項 Node 通過，沒有略過**，補齊 P2、畫質、動態捕捉及合成資料的真實 Chrome 介面操作。另重現並修正六個缺陷，包含備份保護及較舊回應排序；詳細結果見 [TESTING.md](TESTING.md) 與 [PROJECT_AUDIT.md](PROJECT_AUDIT.md)。真實帳號配對及前述乾淨環境／GitHub 驗收仍待執行。
 

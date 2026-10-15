@@ -1,5 +1,13 @@
 # Regression and acceptance tests
 
+## N08 shared fixtures and source distribution — 2026-10-16
+
+**234 Python tests passed in 92.591 seconds; 23 Node tests passed; zero skips.** Windows / Python 3.12.10 / Node 24.19.0. The reviewed source allowlist validates **149 files**, including the test package, shared helpers and extracted-source acceptance tool. Eleven new cases cover independent fixture contexts, failure/worker/override cleanup, nested code and helper packaging, reparse parents, isolated nested discovery, unexpected/duplicate/changed archive contents, failed child commands and refused POST body/response/connection behavior. Existing Chrome, capture, HLS/DASH, IPC, quality, writer and SQLite cases remain enabled.
+
+The extracted distribution passed the complete **234 Python tests in 91.829 seconds / 23 Node tests**, with zero skips. The command verified all 149 members, CRC and source bytes, checked import origins and ran both suites from the extraction. The first launch was blocked by a full C drive before execution; the successful run used an owned temporary directory on D. It uses current installed dependencies rather than a fresh OS or venv. CI now runs the same gate after checkout tests. Python syntax (74 source files), local Markdown links and `pip check` also pass. See [SOURCE_TESTING](SOURCE_TESTING.md) for boundaries, fixture ownership, commands and limitations.
+
+The gated 64 KB late-body request and full/partial/disconnected unauthorized requests pass without parsing the rejected JSON, mutating state or reading private summaries. Previous Windows 10053 remains unreproduced; no assertion suppresses a failed complete 403 exchange and production HTTP source/body handling is unchanged. No real Cookie/history read, production restart or live platform download was performed. N08 is complete; installation, real-account/platform/release acceptance and optional features remain in [ROADMAP](../ROADMAP.md).
+
 ## N07 SQLite diagnostics, backup and compaction — 2026-10-15
 
 **223 Python tests passed in 90.368 seconds; 23 Node tests passed; zero skips.** Windows / Python 3.12.10. The reviewed source allowlist validates **143 files**, including the owned database service, UI controller, real SQLite acceptance module and [database maintenance guide](DATABASE_MAINTENANCE.md). Existing real Chrome/capture, streaming, quality, source policy, writer and capacity cases remain enabled. No production service restart, personal database/Cookie access or live platform media download occurred.
@@ -136,18 +144,19 @@ Additional local checks pass: 47 Python files parse, 15 JavaScript/CJS files pas
 
 ## Reproduce
 
-The latest local run above includes the Python-baseline adjustment and N01–N05 fixes. GitHub CI remains pending until a repository exists; local results are not GitHub CI results.
+The latest local run is listed at the top. The repository has passing Windows CI history; verify each new commit separately. Local results are not GitHub CI results.
 
 From the project root after `setup.bat`:
 
 ```powershell
 python tools/manage.py browser-setup
-.\.venv\Scripts\python.exe -m unittest discover -s tests -v
+.\.venv\Scripts\python.exe -m unittest discover -s tests -t . -v
 node --test tests/frontend.test.cjs
 .\.venv\Scripts\python.exe tools/package_source.py --check
+.\.venv\Scripts\python.exe tools/check_source_archive.py
 ```
 
-Install ordinary Chrome for browser coverage. Without Playwright/Chrome, browser tests explicitly skip and the result is **not full browser acceptance**. GitHub CI uses only Python 3.12, installs the optional package and asserts Chrome exists before running the suite. This matches the local project baseline. The current [Windows runner image](https://github.com/actions/runner-images/blob/main/images/windows/Windows2025-Readme.md) lists Chrome, but image updates can affect availability. No GitHub run has occurred yet.
+Install ordinary Chrome for browser coverage. Without Playwright/Chrome, browser tests explicitly skip and the result is **not full browser acceptance**. GitHub CI uses only Python 3.12, installs the optional package and asserts Chrome exists before running the suite. This matches the local project baseline. Runner image updates can affect Chrome availability; the workflow requires it explicitly.
 
 ## P2 coverage
 
@@ -185,7 +194,7 @@ An initial Windows WebSocket `close()` route callback hung; the implementation n
 
 - Fresh Windows installation with the Python 3.12 baseline.
 - Actual Chrome connector pairing on a custom port and extension reload using an authorised account.
-- GitHub CI/repository/tag/Release checks after repository creation.
+- Tag/Release and private vulnerability reporting checks; the existing repository has passing Windows CI history.
 - Live platform-specific JavaScript players, authenticated/interactive pages and newly changed extractors; support varies and no universal playback capture is claimed.
 
 Existing upstream SSL option deprecation and occasional closed-socket ResourceWarnings remain dependency-maintenance observations; they did not fail the successful suite. Rerun these tests when changing the engine, Playwright or Chrome baseline.

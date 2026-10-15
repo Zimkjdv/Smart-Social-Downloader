@@ -243,6 +243,67 @@ class HttpServerTests(unittest.TestCase):
         self.wait_active(0)
         self.assertEqual(writes.call_count, 1)
 
+    def test_rejected_post_with_delayed_body_retains_403(self):
+        sent, release = threading.Event(), threading.Event()
+        original = self.server.RequestHandlerClass._send
+        def gated_send(handler, *args, **kwargs):
+            original(handler, *args, **kwargs)
+            sent.set()
+            release.wait(timeout=2)
+        self.server.RequestHandlerClass._send = gated_send
+        self.addCleanup(release.set)
+        connection = self.connect()
+        payload = b"x" * 64_000  # Never JSON; a refused request must not parse it.
+        headers = self.headers(extra=f"Content-Length: {len(payload)}\r\n")
+        headers = headers.replace(f"Origin: http://127.0.0.1:{self.app.PORT}".encode(),
+                                  b"Origin: https://untrusted.example")
+        connection.sendall(headers)
+        self.assertTrue(sent.wait(timeout=1))
+        # Hold the handler after writing 403, then deliver the body. It cannot
+        # have been prefetched with the headers; no sleep/race is required.
+        connection.sendall(payload)
+        release.set()
+        self.assertEqual(self.response(connection)[0], 403)
+        self.assertEqual(connection.recv(1), b"")
+        self.wait_active(0)
+        self.app._state.assert_not_called()
+        self.app._save_locked.assert_not_called()
+        self.app.X_AUTH.prepare_extension.assert_not_called()
+        self.assertEqual(self.normal_request()[0], 200)
+
+    def test_untrusted_post_bodies_are_not_parsed_or_mutated(self):
+        handler = self.server.RequestHandlerClass
+        with patch.object(handler, "_read_json", side_effect=AssertionError("untrusted JSON parsed")):
+            cases = ({"Origin": "https://untrusted.example"}, {"Host": "untrusted.example"},
+                     {"Sec-Fetch-Site": "cross-site"}, {"Origin": "null"},
+                     {"Origin": EXTENSION_ORIGIN, "X-SSDL-Extension": EXTENSION_ID})
+            for headers in cases:
+                with self.subTest(headers=headers):
+                    status, _, body = self.normal_request("/api/pause", {"paused": True}, headers)
+                    self.assertEqual(status, 403)
+                    self.assertEqual(body, {"error": "僅允許本機操作"})
+                    self.wait_active(0)
+        self.assertFalse(self.app.state.paused)
+        self.app._save_locked.assert_not_called()
+        self.app._state.assert_not_called()
+        self.assertEqual(self.normal_request("/api/pause", {"paused": True})[0], 200)
+
+    def test_untrusted_partial_body_and_disconnect_release_capacity(self):
+        for disconnect in (False, True):
+            with self.subTest(disconnect=disconnect):
+                connection = self.connect()
+                headers = self.headers().replace(
+                    f"Origin: http://127.0.0.1:{self.app.PORT}".encode(), b"Origin: https://untrusted.example")
+                connection.sendall(headers + b"{")
+                if disconnect:
+                    connection.shutdown(socket.SHUT_RDWR)
+                    connection.close()
+                else:
+                    self.assertEqual(self.response(connection)[0], 403)
+                self.wait_active(0)
+        self.app._save_locked.assert_not_called()
+        self.assertEqual(self.normal_request()[0], 200)
+
 
 if __name__ == "__main__":
     unittest.main()

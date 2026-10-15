@@ -294,6 +294,7 @@ smart-social-downloader/
 ├── tools/                      Installation and release tools
 │   ├── manage.py               Setup, start, update, and diagnostics
 │   ├── package_source.py       Source-only ZIP packaging
+│   ├── check_source_archive.py  Full regression in the extracted source ZIP
 │   └── measure_state.py        Synthetic API payload measurement
 ├── docs/                       Detailed guides
 │   ├── ARCHITECTURE.md         Module responsibilities and path rules
@@ -302,6 +303,7 @@ smart-social-downloader/
 │   ├── RELIABILITY.md          Cancellation, manifests, recovery and diagnostics
 │   └── DOWNLOAD_DEDUP.md       Existing-file and duplicate-check policy
 ├── tests/                      Local fixtures and regression tests
+│   └── helpers/app.py           Shared isolated AppContext fixture
 ├── .github/workflows/          Windows CI configuration
 ├── data/                       Local state, session storage, and caches *
 ├── downloads/                  Default downloaded media *
@@ -316,15 +318,16 @@ Folders marked `*` are created locally and excluded from Git and source packages
 ## Tests and source packages
 
 ```powershell
-.\.venv\Scripts\python.exe -m unittest discover -s tests -v
+.\.venv\Scripts\python.exe -m unittest discover -s tests -t . -v
 node --test tests/frontend.test.cjs
 .\.venv\Scripts\python.exe tools/package_source.py --check
 .\.venv\Scripts\python.exe tools/package_source.py
+.\.venv\Scripts\python.exe tools/check_source_archive.py
 ```
 
 Tests use temporary files, local HTTP fixtures, a synthetic DOM, mocked extension APIs and fresh headless Chrome, without private cookies or real-platform downloads. They cover byte preservation, format selection, dynamic discovery, API failures, cancellation, queue recovery, persistence, manifests, network targets, redaction, login challenges, keyboard access and release exclusions. The frontend suite uses Node's built-in test runner (Node.js 22+) with no npm installation. Install optional dependencies with `python tools/manage.py browser-setup` and ordinary Chrome for browser coverage; otherwise those tests explicitly skip. See [TESTING.md](TESTING.md) for results and remaining clean-Windows/real-account acceptance.
 
-The ZIP at `dist/smart-social-downloader-<application-version>-source.zip` uses an explicit source list. It includes code, docs, licenses, and setup scripts, excluding your environment, history, cookies, and media. GitHub also provides built-in source downloads once the repo is published.
+The ZIP at `dist/smart-social-downloader-<application-version>-source.zip` uses an explicit source list. It includes code, docs, licenses, and setup scripts, excluding your environment, history, cookies, and media. The acceptance command builds a disposable ZIP and runs the full suites from its extraction using installed dependencies. See [fixture and source boundaries](SOURCE_TESTING.md). GitHub also provides built-in source downloads.
 
 ## License and documentation
 

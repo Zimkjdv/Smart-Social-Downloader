@@ -61,6 +61,8 @@ GitHub 本身就可以下載 repo 的原始碼；另外製作 ZIP 是方便 Rele
 
 預設輸出：`dist/smart-social-downloader-<application-version>-source.zip`。`dist/` 已排除 Git 追蹤。腳本另檢查來源檔中明確的私人 Windows 路徑、私人金鑰及 Netscape Cookie 匯出標記，只回報檔名，不回顯疑似敏感值。這是輔助檢查，發布前仍要檢視檔案清單與內容。
 
+新增子套件與共用 fixture 時，來源打包會依明確的 `ssdl/`、測試及 `tests/helpers/` 程式碼邊界遞迴，其他目錄仍使用固定檔名／globs。連結及 Windows reparse 路徑會被拒絕，runtime 目錄不遍歷。發布前再執行 `python tools/check_source_archive.py`，在暫存目錄核對 ZIP 成員／CRC／來源位元組、解壓並執行完整 Python／Node 測試。它沿用目前已安裝的依賴，不等於新 Windows 或新 venv 安裝驗收，詳見 [SOURCE_TESTING](SOURCE_TESTING.md)。
+
 ## Git 提交前的隱私檢查
 
 `.gitignore` 已排除 runtime 資料夾、Cookie 常見檔名、`.env`、金鑰、日誌及打包產物。**Git 忽略規則不會移除已追蹤或已提交的資料。**
@@ -83,7 +85,7 @@ Chrome manifest 的公開金鑰用於維持 extension ID，不是私人憑證，
 
 目前原始碼版本為 `0.1.0-preview.2`，尚未在 GitHub 發布。`ssdl/version.py` 是唯一的應用程式版本來源；頂部、設定診斷、匯出診斷、啟動訊息及原始碼包名稱皆使用它。引擎及 Chrome 連接器版本分開維護，`update.bat` 不會更新應用程式原始碼。
 
-原始碼包包含 `requirements-browser.txt` 與動態捕捉／瀏覽器驗收測試，仍不包含選配套件、Chrome 執行檔或臨時 profile。Python 3.12 CI 安裝選配並要求 Chrome 可用，讓瀏覽器驗收不能靜默略過。實際 GitHub CI 尚未執行，本機結果見 [TESTING.md](TESTING.md)。
+原始碼包包含 `requirements-browser.txt` 與動態捕捉／瀏覽器驗收測試，仍不包含選配套件、Chrome 執行檔或臨時 profile。Python 3.12 CI 安裝選配並要求 Chrome 可用，讓瀏覽器驗收不能靜默略過。GitHub CI 已有通過紀錄；每次提交仍需確認該 commit 的結果，本機結果見 [TESTING.md](TESTING.md)。
 
 更新紀錄見 [CHANGELOG](../CHANGELOG.md)，錯誤／功能回報及貢獻方式見 [CONTRIBUTING](../CONTRIBUTING.md)，私人安全回報方式見 [SECURITY](../SECURITY.md)。GitHub Issue 表單存於 `.github/ISSUE_TEMPLATE/`；建立 repo 後才會出現在 GitHub。私人漏洞回報入口也須在 repo 設定中啟用，加入文件不代表已完成此 GitHub 設定。
 

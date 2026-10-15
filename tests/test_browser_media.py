@@ -311,7 +311,7 @@ class ChromeCaptureTests(unittest.TestCase):
     def test_infinite_javascript_is_stopped_by_parent_capture_deadline(self):
         from ssdl.job_runtime import run_job
         started = time.monotonic()
-        # Use the same CLI path as runtime tests; tests/ is not a package.
+        # Exercise the same direct worker CLI path as runtime tests.
         command = [sys.executable, "-X", "utf8", "-u", str(Path(__file__).with_name("test_fixture_runner.py"))]
         with self.assertRaises(media.DownloadError) as failure:
             run_job({"mode": "browser_hang"}, lambda event: None, lambda **kwargs: None, lambda: False,

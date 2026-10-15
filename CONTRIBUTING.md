@@ -18,6 +18,8 @@ Backend code is in `ssdl/`; browser code is in `static/`. Use the existing compo
 
 When validating a change, prefer existing temporary-file/local-HTTP fixtures and mocked browser APIs. Do not use another person's account, private cookies or real-platform downloads as an unattended test fixture. Validation commands and their limitations are listed in [the usage guide](docs/USAGE.md#tests-and-source-packages). Report checks you did not perform as pending.
 
+Use `tests/helpers/` for shared synthetic fixtures and run Python discovery with `-s tests -t .`. Follow the [fixture and source-distribution guide](docs/SOURCE_TESTING.md) when adding subpackages, support modules or tools. Run `python tools/check_source_archive.py` before publishing source changes; it tests the extracted ZIP with the current installed dependencies.
+
 ## Pull requests
 
 Include the problem, relevant Issue, change summary, validation results or pending checks, and any compatibility impact on API/state/connector behavior. A successful syntax check is not a passing regression suite. Add a concise entry under **Unreleased** in [CHANGELOG.md](CHANGELOG.md) for notable changes; the maintainer assigns release versions.
