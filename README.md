@@ -98,6 +98,7 @@ smart-social-downloader/
 ├── tools/                         Setup, diagnostics, measurement and packaging
 │   ├── package_source.py           Reviewed source-only ZIP
 │   ├── check_source_archive.py     Full regression from the extracted ZIP
+│   ├── check_workflows.py          Reviewed Action identity / full SHA check
 │   ├── measure_persistence.py      Isolated synthetic saves and API latency
 │   └── measure_capacity.py         Account scan, IPC and 64 MiB boundary probes
 ├── docs/                          Usage, architecture and maintenance guides
@@ -106,6 +107,7 @@ smart-social-downloader/
 │   ├── helpers/app.py             Shared isolated AppContext fixture
 │   └── test_*.py / frontend.test.cjs  Python / Node suites
 ├── .github/
+│   ├── dependabot.yml             Dependency update proposals
 │   ├── ISSUE_TEMPLATE/            Bug, installation, feature and contact forms
 │   ├── pull_request_template.md   Change and validation summary
 │   └── workflows/                 Windows CI configuration
@@ -117,6 +119,8 @@ smart-social-downloader/
 ## Updates, reporting and releases
 
 The **application version** appears beneath the app name and in Settings → Diagnostics. Engine versions appear separately in environment diagnostics. `update.bat` updates engines; it does not update application source. See [Maintenance](docs/MAINTENANCE.md) and [CHANGELOG](CHANGELOG.md).
+
+CI Actions use reviewed commit SHAs. Dependabot proposes weekly Actions/Python dependency updates for maintainer review and regression/source-distribution checks. See [dependency maintenance](docs/MAINTENANCE.md#dependency-updates-and-action-pins).
 
 State saves use an owned background writer with immutable snapshots. Critical changes wait for durable writes without holding the queue lock; failed saves remain visible and can be retried in Diagnostics. Maintainers can reproduce synthetic capture/save/API latency measurements with `python tools/measure_persistence.py`. See [persistence performance](docs/PERSISTENCE_PERFORMANCE.md) for results and limits; the command uses disposable history and does not download media or restore login.
 

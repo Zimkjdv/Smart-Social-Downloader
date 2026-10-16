@@ -1,6 +1,6 @@
 # Roadmap
 
-更新：2026-10-16。此檔是**未完成工作與最新審查發現的唯一總清單**；完成紀錄移至 [CHANGELOG](CHANGELOG.md)。目前基準為 Windows／Python 3.12，沒有 Python 3.10 驗收工作。下列核取方塊均尚未完成，不代表已修正或已發布。N01～N08 已完成並移到 [CHANGELOG](CHANGELOG.md#unreleased)，回歸結果見 [TESTING](docs/TESTING.md)。N07 的索引評估已記錄，實際索引／游標儲存列為後續選配，尚未實作。
+更新：2026-10-17。此檔是**未完成工作與最新審查發現的唯一總清單**；完成紀錄移至 [CHANGELOG](CHANGELOG.md)。目前基準為 Windows／Python 3.12，沒有 Python 3.10 驗收工作。下列核取方塊均尚未完成，不代表已修正或已發布。N01～N08 已完成並移到 [CHANGELOG](CHANGELOG.md#unreleased)，回歸結果見 [TESTING](docs/TESTING.md)。N07 的索引評估已記錄，實際索引／游標儲存列為後續選配，尚未實作。
 
 ## 本輪整體審查
 
@@ -22,7 +22,8 @@ N01～N08 已移至 [CHANGELOG](CHANGELOG.md#unreleased)。本輪列出的修正
 - [ ] **一般 Chrome 真實配對**：重新載入 connector 1.1.0、自訂 port、取消／過期／失敗後重配及重啟恢復。先前預設 port 曾成功配對，不代表新版自訂 port 已驗收。正常 Windows 使用者環境的 DPAPI 是前提，不能以受限工具環境的失敗宣稱 DPAPI 普遍失效。
 - [ ] **線上平台抽樣**：實際 Best／指定畫質、登入失效、限流與恢復、帳號媒體掃描、缺檔補抓；先取得適合的測試素材。104＋10 合成測試不代表所有平台即時相容。
 - [ ] **GitHub 設定與發布**：啟用並確認私人漏洞回報入口，核對 tag、版本、來源 ZIP、release notes 後發布 preview。repo 已公開、Windows／Python 3.12 CI 已通過，目前沒有 tag／Release。
-- [ ] **依賴維護**：評估固定 GitHub action commit SHA、建立明確更新與回歸流程，追蹤 SSL 棄用／socket ResourceWarning 與偶發 Windows 10053（N08 新增完整／延後 body、拒絕來源及斷線覆蓋，仍未穩定重現，未宣稱根因已修正）；未宣稱目前有已知第三方 CVE。引擎／Chrome／Playwright 升級後重跑相關驗收，二進位散布另行核對第三方授權。
+- [ ] **依賴更新提案驗收**：確認 Dependabot 首輪 Actions／Python 更新 PR 的發現範圍、版本／完整 SHA 變更及 Windows 回歸結果，再由維護者審查合併。固定 SHA、離線政策檢查與更新／回歸／恢復流程已完成，見 [CHANGELOG](CHANGELOG.md#unreleased) 與 [維護指南](docs/MAINTENANCE.md#dependency-updates-and-action-pins)；尚未宣稱更新提案已合併或已完成 CVE 掃描。
+- [ ] **依賴故障追蹤**：追蹤 SSL 棄用／socket ResourceWarning 與偶發 Windows 10053（N08 新增完整／延後 body、拒絕來源及斷線覆蓋，仍未穩定重現，未宣稱根因已修正）。引擎／Chrome／Playwright 升級後重跑相關驗收，二進位散布另行核對第三方授權。
 
 ## 後續功能
 

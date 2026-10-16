@@ -85,6 +85,7 @@ smart-social-downloader/
 ├── tools/                    # 環境管理、量測與原始碼打包
 │   ├── package_source.py      # 有界來源樹與允許清單 ZIP
 │   ├── check_source_archive.py # 解壓後匯入檢查與完整回歸
+│   ├── check_workflows.py      # 已審查 Action 來源與完整 SHA 的離線政策
 │   ├── measure_persistence.py # 隔離合成歷史保存／API 延遲量測
 │   └── measure_capacity.py    # 合成帳號掃描、IPC 及保存容量邊界
 ├── docs/                     # 使用、發布、去重及架構說明
@@ -197,3 +198,5 @@ SQLite 維護每個 AppContext 各自擁有服務／執行緒／取消狀態；�
 `ssdl/version.py` 提供 `__version__`，由執行中後端輸出至 API 的 `app_version`，前端據此顯示，並供 CLI、診斷匯出及 ZIP 名稱使用。既有 `version` API 欄位仍指 yt-dlp，以維持相容性；引擎、Chrome manifest 及保存 schema 的版本獨立維護。
 
 README 是中英文精簡首頁；完整操作移至 `docs/USAGE.md`、`docs/USAGE_CN.md`。`docs/MAINTENANCE.md` 定義發布流程，`docs/images/dashboard-preview.svg` 為虛構公開示意；`.github/ISSUE_TEMPLATE/` 與 `.github/pull_request_template.md` 定義回報與 PR 內容。原始碼包以允許清單納入這些檔案，排除 runtime 資料。
+
+`.github/dependabot.yml` 提出每週 Actions／Python 依賴更新 PR。工作流程只直接使用已審查的官方 Actions，固定完整 SHA 並保留版本註解；`tools/check_workflows.py` 對明確區塊式 `uses:` 做離線來源／SHA 語法檢查。它不取代 YAML 驗證、上游 commit 查核或漏洞掃描；更新／回歸／恢復規則見 [維護文件](MAINTENANCE.md#dependency-updates-and-action-pins)。

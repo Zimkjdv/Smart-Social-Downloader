@@ -1,5 +1,13 @@
 # Regression and acceptance tests
 
+## Dependency and CI maintenance — 2026-10-17
+
+**242 Python tests passed in 92.931 seconds; 23 Node tests passed; zero skips.** Windows / Python 3.12.10. The source allowlist validates **152 files**. Seven new cases cover reviewed full SHA/quoted scalars; mutable, abbreviated, dynamic, local, Docker and unknown references; flow/multiline/alias syntax; comment/error handling; both workflow extensions and canonical roots; missing workflows/CLI failure; and shipped policy/configuration. The focused policy/release run passed all 16 cases.
+
+Official release tags and commit identities were checked separately through the GitHub API. The offline gate does not query GitHub, validate general YAML, authenticate a commit's provenance or scan for CVEs. Existing browser/capture, quality/streaming, IPC, persistence and SQLite regressions remain enabled. Update review and recovery are documented in [Maintenance](MAINTENANCE.md#dependency-updates-and-action-pins); Dependabot's first proposals and remaining real Windows/account/platform acceptance stay in [ROADMAP](../ROADMAP.md).
+
+The extracted-source gate also passes **242 Python tests in 93.354 seconds / 23 Node tests**, zero skips, with all 152 members/CRC/source bytes verified. Offline policy, `pip check`, 76 Python syntax checks and local documentation links pass. The workflow now runs the offline pin gate before Node setup and retains the existing checkout and extracted-distribution regressions. No production service restart, personal history/Cookie read or live platform download was used.
+
 ## N08 shared fixtures and source distribution — 2026-10-16
 
 **234 Python tests passed in 92.591 seconds; 23 Node tests passed; zero skips.** Windows / Python 3.12.10 / Node 24.19.0. The reviewed source allowlist validates **149 files**, including the test package, shared helpers and extracted-source acceptance tool. Eleven new cases cover independent fixture contexts, failure/worker/override cleanup, nested code and helper packaging, reparse parents, isolated nested discovery, unexpected/duplicate/changed archive contents, failed child commands and refused POST body/response/connection behavior. Existing Chrome, capture, HLS/DASH, IPC, quality, writer and SQLite cases remain enabled.

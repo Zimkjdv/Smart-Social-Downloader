@@ -54,6 +54,75 @@ The acceptance command uses disposable output, not the versioned ZIP in `dist/`.
 
 The demonstration in `docs/images/dashboard-preview.svg` is a hand-built UI illustration with fictional data. It is safe to publish and is not evidence that real-browser acceptance passed. Future screenshots should replace personal accounts, URLs and paths before committing.
 
+## Dependency updates and Action pins
+
+CI's three direct Action references use full commit SHAs with release comments.
+These official repository tags/commits were verified on **2026-10-17**:
+
+| Action | Release | Fixed commit |
+| --- | --- | --- |
+| `actions/checkout` | v7.0.1 | [3d3c42e5aac5ba805825da76410c181273ba90b1](https://github.com/actions/checkout/commit/3d3c42e5aac5ba805825da76410c181273ba90b1) |
+| `actions/setup-python` | v7.0.0 | [5fda3b95a4ea91299a34e894583c3862153e4b97](https://github.com/actions/setup-python/commit/5fda3b95a4ea91299a34e894583c3862153e4b97) |
+| `actions/setup-node` | v7.1.0 | [949feb2413d6458794dcd2491c4babbbce0c15c1](https://github.com/actions/setup-node/commit/949feb2413d6458794dcd2491c4babbbce0c15c1) |
+
+Keep the `# vX.Y.Z` comments when updating SHAs. A tag/branch can move; a full SHA
+selects the reviewed revision. See GitHub's [secure use reference](https://docs.github.com/en/actions/reference/security/secure-use).
+
+`.github/dependabot.yml` schedules weekly update proposals: Actions on Monday,
+Python requirements on Wednesday, both at 06:00 Asia/Taipei. GitHub may start the
+checks later. Each ecosystem allows three open version-update PRs; minor/patch
+updates are grouped and major changes remain separate. Calendar versions such as
+yt-dlp may be classified as major changes. Python proposals cover the requirements
+files Dependabot discovers, including the core baseline and optional browser pins.
+The configuration adds no automatic approval, merge or deployment. Scheduling
+and groups follow the [Dependabot options reference](https://docs.github.com/en/code-security/reference/supply-chain-security/dependabot-options-reference).
+
+### Review, regression and recovery
+
+1. Read upstream release notes/diffs. Verify each Action SHA against its official
+   repository/release, check runner/Node requirements and retain the version
+   comment. New Action identities require explicit `REVIEWED_ACTIONS` review.
+   CI uses `contents: read`, checkout without persisted credentials and ordinary
+   `pull_request` checks.
+2. Test Python changes in a disposable source copy with a fresh Python 3.12 venv.
+   Run `setup.bat` with the proposed lock, verify compatibility with
+   `requirements.txt`, and inspect direct/transitive versions and licenses.
+   Change compatibility ranges deliberately. Avoid copying a development venv's
+   entire freeze into the core baseline. Install the matching optional browser
+   requirements with `python tools/manage.py browser-setup`; `update.bat` updates
+   core engines only.
+3. Require environment/dependency checks, full Python/Node regression and source
+   ZIP acceptance. Engine changes need quality, original bytes, HLS/DASH integrity,
+   manifest/dedup and cancellation coverage. Chrome/Playwright changes additionally
+   need capture deadlines, rejected private targets, header stripping and UI/focus
+   coverage. Record actual versions/results and pending account/platform checks.
+4. Review and merge manually after all required checks pass. For rollback, stop
+   the service, restore previous source/requirements, run `setup.bat` and restore
+   matching browser requirements if installed. Setup reinstalls pinned core
+   packages but does not remove all extras; use a new venv for a fresh comparison.
+
+```powershell
+.\.venv\Scripts\python.exe tools/check_workflows.py
+.\.venv\Scripts\python.exe -m pip check
+.\.venv\Scripts\python.exe tools/manage.py check
+.\.venv\Scripts\python.exe -m unittest discover -s tests -t . -v
+node --test tests/frontend.test.cjs
+.\.venv\Scripts\python.exe tools/check_source_archive.py
+```
+
+The offline pin check accepts reviewed `owner/repo@<40 lowercase hex>` references
+in literal block-style `uses:` lines, including quoted scalars. Flow, alias,
+multiline, dynamic and new Action references fail for review. This conservative
+source policy is not a general YAML parser: even a shell string containing
+`uses:` needs review. It checks direct reference syntax, not commit provenance,
+nested Action dependencies, runner images or known vulnerabilities. Its tool,
+regressions and Dependabot configuration ship in the source ZIP.
+
+First update-PR acceptance, repository security settings, SSL deprecations,
+closed-socket ResourceWarnings and intermittent Windows 10053 remain in
+[ROADMAP](../ROADMAP.md). Update proposals/pinning do not constitute a CVE audit
+or establish that these observations are fixed.
+
 ## Triage and security
 
 SQLite capacity checks, consistent backups, manual compaction and offline restore steps are documented in [Database maintenance](DATABASE_MAINTENANCE.md). Use Settings → Diagnostics; pause the queue and wait for active downloads before backup/compaction. Backups contain private runtime metadata and are excluded from source archives. No automatic pruning of dedup records or media is performed.

@@ -22,6 +22,8 @@ Use `tests/helpers/` for shared synthetic fixtures and run Python discovery with
 
 ## Pull requests
 
+Dependency updates follow the [maintenance review gate](docs/MAINTENANCE.md#dependency-updates-and-action-pins). Retain complete Action SHAs and release comments; run `python tools/check_workflows.py` before proposing a CI change. New Action identities require review of the explicit allowlist. Dependabot PRs need the same regression/source-distribution checks as other changes.
+
 Include the problem, relevant Issue, change summary, validation results or pending checks, and any compatibility impact on API/state/connector behavior. A successful syntax check is not a passing regression suite. Add a concise entry under **Unreleased** in [CHANGELOG.md](CHANGELOG.md) for notable changes; the maintainer assigns release versions.
 
 Before committing, inspect your staged files and diff. `.gitignore` does not remove already tracked private data. See [release privacy guidance](docs/RELEASE.md).

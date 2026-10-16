@@ -98,6 +98,7 @@ smart-social-downloader/
 ├── tools/                         安裝、診斷、量測及原始碼打包
 │   ├── package_source.py           允許清單原始碼 ZIP
 │   ├── check_source_archive.py     解壓來源包後執行完整回歸
+│   ├── check_workflows.py          已審查 Action 來源／完整 SHA 檢查
 │   ├── measure_persistence.py      隔離合成保存與 API 延遲量測
 │   └── measure_capacity.py         帳號掃描、IPC 及 64 MiB 邊界驗收
 ├── docs/                          操作、架構與維護文件
@@ -106,6 +107,7 @@ smart-social-downloader/
 │   ├── helpers/app.py             共用隔離 AppContext fixture
 │   └── test_*.py / frontend.test.cjs  Python／Node 測試
 ├── .github/
+│   ├── dependabot.yml             依賴更新 PR 提案
 │   ├── ISSUE_TEMPLATE/            錯誤、安裝、功能及私人聯絡表單
 │   ├── pull_request_template.md   修改及驗證摘要
 │   └── workflows/                 Windows CI 設定
@@ -117,6 +119,8 @@ smart-social-downloader/
 ## 更新、回報與發布
 
 **應用程式版本**顯示在頂部名稱下方及設定 → 診斷；引擎版本另列於環境診斷。`update.bat` 更新引擎，不更新應用程式原始碼。詳見 [維護指南](docs/MAINTENANCE.md) 與 [CHANGELOG](CHANGELOG.md)。
+
+CI Actions 已固定完整 commit SHA。Dependabot 每週提出 Actions／Python 依賴更新 PR，由維護者審查並要求回歸與來源包驗收，流程見 [依賴維護](docs/MAINTENANCE.md#dependency-updates-and-action-pins)。
 
 保存採用獨立背景 writer 與不可變快照；關鍵變更等待落盤時不持有佇列鎖，失敗仍有提示並可在診斷中重新保存。維護者可用 `python tools/measure_persistence.py` 重現快照／保存／API 延遲量測，結果及限制見 [保存效能文件](docs/PERSISTENCE_PERFORMANCE.md)。指令使用暫存資料，不下載媒體或恢復登入。
 
