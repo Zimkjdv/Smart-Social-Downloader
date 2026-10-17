@@ -54,6 +54,7 @@ For X login, sign into X in ordinary Chrome, then use **Settings → X sign-in**
 | [Reliability](docs/RELIABILITY.md) · [Performance](docs/PERFORMANCE.md) | Recovery, cancellation, integrity, pagination and cache behavior |
 | [Architecture](docs/ARCHITECTURE.md) · [P2 details](docs/P2_COMPLETION.md) | Module boundaries, UI keys, player choice and cooldown scope |
 | [Release privacy](docs/RELEASE.md) · [Maintenance](docs/MAINTENANCE.md) | Source packages, application/engine versions and release checklist |
+| [Installation acceptance](docs/INSTALLATION_ACCEPTANCE.md) | Fresh source/venv, script lifecycle, update/restore and Windows CI |
 
 The homepage and usage guides are bilingual. Several technical guides are currently in Traditional Chinese.
 
@@ -99,12 +100,14 @@ smart-social-downloader/
 │   ├── package_source.py           Reviewed source-only ZIP
 │   ├── check_source_archive.py     Full regression from the extracted ZIP
 │   ├── check_workflows.py          Reviewed Action identity / full SHA check
+│   ├── check_installation.py       Fresh Windows source/venv acceptance
 │   ├── measure_persistence.py      Isolated synthetic saves and API latency
 │   └── measure_capacity.py         Account scan, IPC and 64 MiB boundary probes
 ├── docs/                          Usage, architecture and maintenance guides
 │   └── images/dashboard-preview.svg  Fictional public illustration
 ├── tests/                         Importable local regression package
 │   ├── helpers/app.py             Shared isolated AppContext fixture
+│   ├── helpers/install_runner.py  Receipt-gated installation child
 │   └── test_*.py / frontend.test.cjs  Python / Node suites
 ├── .github/
 │   ├── dependabot.yml             Dependency update proposals
@@ -121,6 +124,8 @@ smart-social-downloader/
 The **application version** appears beneath the app name and in Settings → Diagnostics. Engine versions appear separately in environment diagnostics. `update.bat` updates engines; it does not update application source. See [Maintenance](docs/MAINTENANCE.md) and [CHANGELOG](CHANGELOG.md).
 
 CI Actions use reviewed commit SHAs. Dependabot proposes weekly Actions/Python dependency updates for maintainer review and regression/source-distribution checks. See [dependency maintenance](docs/MAINTENANCE.md#dependency-updates-and-action-pins).
+
+Windows CI also checks installation, offline startup/restart and package update/restore in a fresh extracted source and venv. Maintainers can run `python tools/check_installation.py --browser`; it downloads dependencies into disposable storage. See [acceptance scope](docs/INSTALLATION_ACCEPTANCE.md) for the distinction between batch cleanup, graceful app close and remaining real desktop/X checks.
 
 State saves use an owned background writer with immutable snapshots. Critical changes wait for durable writes without holding the queue lock; failed saves remain visible and can be retried in Diagnostics. Maintainers can reproduce synthetic capture/save/API latency measurements with `python tools/measure_persistence.py`. See [persistence performance](docs/PERSISTENCE_PERFORMANCE.md) for results and limits; the command uses disposable history and does not download media or restore login.
 

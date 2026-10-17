@@ -18,7 +18,7 @@ if exist ".venv\Scripts\python.exe" (
 )
 if errorlevel 1 (
   echo Setup failed. Install Python 3.12 and check your internet connection.
-  pause
+  if not defined SSDL_NONINTERACTIVE pause
   exit /b 1
 )
 exit /b 0

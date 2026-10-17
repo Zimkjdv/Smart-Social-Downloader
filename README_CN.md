@@ -54,6 +54,7 @@ YouTube 等部分網站需要 **Node.js 22+ 或 Deno 2.3+**。環境診斷提示
 | [可靠性](docs/RELIABILITY.md) · [效能](docs/PERFORMANCE.md) | 恢復、停止、串流完整性、分頁與快取 |
 | [架構](docs/ARCHITECTURE.md) · [P2 實作](docs/P2_COMPLETION.md) | 模組分工、語系 key、播放器選擇與冷卻 |
 | [發布與隱私](docs/RELEASE.md) · [維護指南](docs/MAINTENANCE.md) | 原始碼包、版本規則及發布清單 |
+| [安裝驗收](docs/INSTALLATION_ACCEPTANCE.md) | 全新來源／venv、腳本生命週期、更新恢復與 Windows CI |
 
 首頁及操作指南提供中英文；維護、貢獻與安全回報文件以英文為主。
 
@@ -99,12 +100,14 @@ smart-social-downloader/
 │   ├── package_source.py           允許清單原始碼 ZIP
 │   ├── check_source_archive.py     解壓來源包後執行完整回歸
 │   ├── check_workflows.py          已審查 Action 來源／完整 SHA 檢查
+│   ├── check_installation.py       Windows 新來源／venv 安裝驗收
 │   ├── measure_persistence.py      隔離合成保存與 API 延遲量測
 │   └── measure_capacity.py         帳號掃描、IPC 及 64 MiB 邊界驗收
 ├── docs/                          操作、架構與維護文件
 │   └── images/dashboard-preview.svg  可公開的虛構介面示意
 ├── tests/                         可匯入的本機回歸測試套件
 │   ├── helpers/app.py             共用隔離 AppContext fixture
+│   ├── helpers/install_runner.py  需 receipt 的安裝驗收子程序
 │   └── test_*.py / frontend.test.cjs  Python／Node 測試
 ├── .github/
 │   ├── dependabot.yml             依賴更新 PR 提案
@@ -121,6 +124,8 @@ smart-social-downloader/
 **應用程式版本**顯示在頂部名稱下方及設定 → 診斷；引擎版本另列於環境診斷。`update.bat` 更新引擎，不更新應用程式原始碼。詳見 [維護指南](docs/MAINTENANCE.md) 與 [CHANGELOG](CHANGELOG.md)。
 
 CI Actions 已固定完整 commit SHA。Dependabot 每週提出 Actions／Python 依賴更新 PR，由維護者審查並要求回歸與來源包驗收，流程見 [依賴維護](docs/MAINTENANCE.md#dependency-updates-and-action-pins)。
+
+Windows CI 另以全新來源與 venv 驗證安裝、離線啟動／重啟及更新／恢復。維護者可執行 `python tools/check_installation.py --browser`，它會下載依賴到隔離暫存位置。批次程序清理、正常關閉與真實桌面／X 驗收的分工見 [安裝驗收](docs/INSTALLATION_ACCEPTANCE.md)。
 
 保存採用獨立背景 writer 與不可變快照；關鍵變更等待落盤時不持有佇列鎖，失敗仍有提示並可在診斷中重新保存。維護者可用 `python tools/measure_persistence.py` 重現快照／保存／API 延遲量測，結果及限制見 [保存效能文件](docs/PERSISTENCE_PERFORMANCE.md)。指令使用暫存資料，不下載媒體或恢復登入。
 

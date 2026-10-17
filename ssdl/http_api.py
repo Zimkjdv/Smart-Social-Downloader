@@ -98,7 +98,7 @@ class ApiHandler(BaseHTTPRequestHandler):
         body = json.dumps(self.app.redact_fields(data), ensure_ascii=False).encode("utf-8")
         self._send(status, body, "application/json; charset=utf-8")
 
-    def _read_json(self) -> dict:
+    def _body_length(self) -> int:
         lengths = self.headers.get_all("Content-Length", [])
         if (self.headers.get_all("Transfer-Encoding") or len(lengths) != 1
                 or not lengths[0].isascii() or not lengths[0].isdigit() or len(lengths[0]) > 6):
@@ -106,8 +106,13 @@ class ApiHandler(BaseHTTPRequestHandler):
         length = int(lengths[0])
         if length <= 0 or length > 100_000:
             raise RequestFormatError("請求內容大小不正確")
+        return length
+
+    def _read_json(self) -> dict:
+        length = self._body_length()
         self._input.remaining()
         payload = self.rfile.read(length)
+        self._body_read = True
         self._input.remaining()
         if len(payload) != length:
             raise RequestFormatError("請求內容不完整，請重新操作。")
@@ -117,6 +122,32 @@ class ApiHandler(BaseHTTPRequestHandler):
         if not isinstance(value, dict):
             raise RequestFormatError("請求格式不正確")
         return value
+
+    def _discard_rejected_body(self) -> int:
+        """Avoid closing over an unread, bounded POST body after responding.
+
+        No JSON parsing or application access; never accept ambiguous framing,
+        exceed 100 KB or extend the original absolute input deadline.
+        """
+        if self._body_read:
+            return 0
+        try:
+            remaining = self._body_length()
+        except RequestFormatError:
+            return 0
+        discarded = 0
+        self._input.deadline = min(self._input.deadline, time.monotonic() + 0.1)
+        try:
+            while remaining:
+                self._input.remaining()
+                chunk = self.rfile.read1(min(remaining, 65_536))
+                if not chunk:
+                    break
+                discarded += len(chunk)
+                remaining -= len(chunk)
+        except (OSError, ValueError):
+            pass  # Timed out/disconnected/shutting down: still close this request.
+        return discarded
 
     def _local_request(self) -> bool:
         allowed = {f"127.0.0.1:{self.app.PORT}", f"localhost:{self.app.PORT}", f"[::1]:{self.app.PORT}"}
@@ -230,10 +261,13 @@ class ApiHandler(BaseHTTPRequestHandler):
         self._send(200, target.read_bytes(), content_type + ("; charset=utf-8" if content_type.startswith("text/") else ""))
 
     def do_POST(self) -> None:
+        self._body_read = False
         try:
             self._post()
         except ApplicationClosedError:
             self._json(503, {"error": "本機服務正在關閉，請重新啟動後再操作。"})
+        finally:
+            self._discard_rejected_body()
 
     @contextmanager
     def _mutation(self):

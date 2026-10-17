@@ -8,8 +8,8 @@ if not exist ".venv\Scripts\python.exe" (
 echo Stop the running service before updating its engines.
 ".venv\Scripts\python.exe" -X utf8 tools\manage.py update
 if errorlevel 1 (
-  pause
+  if not defined SSDL_NONINTERACTIVE pause
   exit /b 1
 )
-pause
+if not defined SSDL_NONINTERACTIVE pause
 exit /b 0

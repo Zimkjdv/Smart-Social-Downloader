@@ -36,6 +36,7 @@ python tools/manage.py --version
 - [ ] Inspect the repository's staged files/diff and confirm no personal data is being submitted.
 - [ ] Enable private vulnerability reporting and verify the channel described in SECURITY.md.
 - [ ] Confirm GitHub CI results. Do not describe configured CI as passing CI.
+- [ ] Require the fresh source/venv installation job as well as regression checks; record remaining desktop/account acceptance from [Installation acceptance](INSTALLATION_ACCEPTANCE.md).
 - [ ] Create a tag matching the application version and publish a **prerelease** for a preview. Summarize known limitations and pending checks in its notes.
 
 These are maintainer actions, not steps every user must perform. The application works locally before repository publication.
@@ -56,7 +57,7 @@ The demonstration in `docs/images/dashboard-preview.svg` is a hand-built UI illu
 
 ## Dependency updates and Action pins
 
-CI's three direct Action references use full commit SHAs with release comments.
+CI's three direct Action identities use full commit SHAs with release comments.
 These official repository tags/commits were verified on **2026-10-17**:
 
 | Action | Release | Fixed commit |

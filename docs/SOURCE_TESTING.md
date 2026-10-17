@@ -97,3 +97,15 @@ including the new late-body fixture. No assertion hides a failed complete 403
 exchange, and no production source policy or body-reading behavior was relaxed.
 These are additional regression cases, not a claim that an intermittent socket
 defect was conclusively fixed. Latest results: [TESTING](TESTING.md).
+
+2026-10-17 follow-up: a complete run encountered 10053 again on a foreign-Origin
+POST. Response handling now drains only an unread, strictly framed body up to
+100,000 bytes, after sending the refusal, within 0.1 seconds and the original
+deadline. It does not parse JSON or access application data. Ambiguous/oversized
+frames are not read. The late-body test asserts exact bytes; new tests verify
+bounded incomplete cleanup and rejected framing. This addresses the unread-body
+closure case while keeping other intermittent transport observations pending.
+
+Fresh dependency installation is now checked by a separate Windows job/tool;
+the extraction regression above intentionally uses current dependencies. See
+[Installation acceptance](INSTALLATION_ACCEPTANCE.md).

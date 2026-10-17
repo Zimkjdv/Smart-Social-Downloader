@@ -86,12 +86,14 @@ smart-social-downloader/
 │   ├── package_source.py      # 有界來源樹與允許清單 ZIP
 │   ├── check_source_archive.py # 解壓後匯入檢查與完整回歸
 │   ├── check_workflows.py      # 已審查 Action 來源與完整 SHA 的離線政策
+│   ├── check_installation.py   # 新來源／venv 的安裝、啟動與更新恢復驗收
 │   ├── measure_persistence.py # 隔離合成歷史保存／API 延遲量測
 │   └── measure_capacity.py    # 合成帳號掃描、IPC 及保存容量邊界
 ├── docs/                     # 使用、發布、去重及架構說明
 ├── tests/                    # 本機 API、下載、串流及發布測試
 │   ├── __init__.py            # 明確測試套件，discovery 以專案根為 top level
-│   └── helpers/app.py         # 共用隔離實例、覆寫及暫存資料清理
+│   ├── helpers/app.py         # 共用隔離實例、覆寫及暫存資料清理
+│   └── helpers/install_runner.py # receipt 閘門、批次子程序及正常關閉 fixture
 ├── .github/workflows/        # Windows CI
 ├── data/                     # 本機歷史、設定、登入及快取，排除 Git
 ├── downloads/                # 預設下載檔，排除 Git
@@ -200,3 +202,5 @@ SQLite 維護每個 AppContext 各自擁有服務／執行緒／取消狀態；�
 README 是中英文精簡首頁；完整操作移至 `docs/USAGE.md`、`docs/USAGE_CN.md`。`docs/MAINTENANCE.md` 定義發布流程，`docs/images/dashboard-preview.svg` 為虛構公開示意；`.github/ISSUE_TEMPLATE/` 與 `.github/pull_request_template.md` 定義回報與 PR 內容。原始碼包以允許清單納入這些檔案，排除 runtime 資料。
 
 `.github/dependabot.yml` 提出每週 Actions／Python 依賴更新 PR。工作流程只直接使用已審查的官方 Actions，固定完整 SHA 並保留版本註解；`tools/check_workflows.py` 對明確區塊式 `uses:` 做離線來源／SHA 語法檢查。它不取代 YAML 驗證、上游 commit 查核或漏洞掃描；更新／回歸／恢復規則見 [維護文件](MAINTENANCE.md#dependency-updates-and-action-pins)。
+
+同一 workflow 的 `install-windows` job 在新來源／新 venv 呼叫安裝驗收工具。其 base Python 閘門先加入所屬 Job Object 才啟動 venv redirector／批次／pip 子程序；控制 receipt 只寫入合成副本。環境命令以 DEVNULL 隔離 stdin，避免繼承控制管線。實際批次強制清理與 installed AppContext 正常關閉分別驗證，完整邊界見 [安裝驗收](INSTALLATION_ACCEPTANCE.md)。

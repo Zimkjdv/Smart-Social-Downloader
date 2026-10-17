@@ -18,12 +18,12 @@ N01～N08 已移至 [CHANGELOG](CHANGELOG.md#unreleased)。本輪列出的修正
 
 ## 安裝、真實使用與 GitHub 發布驗收
 
-- [ ] **乾淨 Windows／Python 3.12**：首次安裝、啟動、關閉、更新／基準恢復及 X 登入。先前已通過本機獨立來源副本與新 venv；那不是全新 Windows 系統。沒有要求補測 Python 3.10。
+- [ ] **一般桌面 Windows／互動驗收**：全新一般 Windows 的 Python／Node／Chrome 安裝、一般終端 Ctrl+C 關閉及授權 X 登入。新來源／新 venv 的安裝、離線啟動／重啟、自動修復、更新／基準恢復已自動化並移至 [CHANGELOG](CHANGELOG.md#unreleased)，操作及界線見 [安裝驗收](docs/INSTALLATION_ACCEPTANCE.md)。Hosted runner／既有 Windows 的隔離副本不等於出廠桌面系統；沒有 Python 3.10 工作。
 - [ ] **一般 Chrome 真實配對**：重新載入 connector 1.1.0、自訂 port、取消／過期／失敗後重配及重啟恢復。先前預設 port 曾成功配對，不代表新版自訂 port 已驗收。正常 Windows 使用者環境的 DPAPI 是前提，不能以受限工具環境的失敗宣稱 DPAPI 普遍失效。
 - [ ] **線上平台抽樣**：實際 Best／指定畫質、登入失效、限流與恢復、帳號媒體掃描、缺檔補抓；先取得適合的測試素材。104＋10 合成測試不代表所有平台即時相容。
 - [ ] **GitHub 設定與發布**：啟用並確認私人漏洞回報入口，核對 tag、版本、來源 ZIP、release notes 後發布 preview。repo 已公開、Windows／Python 3.12 CI 已通過，目前沒有 tag／Release。
 - [ ] **依賴更新提案驗收**：確認 Dependabot 首輪 Actions／Python 更新 PR 的發現範圍、版本／完整 SHA 變更及 Windows 回歸結果，再由維護者審查合併。固定 SHA、離線政策檢查與更新／回歸／恢復流程已完成，見 [CHANGELOG](CHANGELOG.md#unreleased) 與 [維護指南](docs/MAINTENANCE.md#dependency-updates-and-action-pins)；尚未宣稱更新提案已合併或已完成 CVE 掃描。
-- [ ] **依賴故障追蹤**：追蹤 SSL 棄用／socket ResourceWarning 與偶發 Windows 10053（N08 新增完整／延後 body、拒絕來源及斷線覆蓋，仍未穩定重現，未宣稱根因已修正）。引擎／Chrome／Playwright 升級後重跑相關驗收，二進位散布另行核對第三方授權。
+- [ ] **依賴故障追蹤**：追蹤 SSL 棄用／socket ResourceWarning 與其他 Windows 傳輸異常。未讀 POST body 拒絕回應的 10053 再現後，已加入嚴格 framing／大小／時間限制的回應後清理及回歸；細節見 [TESTING](docs/TESTING.md)，尚未宣稱涵蓋所有 Windows 10053。引擎／Chrome／Playwright 升級後重跑相關驗收，二進位散布另行核對第三方授權。
 
 ## 後續功能
 

@@ -25,6 +25,12 @@ class EnvironmentTests(unittest.TestCase):
         with patch.object(environment.subprocess, "run", side_effect=subprocess.TimeoutExpired("fixture", 1)):
             self.assertIsNone(environment._command(["fixture"], timeout=1))
 
+    def test_diagnostic_commands_do_not_inherit_stdin(self):
+        result = subprocess.CompletedProcess(["fixture"], 0, "fixture output", "")
+        with patch.object(environment.subprocess, "run", return_value=result) as run:
+            self.assertEqual(environment._command(["fixture"]), "fixture output")
+        self.assertIs(run.call_args.kwargs["stdin"], subprocess.DEVNULL)
+
     def test_background_recheck_is_single_and_snapshot_is_independent(self):
         entered, release = threading.Event(), threading.Event()
         def inspect(*args, **kwargs):

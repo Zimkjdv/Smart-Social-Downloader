@@ -20,6 +20,8 @@ When validating a change, prefer existing temporary-file/local-HTTP fixtures and
 
 Use `tests/helpers/` for shared synthetic fixtures and run Python discovery with `-s tests -t .`. Follow the [fixture and source-distribution guide](docs/SOURCE_TESTING.md) when adding subpackages, support modules or tools. Run `python tools/check_source_archive.py` before publishing source changes; it tests the extracted ZIP with the current installed dependencies.
 
+Installer/launcher changes also require [fresh Windows installation acceptance](docs/INSTALLATION_ACCEPTANCE.md): `python tools/check_installation.py --browser`. This explicit command downloads packages into an owned new venv; small offline harness tests remain in ordinary discovery. Keep actual desktop/login acceptance separate from fixture evidence.
+
 ## Pull requests
 
 Dependency updates follow the [maintenance review gate](docs/MAINTENANCE.md#dependency-updates-and-action-pins). Retain complete Action SHAs and release comments; run `python tools/check_workflows.py` before proposing a CI change. New Action identities require review of the explicit allowlist. Dependabot PRs need the same regression/source-distribution checks as other changes.

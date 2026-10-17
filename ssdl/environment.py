@@ -28,7 +28,7 @@ def _check(key, name, status, detail, *, version="", required=False, hint="") ->
 
 def _command(arguments, timeout=6) -> str | None:
     try:
-        result = subprocess.run(arguments, capture_output=True, text=True,
+        result = subprocess.run(arguments, stdin=subprocess.DEVNULL, capture_output=True, text=True,
                                 encoding="utf-8", errors="replace", timeout=timeout,
                                 creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
         return result.stdout[:4096] if result.returncode == 0 else None

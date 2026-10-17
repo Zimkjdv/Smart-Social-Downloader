@@ -57,7 +57,7 @@ class WorkflowPolicyTests(unittest.TestCase):
         self.assertIn("fixture error", output.call_args.args[0])
 
     def test_current_workflows_and_update_configuration_are_shipped(self):
-        self.assertEqual(policy.check_workflows(ROOT), (1, 3))
+        self.assertEqual(policy.check_workflows(ROOT), (1, 6))
         selected = {path.relative_to(ROOT).as_posix() for path in source_files(ROOT)}
         self.assertTrue({".github/dependabot.yml", "tools/check_workflows.py",
                          "tests/test_workflow_policy.py"}.issubset(selected))
