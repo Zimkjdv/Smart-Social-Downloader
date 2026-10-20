@@ -54,7 +54,7 @@ For X login, sign into X in ordinary Chrome, then use **Settings → X sign-in**
 | [Reliability](docs/RELIABILITY.md) · [Performance](docs/PERFORMANCE.md) | Recovery, cancellation, integrity, pagination and cache behavior |
 | [Architecture](docs/ARCHITECTURE.md) · [P2 details](docs/P2_COMPLETION.md) | Module boundaries, UI keys, player choice and cooldown scope |
 | [Release privacy](docs/RELEASE.md) · [Maintenance](docs/MAINTENANCE.md) | Source packages, application/engine versions and release checklist |
-| [Installation acceptance](docs/INSTALLATION_ACCEPTANCE.md) | Fresh source/venv, script lifecycle, update/restore and Windows CI |
+| [Installation](docs/INSTALLATION_ACCEPTANCE.md) · [Console acceptance](docs/CONSOLE_ACCEPTANCE.md) | Fresh source/venv, update/restore, real Ctrl+C and Windows CI |
 
 The homepage and usage guides are bilingual. Several technical guides are currently in Traditional Chinese.
 
@@ -108,6 +108,7 @@ smart-social-downloader/
 ├── tests/                         Importable local regression package
 │   ├── helpers/app.py             Shared isolated AppContext fixture
 │   ├── helpers/install_runner.py  Receipt-gated installation child
+│   ├── helpers/console_runner.py  Isolated Windows Ctrl+C / worker fixture
 │   └── test_*.py / frontend.test.cjs  Python / Node suites
 ├── .github/
 │   ├── dependabot.yml             Dependency update proposals

@@ -53,5 +53,5 @@ jobs:
         with:
           node-version: '22'
           package-manager-cache: false
-      - name: Accept fresh Windows source installation
+      - name: Accept fresh Windows installation and console shutdown
         run: python tools/check_installation.py --browser --work-dir "$env:RUNNER_TEMP" --report "$env:RUNNER_TEMP/ssdl-installation.json"

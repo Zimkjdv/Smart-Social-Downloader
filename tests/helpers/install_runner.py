@@ -24,6 +24,15 @@ def verify_receipt(root, token):
         raise ValueError("Invalid installation fixture receipt")
 
 
+def closed_status(app):
+    services = (app.X_AUTH, app.THUMBNAILS, app.STORAGE, app.ENVIRONMENT, app.DATABASES, app.STATE_WRITER)
+    threads = [app.state.worker_thread, *(getattr(service, "_thread", None) for service in services)]
+    status = app.STATE_WRITER.status()
+    result = {"closed": app._closed, "threads_stopped": all(not t or not t.is_alive() for t in threads),
+              "durable": not status["pending"] and status["writer_closed"]}
+    return result
+
+
 def lifecycle(root):
     sys.path.insert(0, str(root))
     from ssdl.app import create_app, Server
@@ -41,11 +50,7 @@ def lifecycle(root):
                 thread.join(timeout=10)
                 if thread.is_alive():
                     raise RuntimeError("Owned server did not stop")
-    services = (app.X_AUTH, app.THUMBNAILS, app.STORAGE, app.ENVIRONMENT, app.DATABASES, app.STATE_WRITER)
-    threads = [app.state.worker_thread, *(getattr(service, "_thread", None) for service in services)]
-    status = app.STATE_WRITER.status()
-    result = {"closed": app._closed, "threads_stopped": all(not t or not t.is_alive() for t in threads),
-              "durable": not status["pending"] and status["writer_closed"]}
+    result = closed_status(app)
     (root / "data/install-closed.json").write_text(json.dumps(result), encoding="utf-8")
     if not all(result.values()):
         raise RuntimeError("Owned lifecycle did not close durably")
@@ -54,7 +59,7 @@ def lifecycle(root):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("action", choices=("setup", "start", "update", "lifecycle", "service", "browser", "restore-probe", "inventory"))
+    parser.add_argument("action", choices=("setup", "start", "update", "lifecycle", "service", "browser", "restore-probe", "inventory", "console"))
     parser.add_argument("--token", required=True)
     args = parser.parse_args(argv)
     root = Path(__file__).resolve().parents[2]
@@ -64,6 +69,10 @@ def main(argv=None):
             return lifecycle(root)
         if sys.stdin.readline().strip() != "run":
             raise ValueError("Missing owned process admission")
+        if args.action == "console":
+            sys.path.insert(0, str(root))
+            from tests.helpers.console_runner import gate
+            return gate(root, args.token)
         if args.action == "lifecycle":
             # Launch the venv redirector only after the real base interpreter
             # was attached to the owner's Job Object and admitted.

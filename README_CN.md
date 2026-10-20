@@ -54,7 +54,7 @@ YouTube 等部分網站需要 **Node.js 22+ 或 Deno 2.3+**。環境診斷提示
 | [可靠性](docs/RELIABILITY.md) · [效能](docs/PERFORMANCE.md) | 恢復、停止、串流完整性、分頁與快取 |
 | [架構](docs/ARCHITECTURE.md) · [P2 實作](docs/P2_COMPLETION.md) | 模組分工、語系 key、播放器選擇與冷卻 |
 | [發布與隱私](docs/RELEASE.md) · [維護指南](docs/MAINTENANCE.md) | 原始碼包、版本規則及發布清單 |
-| [安裝驗收](docs/INSTALLATION_ACCEPTANCE.md) | 全新來源／venv、腳本生命週期、更新恢復與 Windows CI |
+| [安裝驗收](docs/INSTALLATION_ACCEPTANCE.md) · [控制台驗收](docs/CONSOLE_ACCEPTANCE.md) | 全新來源／venv、更新恢復、真正 Ctrl+C 與 Windows CI |
 
 首頁及操作指南提供中英文；維護、貢獻與安全回報文件以英文為主。
 
@@ -108,6 +108,7 @@ smart-social-downloader/
 ├── tests/                         可匯入的本機回歸測試套件
 │   ├── helpers/app.py             共用隔離 AppContext fixture
 │   ├── helpers/install_runner.py  需 receipt 的安裝驗收子程序
+│   ├── helpers/console_runner.py  隔離 Windows Ctrl+C／下載程序 fixture
 │   └── test_*.py / frontend.test.cjs  Python／Node 測試
 ├── .github/
 │   ├── dependabot.yml             依賴更新 PR 提案

@@ -55,6 +55,11 @@ diagnosis and prints its location; remove that owned copy after inspection.
    through the normal CLI and recheck core pins. Restart/close the installed app
    normally again. An invalid-port launch must exit nonzero without pausing or
    altering saved state.
+8. In separate hidden Windows consoles, exercise the real entry's Ctrl+C path
+   while idle and with an active synthetic worker plus pending job; verify normal
+   exit, durable closure, worker/helper cleanup and exact queue/quota recovery
+   after restart. These assertions run before fallback Job Object cleanup. See
+   [console acceptance](CONSOLE_ACCEPTANCE.md) for admission, signal and scope.
 
 Baseline restoration reinstalls exact required versions; it does not remove every
 extra package left by an update. That distinction is also in [Maintenance](MAINTENANCE.md#dependency-updates-and-action-pins).
@@ -93,7 +98,7 @@ regressions. Both jobs use reviewed full Action SHAs and read-only permissions.
 
 This verifies fresh source/venv behavior on an existing Windows image, including
 the hosted runner image. It does not establish factory Windows installation,
-general desktop Ctrl+C behavior, real X pairing/login, live media compatibility
+physical desktop Ctrl+C/batch-prompt behavior, real X pairing/login, live media compatibility
 or correctness of every future engine release. No ordinary Chrome profile,
 production Cookie/history, service restart or live media download is used.
 Those environment/account checks remain in [ROADMAP](../ROADMAP.md); actual

@@ -80,9 +80,15 @@ def command(root, token, action, env, log):
     group = None
     with log.open("wb") as output:
         try:
+            console_options = {}
+            if action == "console":
+                startup = subprocess.STARTUPINFO()
+                startup.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                startup.wShowWindow = subprocess.SW_HIDE
+                console_options = {"creationflags": subprocess.CREATE_NEW_CONSOLE, "startupinfo": startup}
             process = subprocess.Popen([str(python), "-I", "-S", "-u", str(root / "tests/helpers/install_runner.py"),
                                         action, "--token", token], cwd=root, env=env,
-                                       stdin=subprocess.PIPE, stdout=output, stderr=subprocess.STDOUT)
+                                       stdin=subprocess.PIPE, stdout=output, stderr=subprocess.STDOUT, **console_options)
             # Child is receipt-gated and cannot spawn helpers before admission.
             group = ProcessGroup(process)
             process.stdin.write(b"run\n")
@@ -113,7 +119,7 @@ def wait_success(process, phase, timeout=300):
         raise AcceptanceError(f"{phase} exited with code {code}")
 
 
-def request(port, path, data=None):
+def request(port, path, data=None, *, expected_status=200):
     connection = http.client.HTTPConnection("127.0.0.1", port, timeout=10)
     try:
         body = None if data is None else json.dumps(data)
@@ -121,7 +127,7 @@ def request(port, path, data=None):
                            {"Origin": f"http://127.0.0.1:{port}", "Content-Type": "application/json"})
         response = connection.getresponse()
         payload = response.read(1_000_001)
-        if response.status != 200 or len(payload) > 1_000_000:
+        if response.status != expected_status or len(payload) > 1_000_000:
             raise AcceptanceError("Installed HTTP request failed")
         return json.loads(payload)
     finally:
@@ -288,6 +294,74 @@ def accept(workspace, *, browser=False):
             verify_versions(inventory(root, env), baseline)
         graceful()
         phases.append("restored-graceful-restart")
+        # Send actual CTRL_C_EVENT only inside a new, hidden console whose
+        # membership the receipt-gated base interpreter checks before spawning.
+        from tests.helpers.console_runner import watch_processes
+        closed_file = root / "data/console-closed.json"
+        def interrupt_console(process):
+            process.stdin.write(b"interrupt\n")
+            process.stdin.flush()
+            wait_success(process, "CTRL+C entry shutdown", timeout=45)
+            closed = json.loads(closed_file.read_text(encoding="utf-8"))
+            if closed.get("exit_code") != 0 or not all(closed.get(key) is True for key in
+                    ("closed", "threads_stopped", "durable", "ctrl_c", "control_stopped")):
+                raise AcceptanceError("Console entry did not shut down durably")
+            assert_port_closed(port)
+        print("Installation acceptance: idle CTRL+C", flush=True)
+        closed_file.unlink(missing_ok=True)
+        with command(root, token, "console", offline, log) as process:
+            verify_saved(ready(process, port, media), media)
+            interrupt_console(process)  # Assert success before fallback Job Object cleanup.
+        phases.append("idle-console-ctrl-c")
+        print("Installation acceptance: active worker CTRL+C", flush=True)
+        closed_file.unlink(missing_ok=True)
+        worker_receipt = root / ".ssdl-console-worker"
+        worker_receipt.unlink(missing_ok=True)
+        with command(root, token, "console", offline, log) as process:
+            verify_saved(ready(process, port, media), media)
+            added = request(port, "/api/jobs", {"urls": ["https://example.org/console-a", "https://example.org/console-b"]}, expected_status=201)
+            keys = added.get("added", [])
+            if len(keys) != 2:
+                raise AcceptanceError("Console fixture jobs were not added")
+            request(port, "/api/pause", {"paused": False})
+            deadline = time.monotonic() + 30
+            while True:
+                if process.poll() is not None or time.monotonic() >= deadline:
+                    raise AcceptanceError("Synthetic console worker did not become active")
+                try:
+                    if worker_receipt.stat().st_size > 4096:
+                        raise AcceptanceError("Invalid console worker receipt size")
+                    workers = json.loads(worker_receipt.read_text(encoding="ascii"))
+                    if workers.get("token") != token:
+                        raise AcceptanceError("Invalid console worker receipt")
+                    break
+                except (OSError, ValueError):
+                    time.sleep(.1)
+            state = request(port, "/api/pause", {"paused": True})
+            if state["counts"]["active"] != 1 or state["counts"]["queued"] != 1:
+                raise AcceptanceError("Active/pending console jobs differ from fixture scope")
+            with watch_processes(workers["pids"]) as stopped:
+                interrupt_console(process)
+                stopped()  # Require worker + grandchild exit before the outer job closes.
+        if (media / "console-partial.part").read_bytes() != b"synthetic partial bytes":
+            raise AcceptanceError("CTRL+C removed or changed partial fixture data")
+        phases.append("active-console-ctrl-c-owned-tree")
+        print("Installation acceptance: console restart recovery", flush=True)
+        closed_file.unlink(missing_ok=True)
+        with command(root, token, "console", offline, log) as process:
+            state = ready(process, port, media)
+            verify_scope(state, media)
+            restored = request(port, "/api/state")
+            if (not restored["paused"] or restored["hourly_job_limit"] != 73
+                    or restored["counts"]["queued"] != 2 or restored["counts"]["active"] != 0
+                    or {job["id"] for job in restored["jobs"]} != set(keys)
+                    or sorted(job["attempts"] for job in restored["jobs"]) != [0, 1]
+                    or restored["rate_limit"]["used"] != 1):
+                raise AcceptanceError("Interrupted jobs/settings/quota did not recover exactly")
+            interrupt_console(process)
+        phases.append("console-restart-durable-queue")
+        if fingerprint(sentinel) != media_hash:
+            raise AcceptanceError("Console lifecycle changed original fixture media")
         print("Installation acceptance: invalid-port rejection", flush=True)
         saved_hash = fingerprint(root / "data/state.json")
         with command(root, token, "start", dict(offline, SSDL_PORT="0"), log) as process:
@@ -305,7 +379,8 @@ def accept(workspace, *, browser=False):
                 "updated_core": {key: updated.get(key) for key in baseline},
                 "restore_probe": {"package": "idna", "temporary": "3.10", "restored": baseline["idna"]},
                 "browser_installed": browser, "scope": "fresh-source-and-venv-on-existing-windows",
-                "batch_stop": "owned-forced-cleanup", "app_close": "receipt-gated-graceful-fixture"}
+                "batch_stop": "owned-forced-cleanup", "app_close": "receipt-gated-graceful-fixture",
+                "console_close": "real-ctrl-c-in-owned-hidden-console"}
     except Exception:
         if log.exists():
             tail = log.read_text(encoding="utf-8", errors="replace")[-4000:]

@@ -93,7 +93,8 @@ smart-social-downloader/
 ├── tests/                    # 本機 API、下載、串流及發布測試
 │   ├── __init__.py            # 明確測試套件，discovery 以專案根為 top level
 │   ├── helpers/app.py         # 共用隔離實例、覆寫及暫存資料清理
-│   └── helpers/install_runner.py # receipt 閘門、批次子程序及正常關閉 fixture
+│   ├── helpers/install_runner.py # receipt 閘門、批次子程序及正常關閉 fixture
+│   └── helpers/console_runner.py # 獨立隱藏控制台、真正 Ctrl+C 及合成下載程序
 ├── .github/workflows/        # Windows CI
 ├── data/                     # 本機歷史、設定、登入及快取，排除 Git
 ├── downloads/                # 預設下載檔，排除 Git
@@ -204,3 +205,5 @@ README 是中英文精簡首頁；完整操作移至 `docs/USAGE.md`、`docs/USA
 `.github/dependabot.yml` 提出每週 Actions／Python 依賴更新 PR。工作流程只直接使用已審查的官方 Actions，固定完整 SHA 並保留版本註解；`tools/check_workflows.py` 對明確區塊式 `uses:` 做離線來源／SHA 語法檢查。它不取代 YAML 驗證、上游 commit 查核或漏洞掃描；更新／回歸／恢復規則見 [維護文件](MAINTENANCE.md#dependency-updates-and-action-pins)。
 
 同一 workflow 的 `install-windows` job 在新來源／新 venv 呼叫安裝驗收工具。其 base Python 閘門先加入所屬 Job Object 才啟動 venv redirector／批次／pip 子程序；控制 receipt 只寫入合成副本。環境命令以 DEVNULL 隔離 stdin，避免繼承控制管線。實際批次強制清理與 installed AppContext 正常關閉分別驗證，完整邊界見 [安裝驗收](INSTALLATION_ACCEPTANCE.md)。
+
+控制台驗收在 base 閘門建立獨立隱藏 console，確認成員後啟動 installed entry。只以合成管線 worker 替代媒體傳輸，實際 entry、HTTP、排程、程序管理、writer 與服務關閉均保留。真正 CTRL_C_EVENT 後先核對正常退出、關閉紀錄、程序 handle 與恢復狀態，再容許 outer Job Object 作失敗清理；詳見 [控制台驗收](CONSOLE_ACCEPTANCE.md)。

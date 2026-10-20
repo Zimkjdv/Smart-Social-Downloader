@@ -36,7 +36,7 @@ python tools/manage.py --version
 - [ ] Inspect the repository's staged files/diff and confirm no personal data is being submitted.
 - [ ] Enable private vulnerability reporting and verify the channel described in SECURITY.md.
 - [ ] Confirm GitHub CI results. Do not describe configured CI as passing CI.
-- [ ] Require the fresh source/venv installation job as well as regression checks; record remaining desktop/account acceptance from [Installation acceptance](INSTALLATION_ACCEPTANCE.md).
+- [ ] Require the fresh source/venv installation job, including real isolated-console Ctrl+C shutdown/recovery, as well as regression checks; record remaining desktop/account acceptance from [Installation acceptance](INSTALLATION_ACCEPTANCE.md) and [Console acceptance](CONSOLE_ACCEPTANCE.md).
 - [ ] Create a tag matching the application version and publish a **prerelease** for a preview. Summarize known limitations and pending checks in its notes.
 
 These are maintainer actions, not steps every user must perform. The application works locally before repository publication.
