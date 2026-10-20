@@ -23,7 +23,8 @@ N01～N08 已移至 [CHANGELOG](CHANGELOG.md#unreleased)。本輪列出的修正
 - [ ] **線上平台抽樣**：實際 Best／指定畫質、登入失效、限流與恢復、帳號媒體掃描、缺檔補抓；先取得適合的測試素材。104＋10 合成測試不代表所有平台即時相容。
 - [ ] **GitHub 設定與發布**：啟用並確認私人漏洞回報入口，核對 tag、版本、來源 ZIP、release notes 後發布 preview。repo 已公開、Windows／Python 3.12 CI 已通過，目前沒有 tag／Release。
 - [ ] **後續依賴更新提案驗收**：首輪 Python 提案審查與 pycryptodomex 3.24.1 修補驗收已完成，移至 [CHANGELOG](CHANGELOG.md#unreleased)；[審查紀錄](docs/DEPENDENCY_ACCEPTANCE.md)記錄 PR #1／#2 的版本、相容性及恢復驗證。目前尚未收到 Actions 更新提案；收到後仍須核對官方版本／完整 SHA 與兩個 Windows CI 工作。pyee 14 與目前 Playwright 1.63.0 的 `pyee>=13,<14` 要求不相容，延後至相容的 Playwright／瀏覽器更新一起驗收；不能因 Python 3.12 支援就單獨強裝。後續提案不自動合併，也未宣稱完成 CVE 掃描。
-- [ ] **依賴故障追蹤**：追蹤 SSL 棄用／socket ResourceWarning 與其他 Windows 傳輸異常。未讀 POST body 拒絕回應的 10053 再現後，已加入嚴格 framing／大小／時間限制的回應後清理及回歸；細節見 [TESTING](docs/TESTING.md)，尚未宣稱涵蓋所有 Windows 10053。引擎／Chrome／Playwright 升級後重跑相關驗收，二進位散布另行核對第三方授權。
+
+依賴故障追蹤工具、CI／來源包檢查及本輪 HTTP 錯誤回應資源修正已完成，移至 [CHANGELOG](CHANGELOG.md#unreleased)。後續每次引擎／Chrome／Playwright 升級仍須重跑；已知 SSL 棄用、10053 的驗證範圍與故障處置維護在[追蹤文件](docs/DEPENDENCY_FAULTS.md)，不代表所有上游問題已消失。未來二進位散布仍須逐版核對第三方授權。
 
 ## 後續功能
 

@@ -101,6 +101,7 @@ smart-social-downloader/
 │   ├── check_source_archive.py     Full regression from the extracted ZIP
 │   ├── check_workflows.py          Reviewed Action identity / full SHA check
 │   ├── check_installation.py       Fresh Windows source/venv acceptance
+│   ├── check_dependency_faults.py  Versioned warning / transport regression gate
 │   ├── measure_persistence.py      Isolated synthetic saves and API latency
 │   └── measure_capacity.py         Account scan, IPC and 64 MiB boundary probes
 ├── docs/                          Usage, architecture and maintenance guides
@@ -127,6 +128,8 @@ The **application version** appears beneath the app name and in Settings → Dia
 CI Actions use reviewed commit SHAs. Dependabot proposes weekly Actions/Python dependency updates for maintainer review and regression/source-distribution checks. See [dependency maintenance](docs/MAINTENANCE.md#dependency-updates-and-action-pins).
 
 The [first dependency review](docs/DEPENDENCY_ACCEPTANCE.md) adopts pycryptodomex 3.24.1 and retains the compatible browser pins. After updating source with changed dependency pins, stop the service and run `setup.bat` to apply the reviewed baseline, then restart. Updating source or restarting alone does not install changed packages; `update.bat` explicitly updates within the compatibility ranges.
+
+Maintainers can run `python tools/check_dependency_faults.py --report data/dependency-faults.json` after engine/browser updates. CI and extracted-source acceptance also run this [fault-tracking gate](docs/DEPENDENCY_FAULTS.md), recording versions and safe fault categories; new warnings, socket resource leaks or failed transport checks fail acceptance.
 
 Windows CI also checks installation, offline startup/restart and package update/restore in a fresh extracted source and venv. Maintainers can run `python tools/check_installation.py --browser`; it downloads dependencies into disposable storage. See [acceptance scope](docs/INSTALLATION_ACCEPTANCE.md) for the distinction between batch cleanup, graceful app close and remaining real desktop/X checks.
 

@@ -33,6 +33,9 @@ jobs:
         run: python -c "from ssdl.browser_media import available; assert available(), 'Google Chrome is required for browser acceptance'"
       - run: python -m pip check
       - run: python tools/manage.py check
+      - name: Track dependency warnings and transport faults
+        timeout-minutes: 5
+        run: python tools/check_dependency_faults.py --report "$env:RUNNER_TEMP/ssdl-dependency-faults.json"
       - run: python -m unittest discover -s tests -t . -v
       - run: node --test tests/frontend.test.cjs
       - run: python tools/package_source.py --check

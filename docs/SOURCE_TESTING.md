@@ -67,7 +67,7 @@ The last command builds a disposable source ZIP, verifies the exact allowlisted
 member set, duplicate absence, CRC and source bytes, then extracts into an owned
 temporary directory. A child interpreter checks that app/helper/packager imports
 come from the extraction and runs the **full Python suite**, followed by the
-Node suite, with the extracted directory as cwd. Python ignores inherited
+Node suite and the [dependency fault gate](DEPENDENCY_FAULTS.md), with the extracted directory as cwd. Python ignores inherited
 PYTHONPATH/PYTHONHOME and user site packages; the current venv's installed
 dependencies and system Chrome/Node are intentionally available. Failures stop
 acceptance with a nonzero exit code; temporary outputs are cleaned on success

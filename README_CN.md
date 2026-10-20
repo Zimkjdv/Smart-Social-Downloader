@@ -101,6 +101,7 @@ smart-social-downloader/
 │   ├── check_source_archive.py     解壓來源包後執行完整回歸
 │   ├── check_workflows.py          已審查 Action 來源／完整 SHA 檢查
 │   ├── check_installation.py       Windows 新來源／venv 安裝驗收
+│   ├── check_dependency_faults.py  版本、警告與傳輸故障回歸門檻
 │   ├── measure_persistence.py      隔離合成保存與 API 延遲量測
 │   └── measure_capacity.py         帳號掃描、IPC 及 64 MiB 邊界驗收
 ├── docs/                          操作、架構與維護文件
@@ -127,6 +128,8 @@ smart-social-downloader/
 CI Actions 已固定完整 commit SHA。Dependabot 每週提出 Actions／Python 依賴更新 PR，由維護者審查並要求回歸與來源包驗收，流程見 [依賴維護](docs/MAINTENANCE.md#dependency-updates-and-action-pins)。
 
 [首輪依賴審查](docs/DEPENDENCY_ACCEPTANCE.md)採納 pycryptodomex 3.24.1，瀏覽器依賴保留相容版本。更新原始碼若涉及依賴 pin 變更，請先停止服務、執行 `setup.bat` 套用已審查基線，再重新啟動。更新原始碼或單純重啟不會安裝新套件；`update.bat` 則明確在相容範圍內更新。
+
+維護者可在引擎／瀏覽器更新後執行 `python tools/check_dependency_faults.py --report data/dependency-faults.json`。CI 與來源包也會執行[依賴故障追蹤](docs/DEPENDENCY_FAULTS.md)，記錄版本與安全分類；新警告、socket 資源未關閉或傳輸驗收失敗會阻擋通過。
 
 Windows CI 另以全新來源與 venv 驗證安裝、離線啟動／重啟及更新／恢復。維護者可執行 `python tools/check_installation.py --browser`，它會下載依賴到隔離暫存位置。批次程序清理、正常關閉與真實桌面／X 驗收的分工見 [安裝驗收](docs/INSTALLATION_ACCEPTANCE.md)。
 

@@ -51,7 +51,8 @@ def run_checks(root: Path) -> None:
              "for m in (ssdl.app, tests.helpers.app, tools.package_source))")
     commands = ([sys.executable, "-E", "-s", "-c", smoke],
                 [sys.executable, "-E", "-s", "-m", "unittest", "discover", "-s", "tests", "-t", ".", "-v"],
-                ["node", "--test", "tests/frontend.test.cjs"])
+                ["node", "--test", "tests/frontend.test.cjs"],
+                [sys.executable, "-E", "-s", "tools/check_dependency_faults.py"])
     for command in commands:
         subprocess.run(command, cwd=root, check=True)
 

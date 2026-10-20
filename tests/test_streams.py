@@ -3,6 +3,8 @@ from contextlib import ExitStack, contextmanager
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 import re
+import gc
+import warnings
 import socket
 import subprocess
 import tempfile
@@ -220,8 +222,12 @@ class StreamTests(unittest.TestCase):
         media.gallery_config.set(("downloader", "ytdl"), "retries", 0)
         missing = "/hls/" + sorted((self.root / "hls").glob("*.ts"))[1].name
         self.unavailable.add(missing)
-        with self.assertRaises(media.DownloadError):
-            media.download_gallery(StreamExtractor(re.match(".*", url)), self.directory, lambda event: None)
+        with warnings.catch_warnings(record=True) as records:
+            warnings.simplefilter("always", ResourceWarning)
+            with self.assertRaises(media.DownloadError):
+                media.download_gallery(StreamExtractor(re.match(".*", url)), self.directory, lambda event: None)
+            gc.collect()
+        self.assertFalse([item for item in records if issubclass(item.category, ResourceWarning)])
         self.assertGreaterEqual(self.requests[missing], 2)
 
 

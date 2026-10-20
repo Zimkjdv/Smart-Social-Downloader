@@ -108,6 +108,7 @@ and groups follow the [Dependabot options reference](https://docs.github.com/en/
 .\.venv\Scripts\python.exe tools/manage.py check
 .\.venv\Scripts\python.exe -m unittest discover -s tests -t . -v
 node --test tests/frontend.test.cjs
+.\.venv\Scripts\python.exe tools/check_dependency_faults.py --report data/dependency-faults.json
 .\.venv\Scripts\python.exe tools/check_source_archive.py
 ```
 
@@ -122,10 +123,13 @@ regressions and Dependabot configuration ship in the source ZIP.
 The [first Python proposal review](DEPENDENCY_ACCEPTANCE.md) accepts pycryptodomex
 3.24.1 and adds its minimum to the explicit-update ranges. It defers pyee 14 because
 Playwright 1.63.0 requires pyee below 14; that major needs a compatible browser
-upgrade. Actions proposal acceptance, repository security settings, SSL deprecations,
-closed-socket ResourceWarnings and intermittent Windows 10053 remain in
-[ROADMAP](../ROADMAP.md). Update proposals/pinning do not constitute a CVE audit
-or establish that these observations are fixed.
+upgrade. The [dependency fault gate](DEPENDENCY_FAULTS.md) tracks reviewed SSL
+deprecations and fails on resource warnings, new warnings or transport failures;
+CI and extracted-source checks run it after upgrades. The reproduced delegated
+HTTP-error response leak is fixed and covered with forced GC; this does not claim
+every native Windows 10053 is fixed. Actions proposal acceptance and repository
+security settings remain in [ROADMAP](../ROADMAP.md). Update proposals/pinning
+do not constitute a CVE audit. Binary releases need separate third-party review.
 
 ## Triage and security
 

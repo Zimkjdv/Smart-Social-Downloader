@@ -106,4 +106,4 @@ CI 使用 Python 3.12／Node.js 22，驗證 checkout 與來源 ZIP 的完整回�
 
 2026-10-11 後續完整回歸：**104 項 Python＋10 項 Node 通過，沒有略過**，補齊 P2、畫質、動態捕捉及合成資料的真實 Chrome 介面操作。另重現並修正六個缺陷，包含備份保護及較舊回應排序；詳細結果見 [TESTING.md](TESTING.md) 與 [PROJECT_AUDIT.md](PROJECT_AUDIT.md)。真實帳號配對及前述乾淨環境／GitHub 驗收仍待執行。
 
-上游偶有 urllib3 SSL 選項棄用／已關閉 socket 的 ResourceWarning，測試結果仍通過；本輪修正了政策例外未關閉串流 `.part` 檔案的問題，並保留警告供引擎更新時追蹤。
+原先記錄的 urllib3 SSL 選項棄用已納入[版本與來源限制的故障追蹤](DEPENDENCY_FAULTS.md)。2026-10-21 進一步重現並修正 gallery-dl 委派 HLS 缺片時 HTTP 錯誤回應未關閉造成的兩個 socket ResourceWarning；錯誤內容保持可讀，錯誤釋放／引擎關閉時清理，工作結束也會關閉委派引擎。未知警告、ResourceWarning 及傳輸失敗會阻擋 CI，已知 SSL 觀察仍未宣稱上游已修正。先前 `.part` 清理與 10053 完整回應驗證仍保留，並不代表所有 Windows 傳輸異常都已解決。

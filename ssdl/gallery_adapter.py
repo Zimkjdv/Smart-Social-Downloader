@@ -4,6 +4,8 @@ import logging
 import os
 import re
 import threading
+import warnings
+from contextlib import ExitStack
 from pathlib import Path
 from urllib.parse import urlparse
 from .request_policy import RateLimited, REQUEST_INTERVAL
@@ -87,6 +89,14 @@ def download_gallery(extractor, output_dir: Path, emit, *, video_quality="best")
     downloaded_paths, skipped_paths = set(), set()
     title = ""
     thread_id = threading.get_ident()
+    resources, owned_engines = ExitStack(), set()
+
+    def close_engine(engine):
+        try:
+            engine.close()
+        except Exception:
+            messages.append("下載引擎的網路資源未能正常關閉；請重新啟動工具。")
+            warnings.warn("Delegated engine cleanup failed", ResourceWarning, stacklevel=2)
 
     class CaptureLogs(logging.Handler):
         def emit(self, record):
@@ -141,6 +151,9 @@ def download_gallery(extractor, output_dir: Path, emit, *, video_quality="best")
                 original_prepare = instance._prepare
 
                 def prepare(downloader):
+                    if id(downloader) not in owned_engines:
+                        owned_engines.add(id(downloader))
+                        resources.callback(close_engine, downloader)
                     install_video_quality(downloader)
                     request_policy.POLICY.wrap_yt_dlp(downloader, emit)
                     return original_prepare(downloader)
@@ -168,7 +181,10 @@ def download_gallery(extractor, output_dir: Path, emit, *, video_quality="best")
     except RateLimited as exc:
         raise DownloadError(str(exc), _relative_files(paths, output_dir), code="rate_limited") from exc
     finally:
-        root_logger.removeHandler(handler)
+        try:
+            resources.close()
+        finally:
+            root_logger.removeHandler(handler)
     files = _relative_files(paths, output_dir)
     if status:
         detail = next((message for message in reversed(messages) if re.search(r"\b429\b|rate[ _-]?limit", message, re.I)),

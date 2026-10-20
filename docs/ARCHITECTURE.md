@@ -87,6 +87,7 @@ smart-social-downloader/
 │   ├── check_source_archive.py # 解壓後匯入檢查與完整回歸
 │   ├── check_workflows.py      # 已審查 Action 來源與完整 SHA 的離線政策
 │   ├── check_installation.py   # 新來源／venv 的安裝、啟動與更新恢復驗收
+│   ├── check_dependency_faults.py # 有界警告／傳輸觀察與維護回歸門檻
 │   ├── measure_persistence.py # 隔離合成歷史保存／API 延遲量測
 │   └── measure_capacity.py    # 合成帳號掃描、IPC 及保存容量邊界
 ├── docs/                     # 使用、發布、去重及架構說明
