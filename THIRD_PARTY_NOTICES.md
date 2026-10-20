@@ -15,6 +15,7 @@
 | yt-dlp | 2026.8.19 | Unlicense；[上游 LICENSE](https://github.com/yt-dlp/yt-dlp/blob/master/LICENSE)。其額外依賴也各有授權。 |
 | gallery-dl | 1.32.16 | GPL-2.0-only；[上游 LICENSE](https://github.com/mikf/gallery-dl/blob/master/LICENSE)。 |
 | imageio-ffmpeg 的 Python wrapper | 0.6.0 | BSD-2-Clause；[上游 LICENSE](https://github.com/imageio/imageio-ffmpeg/blob/main/LICENSE)。 |
+| pycryptodomex | 3.24.1 | BSD／Public Domain，依元件檔案保留適用聲明；[對應版本 LICENSE](https://github.com/Legrandin/pycryptodome/blob/v3.24.1/LICENSE.rst)。由安裝程序另行安裝。 |
 | FFmpeg 執行檔 | 依使用者環境而定 | 依編譯選項可能適用 LGPL 或 GPL；Python wrapper 的 BSD 授權不等於 FFmpeg 的授權。[FFmpeg 官方授權說明](https://ffmpeg.org/legal.html) |
 | Playwright（選配） | 1.63.0 | Apache-2.0；[上游 LICENSE](https://github.com/microsoft/playwright-python/blob/main/LICENSE)。包含驅動依賴，並未納入本專案原始碼包。 |
 | greenlet（選配） | 3.5.6 | MIT AND PSF-2.0；以安裝套件 metadata／licenses 為準。 |

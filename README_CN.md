@@ -126,6 +126,8 @@ smart-social-downloader/
 
 CI Actions 已固定完整 commit SHA。Dependabot 每週提出 Actions／Python 依賴更新 PR，由維護者審查並要求回歸與來源包驗收，流程見 [依賴維護](docs/MAINTENANCE.md#dependency-updates-and-action-pins)。
 
+[首輪依賴審查](docs/DEPENDENCY_ACCEPTANCE.md)採納 pycryptodomex 3.24.1，瀏覽器依賴保留相容版本。更新原始碼若涉及依賴 pin 變更，請先停止服務、執行 `setup.bat` 套用已審查基線，再重新啟動。更新原始碼或單純重啟不會安裝新套件；`update.bat` 則明確在相容範圍內更新。
+
 Windows CI 另以全新來源與 venv 驗證安裝、離線啟動／重啟及更新／恢復。維護者可執行 `python tools/check_installation.py --browser`，它會下載依賴到隔離暫存位置。批次程序清理、正常關閉與真實桌面／X 驗收的分工見 [安裝驗收](docs/INSTALLATION_ACCEPTANCE.md)。
 
 保存採用獨立背景 writer 與不可變快照；關鍵變更等待落盤時不持有佇列鎖，失敗仍有提示並可在診斷中重新保存。維護者可用 `python tools/measure_persistence.py` 重現快照／保存／API 延遲量測，結果及限制見 [保存效能文件](docs/PERSISTENCE_PERFORMANCE.md)。指令使用暫存資料，不下載媒體或恢復登入。

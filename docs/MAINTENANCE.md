@@ -21,7 +21,7 @@ Get the installed source version without starting the service:
 python tools/manage.py --version
 ```
 
-`update.bat` updates engine dependencies, not application source or the extension. To update application source, stop the service and update the files in the same project folder while retaining your local runtime data. After an extension update, reload it at `chrome://extensions`. After source updates, restart the backend and refresh the interface so its reported version matches the running code.
+`update.bat` updates engine dependencies, not application source or the extension. To update application source, stop the service and update the files in the same project folder while retaining your local runtime data. If dependency pins changed, run `setup.bat` to apply the reviewed baseline before restarting; copying source or a normal check-only restart does not install new pins. Use `update.bat` for an explicit update within the compatibility ranges instead. After an extension update, reload it at `chrome://extensions`. After source updates, restart the backend and refresh the interface so its reported version matches the running code.
 
 ## Preparing a release
 
@@ -119,7 +119,10 @@ source policy is not a general YAML parser: even a shell string containing
 nested Action dependencies, runner images or known vulnerabilities. Its tool,
 regressions and Dependabot configuration ship in the source ZIP.
 
-First update-PR acceptance, repository security settings, SSL deprecations,
+The [first Python proposal review](DEPENDENCY_ACCEPTANCE.md) accepts pycryptodomex
+3.24.1 and adds its minimum to the explicit-update ranges. It defers pyee 14 because
+Playwright 1.63.0 requires pyee below 14; that major needs a compatible browser
+upgrade. Actions proposal acceptance, repository security settings, SSL deprecations,
 closed-socket ResourceWarnings and intermittent Windows 10053 remain in
 [ROADMAP](../ROADMAP.md). Update proposals/pinning do not constitute a CVE audit
 or establish that these observations are fixed.

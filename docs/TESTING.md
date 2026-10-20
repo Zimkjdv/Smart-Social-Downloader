@@ -1,5 +1,17 @@
 # Regression and acceptance tests
 
+## First dependency proposal acceptance — 2026-10-21
+
+**271 Python tests passed in 92.336 seconds / 23 Node tests passed; zero skips.** The full suite ran from a verified source ZIP using the interpreter from the newly installed candidate venv, with pycryptodomex **3.24.1**, Playwright **1.63.0** and pyee **13.0.1**. Existing original-byte, quality-selection, HLS/DASH missing-fragment, deduplication, worker, persistence, API and actual Chrome fixture cases remained enabled. The verified source contains **160** allowlisted members; **81** Python syntax checks, local documentation links, `pip check`, environment diagnostics and the six-reference offline Action policy pass.
+
+The real Windows/Python **3.12.10** fresh-source/venv acceptance passes setup, offline batch startup, graceful restart, missing-marker repair, explicit update, exact-baseline restoration, optional browser installation, real isolated-console Ctrl+C with idle/active/restored queues and invalid-port rejection. Update selected gallery-dl **1.32.17**, then setup restored **1.32.16**; the separate IDNA **3.10 → 3.20** restoration probe also passed. This proves current-machine fresh-source/venv behavior, not a factory Windows desktop or real account/platform acceptance.
+
+Additional one-off probes use only that receipt-gated owned fixture: deliberately install pycryptodomex **3.24.0**, confirm its inventory, run the shipped `update.bat` and require **3.24.1**, then run shipped `setup.bat` and verify every core/browser pin. Saved-state, synthetic original and partial-media hashes remain unchanged. Temporary fixture batch substitutions are restored byte-for-byte before source verification; the running production venv is not updated.
+
+Resolve the exact proposed pyee **14.0.0** browser requirements with pip `--dry-run --ignore-installed --only-binary=:all:`. It fails with `ResolutionImpossible`, identifying Playwright's `pyee>=13,<14` constraint; the complete installed distribution inventory is unchanged. This agrees with proposal #2's original failing Windows job. Proposal #1's original green job predates the new installation/console checks, so the integrated revision requires both current Windows CI jobs after push. Review decisions, upstream sources and future Actions/browser gates are in [Dependency acceptance](DEPENDENCY_ACCEPTANCE.md).
+
+Ignored local logs and JSON reports retain actual versions/results. Deferred Downvid research is excluded from the staged export, source ZIP and commit. No production state, Cookie/profile, live platform download, real X pairing or full CVE scan is part of this acceptance; remaining work stays in [ROADMAP](../ROADMAP.md).
+
 ## Windows console shutdown and recovery — 2026-10-21
 
 **271 Python tests passed in 94.018 seconds / 23 Node tests passed from the extracted staged-source ZIP; zero skips.** Thirteen new offline console cases cover empty/overflow/shared console membership, admission before child creation, non-inheritable SIGINT handling, wrong receipts/unknown members, SYNCHRONIZE handle cleanup and PID reuse protection, refused native events, entry-factory restoration, hidden/new-console flags and explicit HTTP 201 expectations. The final focused installation/console run passed 26 cases. An earlier checkout run passed 270 Python tests in 94.311 seconds / 23 Node tests before the final membership-contract case was added; the full extracted run includes that case.
