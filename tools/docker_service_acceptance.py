@@ -71,7 +71,10 @@ def contract(config, port):
     require(maintenance["network_mode"] == "none" and maintenance["read_only"] is True
             and maintenance["entrypoint"] == ["python", "-u", "docker/storage.py"], "unsafe_maintenance")
     backups = next(item for item in maintenance["volumes"] if item["target"] == "/backups")
-    require(backups["type"] == "bind" and backups["bind"]["create_host_path"] is False, "unsafe_backup_bind")
+    # Compose v2's JSON omits false fields; v5 includes the explicit false.
+    bind = backups.get("bind", {})
+    require(backups["type"] == "bind" and isinstance(bind, dict)
+            and bind.get("create_host_path", False) is False, "unsafe_backup_bind")
 
 
 class Fixtures:
@@ -244,6 +247,9 @@ class Fixtures:
 def run_checks(docker, image, receipt, root, report):
     selected_host = docker.prefix[docker.prefix.index("--host") + 1] if "--host" in docker.prefix else os.environ.get("DOCKER_HOST", "")
     require(not selected_host or selected_host.startswith(("npipe:", "unix:")), "local_engine_required")
+    _, compose_version = docker.run(["compose", "version", "--short"])
+    require(re.fullmatch(r"v?[0-9]+\.[0-9]+\.[0-9]+(?:[.+-][A-Za-z0-9.-]+)?", compose_version), "invalid_compose_version")
+    report["compose_version"] = compose_version.removeprefix("v")
     report["service_checks"] = []
     for name in ("compose.yaml", "tools/docker_storage_probe.py", "tools/docker_service_acceptance.py"):
         ordinary(root / name, root)

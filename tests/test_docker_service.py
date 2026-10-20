@@ -52,6 +52,15 @@ class DockerServiceTests(unittest.TestCase):
             with self.subTest(change=change), self.assertRaises(gate.GateError):
                 service.contract(model, 8765)
 
+    def test_compose_v2_omitted_false_bind_field_preserves_safe_contract(self):
+        # Captured shape from official Compose 2.38.2: false is omitted in JSON.
+        model = compose_model()
+        del model["services"]["storage"]["volumes"][0]["bind"]["create_host_path"]
+        service.contract(model, 8765)
+        model["services"]["storage"]["volumes"][0]["bind"]["create_host_path"] = True
+        with self.assertRaises(gate.GateError):
+            service.contract(model, 8765)
+
     def test_fixture_projects_keep_three_external_volumes_and_matching_custom_port(self):
         fixtures = self.fixtures()
         group = fixtures.group("source")

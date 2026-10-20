@@ -83,7 +83,7 @@ volumes remain blocked until fixture cleanup; recovery always uses fresh volumes
 
 ## Results, ownership and cleanup
 
-The ignored JSON receipt retains fixed stage names and errors, component versions,
+The ignored JSON receipt retains fixed stage names and errors, component/Compose versions,
 the runtime image ID, runtime-source/gate/probe hashes and the service-source
 fingerprint. It excludes archive names/content, fixture resource names, absolute
 paths, raw builder/HTTP output and exception messages. New attempts replace old

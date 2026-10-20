@@ -1,5 +1,44 @@
 # Regression and acceptance tests
 
+## Compose v2/v5 acceptance compatibility — 2026-10-21
+
+The [first pushed Docker job](https://github.com/Zimkjdv/Smart-Social-Downloader/actions/runs/39509618385)
+builds the image and passes all nine runtime checks on Docker **28.0.4**, then
+fails `compose_contract` before creating service fixtures. Its
+[runner manifest](https://github.com/actions/runner-images/blob/ubuntu24/20261018.339/images/ubuntu/Ubuntu2404-Readme.md)
+specifies Compose **2.38.2**; local Docker Desktop uses Compose **5.6.0**.
+
+Download the official Compose 2.38.2 Windows executable for a fast daemon-free
+reproduction, verify it against its official SHA-256 sidecar
+(`ba8f09d3873f7a9755b863ed2013a1276b96fcbbc074c69ff3d3cfbce3e0186f`),
+and run the actual `config --format json` output through the service contract.
+It fails in **0.36 seconds** with `KeyError: create_host_path`; a one-field unit
+reproduction fails in **0.001 seconds**. Changing only the source boolean shows
+that false serializes as `bind: {}`, while true remains
+`bind: {create_host_path: true}`. An attempted absent-field variant left an invalid
+empty YAML bind node and is discarded as a different failure.
+
+Read an omitted JSON field as false and continue rejecting explicit true or a
+non-boolean value. The actual official 2.38.2 configuration loop now passes;
+**37 focused tests pass in 1.570 seconds**, including the formerly failing case
+and its unsafe-true rejection. A repeated full local Docker gate passes **9 + 14**
+stages from **06:45:12–06:46:03 Asia/Taipei**, with Compose **5.6.0** recorded in
+the safe receipt. Its service-source SHA-256 is
+`cdbb54bcd3041e4372c27c43ec850fdb069e0e6f97acf5ea5eefa615bc4e71f6`;
+runtime-source/gate/probe/image identities match the preceding accepted run.
+No operator source configuration, application data or bind permission policy is
+changed by this compatibility fix. The downloaded diagnostic binary and captured
+model remain under ignored local data, outside source packages and commits.
+
+Before this one-case addition, the final Git-index source export verifies **188**
+members and passes **309 Python tests in 96.431 seconds / 23 Node tests**, then
+**116** dependency-fault checks in **72.969 seconds**, with only the existing
+reviewed SSL observation. The common Docker fake is shipped under
+`tests/helpers/docker.py`; the deferred comparison document is absent. **98**
+Python syntax checks and **418** local documentation links pass. The added
+regression raises the full suite to **310** cases; remote rerun results are
+verified separately from these local results.
+
 ## Docker Compose storage/network and recovery — 2026-10-21
 
 **Real Docker acceptance passes all 9 runtime + 14 service stages**, including a
