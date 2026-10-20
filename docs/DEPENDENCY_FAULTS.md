@@ -81,6 +81,10 @@ response cleanup, rate-limit errors, borrowed-session ownership and the real
 delegated missing-fragment case with forced GC. That case failed with two
 ResourceWarnings before the fix and passes without them afterward.
 
+That resource assertion forwards other warning categories to the active warning
+handler. An injected UserWarning in the actual stream case must fail the outer
+gate, preventing a local warning-capture assertion from hiding new observations.
+
 For a focused developer allocation trace:
 
 ```powershell

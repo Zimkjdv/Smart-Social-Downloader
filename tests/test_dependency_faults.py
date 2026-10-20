@@ -176,6 +176,19 @@ class DependencyFaultTests(unittest.TestCase):
                 self.assertEqual(faults.main([]), 2)
             self.assertNotIn("private-path", output.getvalue())
 
+    def test_stream_resource_assertion_does_not_hide_other_dependency_warnings(self):
+        from ssdl import media
+        original = media.download_gallery
+        def injected(*args, **kwargs):
+            warnings.warn("synthetic dependency observation", UserWarning)
+            return original(*args, **kwargs)
+        suite = unittest.defaultTestLoader.loadTestsFromName(
+            "tests.test_streams.StreamTests.test_gallery_delegated_hls_cannot_complete_with_a_missing_fragment")
+        with patch.object(media, "download_gallery", injected):
+            report = faults.run_checks(suite, self.collector())
+        self.assertFalse(report["passed"])
+        self.assertTrue(any(event["category"] == "UserWarning" for event in report["observations"]))
+
 
 if __name__ == "__main__":
     unittest.main()

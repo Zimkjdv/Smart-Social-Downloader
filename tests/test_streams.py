@@ -222,11 +222,15 @@ class StreamTests(unittest.TestCase):
         media.gallery_config.set(("downloader", "ytdl"), "retries", 0)
         missing = "/hls/" + sorted((self.root / "hls").glob("*.ts"))[1].name
         self.unavailable.add(missing)
+        show_warning = warnings.showwarning
         with warnings.catch_warnings(record=True) as records:
             warnings.simplefilter("always", ResourceWarning)
             with self.assertRaises(media.DownloadError):
                 media.download_gallery(StreamExtractor(re.match(".*", url)), self.directory, lambda event: None)
             gc.collect()
+        for item in records:
+            if not issubclass(item.category, ResourceWarning):
+                show_warning(item.message, item.category, item.filename, item.lineno, line=item.line)
         self.assertFalse([item for item in records if issubclass(item.category, ResourceWarning)])
         self.assertGreaterEqual(self.requests[missing], 2)
 
