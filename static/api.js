@@ -59,11 +59,16 @@
       object(value.counts) && ['queued', 'active', 'completed', 'failed'].every((key) => count(value.counts[key])) &&
       optional(value.counts, 'selecting', count) &&
       typeof value.paused === 'boolean' && typeof value.ready === 'boolean' &&
+      optional(value, 'file_actions', (item) => ['desktop', 'browser'].includes(item)) &&
+      optional(value, 'pairing_url', (item) => typeof item === 'string' && item.length <= 512) &&
       optional(value, 'app_version', (item) => typeof item === 'string' && item.length <= 64) &&
       optional(value, 'dynamic_capture', (item) => typeof item === 'boolean') &&
       optional(value, 'browser_capture_available', (item) => typeof item === 'boolean') &&
       typeof value.download_dir === 'string' && typeof value.x_cookie_file === 'string' &&
       object(value.x_auth) && typeof value.x_auth.connected === 'boolean' && typeof value.x_auth.busy === 'boolean' &&
+      optional(value.x_auth, 'host_browser', (item) => typeof item === 'boolean') &&
+      optional(value.x_auth, 'storage_mode', (item) => ['dpapi', 'memory', 'aes-gcm'].includes(item)) &&
+      optional(value.x_auth, 'persistent', (item) => typeof item === 'boolean') &&
       typeof value.x_auth.phase === 'string' && object(value.safe_queue) && typeof value.safe_queue.enabled === 'boolean' &&
       object(value.rate_limit) && count(value.rate_limit.used) && count(value.rate_limit.limit) &&
       object(value.storage) && typeof value.storage.ready === 'boolean' &&

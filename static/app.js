@@ -94,6 +94,7 @@ function render(data) {
   state.paused = Boolean(data.paused);
   state.ready = Boolean(data.ready);
   state.xAuth = data.x_auth || {};
+  state.fileActions = data.file_actions || 'desktop';
   state.cookieFile = data.x_cookie_file || '';
   state.downloadDir = data.download_dir || '';
   renderPlatformCooldown(data.safe_queue);
@@ -113,10 +114,13 @@ function render(data) {
   $('#x-auth-message').textContent = uiMessage(state.xAuth.message || '尚未連接 X 登入');
   $('#x-auth-message').classList.toggle('connected', authConnected);
   $('#x-auth-message').classList.toggle('error', state.xAuth.phase === 'failed');
+  uiText($('#x-storage-copy'), state.xAuth.storage_mode === 'memory' ? 'ui.x_memory_storage' : state.xAuth.storage_mode === 'aes-gcm' ? 'ui.x_key_storage' : 'ui.only_x_session_cookies_are_saved_encrypted');
+  uiText($('#x-auth-description'), state.xAuth.host_browser ? 'ui.x_host_pairing' : 'ui.use_your_existing_x_session_in_chrome');
+  if (state.xAuth.phase !== 'waiting') { $('#x-pairing-link').hidden = true; $('#x-pairing-link').removeAttribute('href'); }
   if (oldAuthPhase && oldAuthPhase !== state.xAuth.phase) {
     if (state.xAuth.phase === 'connected') toast(state.paused ? 'ui.x_connected_failed_jobs_have_been_queued' : 'ui.x_connected_failed_x_jobs_will_be');
     else if (state.xAuth.phase === 'failed') toast(state.xAuth.message || 'ui.x_connection_failed', true);
-    else if (state.xAuth.phase === 'waiting') toast('ui.connection_page_opened_in_regular_chrome_load');
+    else if (state.xAuth.phase === 'waiting') toast(state.xAuth.host_browser ? 'ui.x_pairing_ready' : 'ui.connection_page_opened_in_regular_chrome_load');
   }
   const counts = data.counts || {};
   const queued = counts.queued || 0;

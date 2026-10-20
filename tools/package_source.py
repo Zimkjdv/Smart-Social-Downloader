@@ -17,10 +17,11 @@ from ssdl.version import __version__
 ROOT_FILES = (".gitignore", "LICENSE", "THIRD_PARTY_NOTICES.md", "README.md", "README_CN.md",
               "CHANGELOG.md", "SECURITY.md", "CONTRIBUTING.md", "ROADMAP.md", "requirements.txt",
               "requirements.lock.txt", "requirements-browser.txt", "start.bat", "setup.bat", "update.bat",
-              "app.py")
+              "app.py", "Dockerfile", "compose.yaml", "compose.login.yaml", ".dockerignore")
 SOURCE_GLOBS = {"static": ("*.js", "*.css", "*.html"),
+                "docker": ("entrypoint.py", "runtime.py", "storage.py", "healthcheck.py", "session_key.py", "debian.sources"),
                 "chrome-extension": ("*.js", "*.html", "manifest.json", "README.md"),
-                "tools": ("manage.py", "package_source.py", "check_source_archive.py", "check_workflows.py", "check_installation.py", "check_dependency_faults.py", "measure_state.py", "measure_persistence.py", "measure_capacity.py"),
+                "tools": ("manage.py", "package_source.py", "check_source_archive.py", "check_workflows.py", "check_installation.py", "check_dependency_faults.py", "check_docker.py", "docker_runtime_probe.py", "docker_service_acceptance.py", "docker_storage_probe.py", "measure_state.py", "measure_persistence.py", "measure_capacity.py"),
                 "docs": ("*.md",), "docs/images": ("dashboard-preview.svg",),
                 ".github/ISSUE_TEMPLATE": ("*.yml", "*.yaml"),
                 ".github": ("pull_request_template.md", "dependabot.yml"),

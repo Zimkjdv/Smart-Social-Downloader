@@ -33,3 +33,9 @@
 動態捕捉的選配版本見 `requirements-browser.txt`。Google Chrome 由使用者另行安裝，適用自己的條款；不下載或散布 Chrome／Chromium 執行檔，也不把 Playwright 的 Node 驅動放進原始碼包。
 
 若將來提供含第三方引擎的 EXE、可攜版或離線安裝包，需要按實際打包的版本整理完整授權文字、版權聲明及適用的對應原始碼／建置資訊。不能只附本頁連結就視為完成二進位散布要求。
+
+## Docker 來源設定
+
+目前新增的是 Dockerfile／Compose 與[建置文件](docs/DOCKER.md)，未發布預建映像。來源 ZIP 仍不含第三方執行檔；使用者依設定建置的映像則會包含 Python、Node、Debian／FFmpeg 及 Python 依賴，保留各元件授權。Dockerfile 保留安裝套件的 metadata／licenses、Debian 版權檔及 Node LICENSE，並記錄實際套件版本。
+
+若日後散布映像，須依其實際內容完成授權、聲明及適用的對應原始碼義務審查；來源基礎設定完成不等於已完成映像散布審查。Python 與 Node 來源及授權可分別見 [Python](https://github.com/python/cpython/blob/3.12/LICENSE)、[Node](https://github.com/nodejs/node/blob/v22.23.3/LICENSE)，Debian 套件聲明位於映像的 `/usr/share/doc/`。

@@ -22,6 +22,11 @@ split has no current need. Future nested Python suites need `__init__.py` in eac
 package directory and must follow the `test_*.py` naming convention. New shared
 support belongs under `tests/helpers/`, not another test class.
 
+`tests/helpers/docker.py` supplies the fake CLI shared by Docker gate contracts.
+Those tests verify source selection, receipts and owned cleanup; only the actual
+[Docker runtime/service gates](DOCKER_SERVICE_ACCEPTANCE.md) establish container
+execution evidence. The helper is shipped by the existing code-only fixture policy.
+
 ## Reviewed packaging boundaries
 
 `tools/package_source.py` combines a fixed root-file list, shallow globs for

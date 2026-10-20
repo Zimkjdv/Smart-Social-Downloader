@@ -14,7 +14,7 @@ from urllib.parse import urlparse
 
 from . import media
 from .browser_media import available as browser_capture_available
-from .config import configured_port
+from .config import configured_port, configured_cache_directory, configured_media_root, resolve_download_directory
 from .diagnostics import redact_text, redact_fields
 from .download_stats import DownloadStats, MEDIA_EXTENSIONS
 from .database_maintenance import DatabaseMaintenance
@@ -34,6 +34,7 @@ from .version import __version__
 from .video_quality import validate_video_quality
 from .x_auth import XAuthManager, AuthError, EXTENSION_ID, EXTENSION_ORIGIN
 from .x_profiles import normalize_account, account_from_url
+from .session_storage import host_browser_required
 
 
 @dataclass
@@ -98,16 +99,19 @@ class AppContext:
         self.STATIC = self.ROOT / "static"
         self.DEFAULT_DOWNLOADS = self.ROOT / "downloads"
         self.PORT = configured_port() if port is None else port
+        self.MEDIA_ROOT = configured_media_root()
+        self.CACHE_DIRECTORY = configured_cache_directory(self.ROOT)
         self.STATE_STORE: StateStore = state_store if state_store is not None else StateStore(self.ROOT / "data" / "state.json")
         self.STATE_FILE = self.STATE_STORE.filename
         self.X_AUTH: XAuthManager = auth if auth is not None else XAuthManager(self.ROOT / "data", port=self.PORT, restore=False)
         self.ENVIRONMENT: EnvironmentDiagnostics = environment if environment is not None else EnvironmentDiagnostics(self.ROOT, self.PORT)
-        self.THUMBNAILS: ThumbnailCache = thumbnails if thumbnails is not None else ThumbnailCache(self.ROOT / "data" / "thumbnails", media.ffmpeg_path)
+        self.THUMBNAILS: ThumbnailCache = thumbnails if thumbnails is not None else ThumbnailCache(self.CACHE_DIRECTORY / "thumbnails", media.ffmpeg_path)
         self.STORAGE: DownloadStats = storage if storage is not None else DownloadStats()
         self.POLICY: RequestPolicy = policy if policy is not None else RequestPolicy()
         selected_dir = download_dir if download_dir is not None else Path(os.environ.get("SSDL_DOWNLOAD_DIR", str(self.DEFAULT_DOWNLOADS)))
-        self.state: AppState = AppState(selected_dir.expanduser().resolve())
+        self.state: AppState = AppState(self.resolve_download_directory(selected_dir))
         self.lock = threading.RLock()
+        self.MEDIA_READS = threading.BoundedSemaphore(4)
         self.condition = threading.Condition(self.lock)
         self.DATABASES = DatabaseMaintenance(self.ROOT / "data")
         self._lifecycle_lock = threading.RLock()
@@ -187,6 +191,22 @@ class AppContext:
         if writer["failed_generation"] > writer["saved_generation"]:
             status.update(healthy=False, error=status.get("error") or SAVE_ERROR)
         return {**status, **writer}
+
+    def resolve_download_directory(self, value) -> Path:
+        return resolve_download_directory(value, media_root=self.MEDIA_ROOT)
+
+    def health(self) -> dict:
+        """Small cached readiness snapshot; never enumerate jobs, paths or cookies."""
+        persistence = self._persistence_status()
+        environment = self.ENVIRONMENT.snapshot()
+        worker = self.state.worker_thread
+        checks = {
+            "application": self._started and not self._closed and not self.state.shutdown.is_set(),
+            "worker": worker is not None and worker.is_alive(),
+            "persistence": persistence["healthy"] and not persistence.get("blocked", False),
+            "dependencies": environment.get("phase") == "complete" and environment.get("ready") is True,
+        }
+        return {"service": "ssdl", "status": "healthy" if all(checks.values()) else "unhealthy", "checks": checks}
 
     def __enter__(self):
         return self
@@ -332,6 +352,7 @@ class AppContext:
                 "download_dir": str(self.state.download_dir),
                 "x_cookie_file": self.state.x_cookie_file,
                 "x_auth": self.X_AUTH.status(),
+                "file_actions": "browser" if host_browser_required() else "desktop",
                 "ready": all(engines[key] for key in ("video", "images", "ffmpeg")),
                 "app_version": __version__,
                 "version": engines["video_version"],  # Legacy API field: yt-dlp version.

@@ -35,12 +35,11 @@ N01～N08 已移至 [CHANGELOG](CHANGELOG.md#unreleased)。本輪列出的修正
 
 ### Docker 化部署
 
-- [ ] Python 3.12 Dockerfile／Compose 與可重現部署文件；目前沒有可使用的 Docker 映像。
-- [ ] 設定／歷史／快取與下載媒體分開持久化，制定權限、備份、升級及回復流程。
-- [ ] 容器監聽與 port 對應、Host／Origin、健康檢查，預設僅本機可存取；沿用下載來源的公開位址檢查。
-- [ ] 處理 Linux 容器沒有 Windows DPAPI 的登入保存方式、本機 Chrome 配對及主機檔案／資料夾操作。
-- [ ] FFmpeg／JavaScript runtime；動態 Chrome 捕捉維持選配，build context／映像排除私人資料。
-- [ ] 完成安裝、重啟恢復、媒體持久化與登入驗收，再提供部署指令。Docker 不算目前已完成的 P0／P1／P2。
+第 1～4 項的來源實作、第 5 項的隔離 runtime 驗收及第 2／3 項的本機 Compose 驗收已完成並移至 [CHANGELOG](CHANGELOG.md#unreleased)。2026-10-21 已實際通過 9 項 FFmpeg／Node／來源排除及 14 項服務／儲存驗收，含 UID 權限、資料保留、故障健康狀態、備份校驗、真正還原中斷、跨專案搬遷及保留映像回復。範圍見 [Docker 文件](docs/DOCKER.md)、[服務驗收](docs/DOCKER_SERVICE_ACCEPTANCE.md)及[實測紀錄](docs/TESTING.md)。動態 Chrome 仍為選配，沒有發布預建映像；同機隔離驗收不代表以下跨主機／登入工作完成。
+
+- [ ] **跨實體主機與實際版本升級**：在另一台主機驗收備份搬遷、主機 bind 權限／Docker Desktop 目錄分享；有真實新版本時驗收資料遷移與匹配舊版本回復。本輪已測同一引擎上的獨立 volumes／專案與經主機傳輸的備份，以及僅加標籤的不同映像；不能據此宣稱跨硬體或實際版本遷移已完成。
+- [ ] 實際驗收第 4 項：記憶體登入、獨立金鑰的權限／加密保存／重啟／遺失或錯誤金鑰／斷開連接，主機 Chrome 的首次安裝、預設／自訂 port、取消／過期／重配，以及網頁檔案清單、原始位元組／HEAD／Range、搬移或刪檔／路徑拒絕／併發讀取與 Windows 原生操作回歸。第 5 項的 runtime 驗收未涵蓋這些流程，尚無真實配對或播放驗收證據。
+- [ ] 完成安裝、重啟恢復、媒體持久化與登入驗收，再將文件中的實驗操作程序升格為正式部署指引。Docker 不算目前已驗收的 P0／P1／P2。
 
 ### 去重與匯入選配
 

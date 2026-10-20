@@ -55,6 +55,10 @@ For X login, sign into X in ordinary Chrome, then use **Settings → X sign-in**
 | [Architecture](docs/ARCHITECTURE.md) · [P2 details](docs/P2_COMPLETION.md) | Module boundaries, UI keys, player choice and cooldown scope |
 | [Release privacy](docs/RELEASE.md) · [Maintenance](docs/MAINTENANCE.md) | Source packages, application/engine versions and release checklist |
 | [Installation](docs/INSTALLATION_ACCEPTANCE.md) · [Console acceptance](docs/CONSOLE_ACCEPTANCE.md) | Fresh source/venv, update/restore, real Ctrl+C and Windows CI |
+| [Docker deployment](docs/DOCKER.md) · [Storage and recovery](docs/DOCKER_STORAGE.md) | Experimental Linux amd64 recipes, health checks, volumes, backup and rollback; container acceptance pending |
+| [Docker X login and files](docs/DOCKER_LOGIN.md) | Host Chrome pairing, memory/external-key sessions and browser media/file actions |
+| [Docker runtime acceptance](docs/DOCKER_ACCEPTANCE.md) | Isolated image/context checks, synthetic FFmpeg/Node verification and Linux CI |
+| [Docker service acceptance](docs/DOCKER_SERVICE_ACCEPTANCE.md) | Disposable Compose startup, storage, backup/restore, failure recovery and local network checks |
 
 The homepage and usage guides are bilingual. Several technical guides are currently in Traditional Chinese.
 
@@ -65,6 +69,9 @@ smart-social-downloader/
 ├── app.py                         Service entry point
 ├── setup.bat / start.bat           Install and launch
 ├── update.bat                     Explicit engine updates
+├── Dockerfile / compose.yaml      Experimental Linux amd64 deployment
+├── compose.login.yaml             Optional external-key encrypted X sessions
+├── .dockerignore / docker/        Build context, snapshot, entry, health and storage tools
 ├── requirements*.txt              Update ranges / pinned baseline / optional capture
 ├── README.md / README_CN.md        English / Traditional Chinese homepages
 ├── CHANGELOG.md                   Application changes
@@ -75,6 +82,8 @@ smart-social-downloader/
 │   ├── version.py                 Single application version
 │   ├── app.py                     Composition root
 │   ├── app_context.py             Typed state, owned services and lifecycle
+│   ├── session_storage.py         DPAPI / external-key / memory session storage
+│   ├── local_media.py             Job-scoped, bounded browser media streaming
 │   ├── state_writer.py            Immutable snapshots, coalescing and durability
 │   ├── database_maintenance.py    SQLite diagnostics, checked backups and VACUUM
 │   ├── json_budget.py             Bounded UTF-8 JSON for persistence and IPC
@@ -102,6 +111,10 @@ smart-social-downloader/
 │   ├── check_workflows.py          Reviewed Action identity / full SHA check
 │   ├── check_installation.py       Fresh Windows source/venv acceptance
 │   ├── check_dependency_faults.py  Versioned warning / transport regression gate
+│   ├── check_docker.py             Isolated Docker image/context acceptance
+│   ├── docker_runtime_probe.py     Synthetic FFmpeg/Node probe streamed into the image
+│   ├── docker_service_acceptance.py  Disposable Compose storage/network/recovery checks
+│   ├── docker_storage_probe.py     Receipt-gated invented history/media and fault injection
 │   ├── measure_persistence.py      Isolated synthetic saves and API latency
 │   └── measure_capacity.py         Account scan, IPC and 64 MiB boundary probes
 ├── docs/                          Usage, architecture and maintenance guides
@@ -149,7 +162,7 @@ Maintainers can run `python tools/check_source_archive.py` to build, verify and 
 
 Pending reliability fixes, architecture improvements and release acceptance are tracked in [Roadmap](ROADMAP.md). Completed implementation milestones are in [CHANGELOG](CHANGELOG.md).
 
-Docker deployment is on the [roadmap](ROADMAP.md#docker-化部署): a Python 3.12 image, Compose configuration, persistent data/media, health checks and container-compatible login storage. It is not implemented yet.
+The experimental [Docker deployment](docs/DOCKER.md) includes Python 3.12/Compose, three persistent volumes, local networking/health checks, [backup/recovery](docs/DOCKER_STORAGE.md) and [host Chrome login/browser file actions](docs/DOCKER_LOGIN.md). Linux sessions use memory by default, with optional external-key encrypted persistence. Actual Linux amd64 builds, the [nine-check runtime gate](docs/DOCKER_ACCEPTANCE.md) and [14-stage local service/storage gate](docs/DOCKER_SERVICE_ACCEPTANCE.md) pass; Linux CI runs the combined gate. Another physical host, actual version migrations and Chrome login remain on the [roadmap](ROADMAP.md#docker-化部署); no prebuilt image is published.
 
 ## License
 

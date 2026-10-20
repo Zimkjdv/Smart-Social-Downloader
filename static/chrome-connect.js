@@ -4,6 +4,7 @@ uiText($('#service-origin'), t('ui.local_service_origin_use_the_same_port', { or
 let extensionReady = false;
 let connecting = false;
 let sessionSynced = false;
+let hostBrowser = false;
 function displayMessage(text, kind = '') {
   uiText($('#connection-message'), text);
   $('#connection-message').className = `message ${kind}`;
@@ -40,6 +41,7 @@ $('#connect-x').addEventListener('click', () => {
   document.dispatchEvent(new CustomEvent('ssdl-connect-request'));
 });
 $('#open-extensions').addEventListener('click', async () => {
+  if (hostBrowser) { uiText($('#setup-message'), 'ui.enter_chrome_extensions_in_chrome_s_address'); return; }
   const button = $('#open-extensions');
   button.disabled = true;
   try {
@@ -53,7 +55,13 @@ $('#copy-path').addEventListener('click', async () => {
 });
 $('#reload-page').addEventListener('click', () => location.reload());
 SSDLApi.request('/api/auth/x/setup').then((result) => {
+  hostBrowser = result.host_browser === true;
   $('#extension-path').value = result.extension_dir;
+  if (hostBrowser) {
+    $('#extension-path').closest('.path-row').hidden = true;
+    uiText($('#setup-message'), 'ui.x_host_extension_folder');
+  }
+  uiText($('#session-storage-copy'), result.storage_mode === 'memory' ? 'ui.x_memory_storage' : result.storage_mode === 'aes-gcm' ? 'ui.x_key_storage' : 'ui.session_data_is_sent_only_to_the');
 }).catch((error) => { uiText($('#setup-message'), error.message); });
 setTimeout(() => {
   if (document.documentElement.dataset.ssdlExtension === 'ready') showExtension();

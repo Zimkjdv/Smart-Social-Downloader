@@ -19,6 +19,7 @@ import time
 
 from .config import configured_port
 from .x_auth import AuthError, _dpapi, chrome_executable
+from .session_storage import SessionStorage, host_browser_required
 
 
 def _check(key, name, status, detail, *, version="", required=False, hint="") -> dict:
@@ -111,8 +112,10 @@ def inspect_environment(root: Path, *, port: int | None = None) -> dict:
                          "選配套件與 Chrome 已就緒。" if browser_version and chrome else "尚未安裝選配套件或 Chrome；不影響一般下載。",
                          version=browser_version, hint="啟用前執行 python tools/manage.py browser-setup；需一般 Chrome，使用隔離暫時工作階段。"))
     checks.append(_check("chrome", "Google Chrome", "ok" if chrome else "warning",
+                         "請在主機 Chrome 載入 X 連接器；容器不需要安裝 Chrome。" if host_browser_required() else
                          "已找到 Chrome；連接器需在已登入 X 的個人檔案載入。" if chrome else "未找到 Google Chrome。",
-                         hint="" if chrome else "安裝一般 Chrome，或使用進階 X Cookie 檔案設定。"))
+                         hint="在主機 Chrome 開啟工具的本機網址進行配對。" if host_browser_required() else
+                         "" if chrome else "安裝一般 Chrome，或使用進階 X Cookie 檔案設定。"))
     encryption = False
     if os.name == "nt":
         try:
@@ -123,6 +126,14 @@ def inspect_environment(root: Path, *, port: int | None = None) -> dict:
     checks.append(_check("session_storage", "X 登入加密保存", "ok" if encryption else "warning",
                          "Windows 加密與解密可用。" if encryption else "目前環境無法使用 Windows 登入資料加密。",
                          hint="" if encryption else "從一般 Windows 桌面執行 start.bat，再重新連接 X。"))
+    if host_browser_required() or os.environ.get("SSDL_X_KEY_FILE") is not None:
+        storage = SessionStorage(windows_protect=lambda value, **options: _dpapi(value, **options))
+        try:
+            storage.check()
+            detail = "登入僅保留於記憶體，重啟後請重新連接。" if not storage.persistent else "獨立金鑰加密保存已就緒。"
+            checks[-1] = _check("session_storage", "X 登入保存", "ok", detail)
+        except (AuthError, OSError):
+            checks[-1] = _check("session_storage", "X 登入保存", "warning", "無法使用登入金鑰，請檢查掛載、權限及長度。")
     try:
         selected_port = configured_port() if port is None else port
         checks.append(_check("port", "本機連接埠", "ok", f"http://127.0.0.1:{selected_port}",

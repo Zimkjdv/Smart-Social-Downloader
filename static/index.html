@@ -183,12 +183,13 @@
         <div class="settings-panel" id="settings-panel-x" role="tabpanel" aria-labelledby="settings-tab-x" tabindex="0" hidden>
       <section class="cookie-setting" aria-labelledby="x-auth-heading">
         <h3 class="auth-heading" id="x-auth-heading" data-i18n-key="ui.x_session_connection">X 登入連接</h3>
-        <p class="field-hint auth-description" data-i18n-key="ui.use_your_existing_x_session_in_chrome">使用平常 Chrome 中已登入的 X。無法直接讀取時，會開啟一般 Chrome 的本機連接頁；第一次載入連接器後，便可一鍵同步並自動重試失敗的 X 項目。</p>
+        <p class="field-hint auth-description" id="x-auth-description" data-i18n-key="ui.use_your_existing_x_session_in_chrome">使用平常 Chrome 中已登入的 X。無法直接讀取時，會開啟一般 Chrome 的本機連接頁；第一次載入連接器後，便可一鍵同步並自動重試失敗的 X 項目。</p>
         <div class="auth-buttons"><button type="button" class="primary-button" id="x-connect" data-i18n-key="ui.connect_chrome_2">一鍵連接 Chrome</button><button type="button" class="subtle-button" id="x-disconnect" disabled data-i18n-key="ui.disconnect">停用連接</button></div>
         <p class="auth-status" id="x-auth-message" role="status" aria-live="polite" data-i18n-key="ui.x_session_not_connected">尚未連接 X 登入</p>
+        <a class="detail-link" id="x-pairing-link" target="_blank" rel="noopener" hidden data-i18n-key="ui.x_open_pairing">開啟 Chrome 配對頁</a>
         <button type="button" class="detail-link" id="x-login-browser" data-i18n-key="ui.open_x_in_regular_chrome">在一般 Chrome 開啟 X</button>
         <a class="detail-link" href="/chrome-connect" target="_blank" rel="noopener" data-i18n-key="ui.chrome_connector_setup">Chrome 連接器安裝步驟</a>
-        <p class="field-hint cookie-privacy" data-i18n-key="ui.only_x_session_cookies_are_saved_encrypted">只保留 X 登入 Cookie，在這台電腦以 Windows 加密保存。不需要匯出檔案，也不讀取 Google 或 Apple 的登入資料。</p>
+        <p class="field-hint cookie-privacy" id="x-storage-copy" data-i18n-key="ui.x_storage_pending">X 登入僅傳送至這台電腦的工具，保存方式會依目前設定顯示。不讀取 Google 或 Apple 的登入資料。</p>
         <p class="field-hint auth-limit-hint" data-i18n-key="ui.if_x_temporarily_restricts_sign_in_stop">X 顯示暫時限制登入時，請停止反覆嘗試，待限制解除後在一般 Chrome 登入。連接器不能解除帳號限制。</p>
       </section>
       <details class="advanced-cookies"><summary data-i18n-key="ui.advanced_use_a_cookie_file">進階：使用 Cookie 檔案</summary><label class="field-label" for="x-cookie-file" data-i18n-key="ui.x_cookie_file_path_optional">X Cookie 檔案路徑（選填）</label><div class="path-input"><span>◈</span><input id="x-cookie-file" type="text" autocomplete="off" spellcheck="false" placeholder="例如 D:\Cookies\cookies.txt" data-i18n-placeholder="ui.e_g_d_cookies_cookies_txt"></div><p class="field-hint" data-i18n-key="ui.supports_netscape_format_cookies_txt_to_use">支援 Netscape 格式 cookies.txt。如需改用檔案，請先停用 Chrome 連接，再填入完整路徑並儲存。兩者皆未設定時使用公開貼文資料。</p></details>

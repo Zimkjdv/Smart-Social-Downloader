@@ -1,5 +1,119 @@
 # Regression and acceptance tests
 
+## Docker Compose storage/network and recovery — 2026-10-21
+
+**Real Docker acceptance passes all 9 runtime + 14 service stages**, including a
+repeat after the final ownership/startup-probe checks. The final run started at
+**06:27:53 Asia/Taipei** and finished at **06:28:43**, exit code 0,
+`passed: true`, `complete: true`; default publication used matching host/container
+port **8765**, and a matching free custom port also passed. Docker Engine
+**29.8.2**, Linux amd64, Python **3.12.15**, Node **22.23.3**, FFmpeg
+**5.1.9-0+deb12u1** and the pinned package versions match the runtime record below.
+
+The actual Compose entry starts on fresh volumes, exits cleanly and restarts with
+invented paused history/settings, a completed media file and a partial download.
+The real health probe fails before startup and passes when ready. Revoking data
+write access causes an actual failed save, HTTP 503 and Docker `unhealthy` without
+restarting the process; restoring access/save returns readiness. Foreign
+Host/Origin, cross-site and wrong-port origins are refused, as is an output path
+outside the media root. A running writer excludes maintenance; an unwritable
+existing volume refuses startup and works again after permissions are repaired.
+
+The real offline backup preserves all source data/media bytes and excludes cache
+and lock files. A corrupted archive leaves fresh restore targets empty. An actual
+restore child exits abruptly with code 75 after first-volume promotion; its marker
+and staging state remain, and ordinary startup refuses them. The good archive and
+sidecar are copied through host temporary storage into another backup volume,
+restored into independent fresh volumes and compared with the entire offline file
+inventory. A second restore refuses nonempty destinations. A distinct label-only
+upgrade image starts on the original volumes, then the recovery project starts
+with the exact retained image ID and verified original history/media. All owned
+containers, networks and fixture volumes are cleaned.
+
+| Accepted input/output | SHA-256 |
+| --- | --- |
+| Public runtime source inventory | `b427feb5b549e69d3a2d4713830f1c173ac16a51b97f1003885ccf76e41f52d5` |
+| Host acceptance gate | `358a8f65ad5366ecfbb247cd68dc6ed9b257fe6ea2dc89b1c69c4ff54d384345` |
+| Storage probe + service gate + Compose source | `435349140db8564aedd119351882e4a8adfd0f8397d4cc568b38af209027bb0d` |
+| Resulting test image | `aa9534766ffd28f15e273d4fd5b34a26821b6d1a91b8321e9bd7717749d61466` |
+
+**Complete local regression: 309 Python tests in 97.233 seconds / 23 Node tests,
+zero skips.** The focused 36 gate/release/workflow tests pass in 1.579 seconds,
+including ten new service contracts. The current checkout allowlist validates
+**189 files**, including a deferred untracked comparison document; the Git-index
+source export omits that document. The Action policy validates eight reviewed full-SHA references.
+No installed package or production history/login/media was used or changed.
+
+The first service attempt found that an internal-only fixture bridge produced no
+usable published bindings on this engine, then exposed separate `__main__` and
+package exception identities leaking a traceback. Use the operator recipe's
+ordinary dedicated bridge and unify gate exception identity; unexpected fixture
+errors now retain categorical failed receipts. Helpers/maintenance remain
+network-disabled and the invented queue remains paused. A first unit fixture
+mocked `Path.stat` globally and failed before reaching its intended callback;
+using actual public source with fake Docker responses proves the intended service
+failure path without launching a container.
+
+This proves local named-volume operations and same-engine archive transport to
+independent projects. It does **not** prove another physical host, actual
+cross-version database migration, operator host-bind permissions, real X/Chrome
+pairing, browser playback or active external-platform download shutdown. Those
+remain in [ROADMAP](../ROADMAP.md#docker-化部署). Fixture substitutions and commands
+are in [service acceptance](DOCKER_SERVICE_ACCEPTANCE.md). Remote CI results are
+separate from these local results.
+
+## Docker FFmpeg, JavaScript and context acceptance — 2026-10-21
+
+**Actual Docker acceptance passes all nine checks**, twice: an initial real build
+and a cached repeat with the final gate. Environment: Docker Desktop Engine
+**29.8.2**, Linux amd64; Python **3.12.15**, Node **22.23.3**, FFmpeg
+**5.1.9-0+deb12u1**, yt-dlp **2026.8.19**, gallery-dl **1.32.16**, yt-dlp-ejs
+**0.8.0**, imageio-ffmpeg **0.6.0**, pycryptodomex **3.24.1**. The final repeat
+started at **06:15:09 Asia/Taipei** and finished at **06:15:15**, with exit code 0,
+`passed: true`, `complete: true`. Docker Desktop was installed off PATH; its
+initial `DockerDesktop/Wsl/CommandTimedOut` cleared after startup without changing
+Windows features or restarting WSL/services.
+
+The real build-context audit rejects synthetic private-state inputs; the actual
+runtime probe runs without network, application volumes, real media or sessions.
+It checks UID/read-only isolation, dependency installation/compatibility, the
+yt-dlp Node provider and bundled EJS hashes, stream-copy audio/video packet
+integrity, generated JPEG output, application image contents and the absence of
+Chrome/Playwright in the default image. All nine categorical stages are present
+in the ignored local `data/docker-runtime.json` receipt. Temporary test containers
+and image tags are cleaned; build caches may remain.
+
+| Accepted input/output | SHA-256 |
+| --- | --- |
+| Public runtime source inventory | `b427feb5b549e69d3a2d4713830f1c173ac16a51b97f1003885ccf76e41f52d5` |
+| Host acceptance gate | `442e6661f5c4787b7cca3f708d4a7314af53d27d760e7b98ab966824141f16d8` |
+| Stdin runtime probe | `1b17657347c720b37df43b6dfc3d55a6dde40d2afa8d29e7e37e6fc18415931c` |
+| Resulting test image | `aa9534766ffd28f15e273d4fd5b34a26821b6d1a91b8321e9bd7717749d61466` |
+
+That acceptance ran against uncommitted Docker implementation work; these
+fingerprints identify its inputs, rather than claiming a released Git revision.
+
+**26 focused Python tests pass in 1.158 seconds, zero skips:** 10 new Docker-gate
+contracts, nine source-release cases and seven workflow-policy cases. They cover
+source boundaries/reparse rejection, synthetic context assertions, fixed base
+identities, strict ordered receipts and versions, stale-success replacement,
+engine/build/runtime failures, timeouts, isolation arguments and owned cleanup.
+The earlier focused command had one nonexistent test-module name, then exposed
+the workflow test's old six-reference expectation; correcting the module name
+and updating that expectation to eight leaves the final run green. Fake Docker
+contracts are separate from the actual container evidence above.
+
+The source allowlist validates **184 files**; Python syntax for the new probe and
+the eight-reference Action policy pass. No complete Windows/Node regression or
+extracted-source suite was rerun for this milestone. The new Linux CI workflow is
+prepared locally, **not yet run on GitHub**. No prebuilt image was published.
+
+This is runtime acceptance, **not** a running Compose-service, persistence,
+backup/recovery, network/Origin, real-platform, host-Chrome login or browser
+playback acceptance. Those remain in [ROADMAP](../ROADMAP.md#docker-化部署).
+The native service, installed production packages, history and login were not
+used or changed. Commands and limits are in [Docker acceptance](DOCKER_ACCEPTANCE.md).
+
 ## Dependency fault tracking and HTTP-error resource cleanup — 2026-10-21
 
 **289 Python tests pass in 94.336 seconds / 23 Node tests pass; zero skips**, from the verified source ZIP. The same extraction then passes the new **116-case** gate in **69.609 seconds**, retaining only the reviewed SSL observation and no resource warnings/unexpected faults. The allowlist contains **164** source members; exact source bytes/CRC, **84** Python syntax checks, **335** local documentation links, `pip check` and the six-reference workflow policy pass. Deferred Downvid research stays outside the source/export/commit. The pushed revision's two Windows CI jobs are verified separately.

@@ -210,8 +210,8 @@ function renderJobs({ resetScroll = false } = {}) {
     const files = job.files || [];
     const fileCount = job.file_count ?? files.length;
     const viewImage = fileCount > 0 && files.every(isImageFile);
-    const viewTitle = t(!fileCount ? 'ui.no_file_is_available_yet' : fileCount > 1 ? 'ui.choose_a_file_to_play_or_view' : viewImage ? 'ui.view_image_in_the_default_app' : 'ui.play_video_or_audio_in_the_default');
-    const folderTitle = t(!fileCount ? 'ui.no_saved_file_folder_is_available_yet' : fileCount > 1 ? 'ui.choose_a_file_and_open_its_folder' : 'ui.open_this_file_s_folder');
+    const viewTitle = t(!fileCount ? 'ui.no_file_is_available_yet' : state.fileActions === 'browser' ? 'ui.browser_media_view' : fileCount > 1 ? 'ui.choose_a_file_to_play_or_view' : viewImage ? 'ui.view_image_in_the_default_app' : 'ui.play_video_or_audio_in_the_default');
+    const folderTitle = t(!fileCount ? 'ui.no_saved_file_folder_is_available_yet' : state.fileActions === 'browser' ? 'ui.browser_job_files' : fileCount > 1 ? 'ui.choose_a_file_and_open_its_folder' : 'ui.open_this_file_s_folder');
     const requestedQuality = job.video_quality && job.video_quality !== 'best' ? t('ui.quality_limit_height_p', { height: job.video_quality }) : '';
     const retryTitle = t(canRetry && isProfile ? 'ui.sync_account_media_fetch_new_or_unfinished' : canRetry ? 'ui.download_again_and_overwrite_files_with_the' : isActive ? 'ui.download_in_progress_retry_after_it_finishes' : 'ui.this_job_is_already_queued') + (requestedQuality ? ` · ${requestedQuality}` : '');
     const stopTitle = t(job.stop_requested ? 'ui.stopping_keeping_downloaded_files' : 'ui.stop_download_keep_saved_files');

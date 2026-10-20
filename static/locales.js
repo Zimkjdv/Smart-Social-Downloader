@@ -1,5 +1,34 @@
 /* Stable message keys: edit copy here without renaming keys. */
 window.SSDLMessages = {
+  "ui.x_storage_pending": {"zh-Hant":"X 登入僅傳送至這台電腦的工具，保存方式會依目前設定顯示。不讀取 Google 或 Apple 的登入資料。", "en":"X sessions go only to the tool on this computer. The storage method is shown for your configuration. Google and Apple sessions are not read."},
+  "ui.x_connector_download_failed": {"zh-Hant":"無法建立連接器下載檔，請確認公開來源檔案完整。", "en":"Cannot create the connector download. Check that its public source files are intact."},
+  "ui.x_open_pairing": {"zh-Hant":"開啟 Chrome 配對頁", "en":"Open Chrome pairing page"},
+  "ui.x_pairing_ready": {"zh-Hant":"Chrome 配對已就緒，請在主機 Chrome 完成連接。", "en":"Pairing is ready. Complete the connection in host Chrome."},
+  "ui.x_memory_storage": {"zh-Hant":"本次 X 登入僅保留於記憶體，服務重啟後需重新連接。不讀取 Google 或 Apple 的登入資料。", "en":"This X session stays in memory only. Reconnect after a service restart. Google and Apple sessions are not read."},
+  "ui.x_key_storage": {"zh-Hant":"X 登入使用獨立金鑰加密保存，重啟時需提供相同金鑰。不讀取 Google 或 Apple 的登入資料。", "en":"The X session is encrypted with a separate key. Provide the same key after restart. Google and Apple sessions are not read."},
+  "ui.x_host_pairing": {"zh-Hant":"請在已登入 X 的主機 Chrome 開啟這個工具，再按連接。首次可在配對頁下載並載入 Chrome 連接器。", "en":"Open this tool in host Chrome where X is signed in, then connect. Download and load the connector from the pairing page on first use."},
+  "ui.x_host_extension_folder": {"zh-Hant":"下載並解壓連接器，在主機 Chrome 載入 chrome-extension 資料夾；容器內的路徑不能用於主機 Chrome。", "en":"Download and extract the connector, then load its chrome-extension folder in host Chrome. Container paths cannot be used by host Chrome."},
+  "ui.x_invalid_pairing": {"zh-Hant":"配對網址不正確，請重新連接。", "en":"Invalid pairing address. Reconnect to try again."},
+  "ui.x_use_pairing_link": {"zh-Hant":"請按設定中的「開啟 Chrome 配對頁」繼續。", "en":"Use Open Chrome pairing page in settings to continue."},
+  "ui.download_chrome_connector": {"zh-Hant":"下載 Chrome 連接器", "en":"Download Chrome connector"},
+  "ui.browser_job_files": {"zh-Hant":"瀏覽工作檔案", "en":"Browse job files"},
+  "ui.browser_media_view": {"zh-Hant":"在瀏覽器播放或查看", "en":"Play or view in browser"},
+  "ui.browser_media_copy": {"zh-Hant":"選擇檔案後會在瀏覽器開啟；瀏覽器不支援的格式會提供下載。", "en":"Select a file to open it in your browser. Formats without inline support are offered as downloads."},
+  "ui.container_file_browser_hint": {"zh-Hant":"請按下載項目的資料夾圖示瀏覽檔案；容器無法開啟主機檔案總管。", "en":"Use a job's folder icon to browse its files. The container cannot launch the host file manager."},
+  "ui.x_key_invalid": {"zh-Hant":"X 登入金鑰設定無效；請掛載獨立的 32 位元組金鑰檔案。", "en":"Invalid X session key configuration. Mount a separate 32-byte key file."},
+  "ui.x_key_mount": {"zh-Hant":"容器的 X 登入金鑰必須使用獨立的 Docker secret 掛載。", "en":"The container X session key must use its separate Docker secret mount."},
+  "ui.x_key_unreadable": {"zh-Hant":"無法讀取 X 登入金鑰；請確認掛載、權限及 32 位元組長度。", "en":"Cannot read the X session key. Check the mount, permissions and exact 32-byte size."},
+  "ui.x_key_dependency": {"zh-Hant":"缺少登入加密依賴，請重新建置映像或恢復基準套件。", "en":"Session encryption dependency is missing. Rebuild the image or restore the baseline packages."},
+  "ui.x_key_decrypt": {"zh-Hant":"保存的 X 登入無法解密；請使用原金鑰或重新連接，原檔會保留。", "en":"Cannot decrypt the saved X session. Use the original key or reconnect; the original file is retained."},
+  "ui.x_host_chrome": {"zh-Hant":"請在主機 Chrome 載入 X 連接器；容器不需要安裝 Chrome。", "en":"Load the X connector in host Chrome. Chrome is not required inside the container."},
+  "ui.x_host_origin": {"zh-Hant":"在主機 Chrome 開啟工具的本機網址進行配對。", "en":"Pair from the tool's loopback address in host Chrome."},
+  "ui.x_memory_restart": {"zh-Hant":"登入僅保留於記憶體，重啟後請重新連接。", "en":"The session stays in memory; reconnect after restart."},
+  "ui.x_key_ready": {"zh-Hant":"獨立金鑰加密保存已就緒。", "en":"External-key encrypted storage is ready."},
+  "ui.x_key_check": {"zh-Hant":"無法使用登入金鑰，請檢查掛載、權限及長度。", "en":"The session key is unavailable. Check the mount, permissions and size."},
+  "ui.x_storage": {"zh-Hant":"X 登入保存", "en":"X session storage"},
+  "ui.media_busy": {"zh-Hant":"媒體讀取忙碌，請稍後再試。", "en":"Media reading is busy. Try again shortly."},
+  "ui.x_host_browser_instruction": {"zh-Hant":"請在目前的 Chrome 開啟 X，或在網址列輸入 chrome://extensions 管理連接器。", "en":"Open X in host Chrome, or enter chrome://extensions in its address bar to manage the connector."},
+  "ui.x_container_folder_instruction": {"zh-Hant":"請使用網頁中的工作檔案清單；容器無法開啟主機檔案總管。", "en":"Use the web job file list; the container cannot launch the host file manager."},
   "ui.databases": {"zh-Hant":"下載紀錄資料庫", "en":"Download history databases"},
   "ui.database_needs_attention": {"zh-Hant":"資料庫需要注意", "en":"Database needs attention"},
   "ui.database_check": {"zh-Hant":"檢查資料庫", "en":"Check databases"},
@@ -1766,6 +1795,10 @@ window.SSDLMessages = {
   "ui.cannot_use_this_folder_detail": {
     "zh-Hant": "無法使用此資料夾：{detail}",
     "en": "Cannot use this folder: {detail}"
+  },
+  "ui.container_download_folder_boundary": {
+    "zh-Hant": "下載位置必須位於容器的 /downloads 持久化資料夾內。",
+    "en": "The download location must be inside the container's persistent /downloads folder."
   },
   "ui.download_job_not_found": {
     "zh-Hant": "找不到這個下載項目",

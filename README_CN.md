@@ -55,6 +55,10 @@ YouTube 等部分網站需要 **Node.js 22+ 或 Deno 2.3+**。環境診斷提示
 | [架構](docs/ARCHITECTURE.md) · [P2 實作](docs/P2_COMPLETION.md) | 模組分工、語系 key、播放器選擇與冷卻 |
 | [發布與隱私](docs/RELEASE.md) · [維護指南](docs/MAINTENANCE.md) | 原始碼包、版本規則及發布清單 |
 | [安裝驗收](docs/INSTALLATION_ACCEPTANCE.md) · [控制台驗收](docs/CONSOLE_ACCEPTANCE.md) | 全新來源／venv、更新恢復、真正 Ctrl+C 與 Windows CI |
+| [Docker 部署](docs/DOCKER.md) · [儲存與回復](docs/DOCKER_STORAGE.md) | 實驗性 Linux amd64 設定、健康檢查、持久化、備份與回復；容器驗收待辦 |
+| [Docker 登入與檔案](docs/DOCKER_LOGIN.md) | 主機 Chrome 配對、記憶體／獨立金鑰登入及瀏覽器媒體操作 |
+| [Docker runtime 驗收](docs/DOCKER_ACCEPTANCE.md) | 隔離映像／建置內容、合成 FFmpeg／Node 檢查與 Linux CI |
+| [Docker 服務驗收](docs/DOCKER_SERVICE_ACCEPTANCE.md) | 隔離 Compose 啟動、儲存、備份還原、故障恢復與本機連線檢查 |
 
 首頁及操作指南提供中英文；維護、貢獻與安全回報文件以英文為主。
 
@@ -65,6 +69,9 @@ smart-social-downloader/
 ├── app.py                         服務啟動入口
 ├── setup.bat / start.bat           安裝及啟動
 ├── update.bat                     主動更新引擎
+├── Dockerfile / compose.yaml      實驗性 Linux amd64 部署
+├── compose.login.yaml             選配：獨立金鑰加密保存 X 登入
+├── .dockerignore / docker/        建置允許清單、快照、入口、健康及儲存工具
 ├── requirements*.txt              更新相容範圍／鎖定基準／選配捕捉
 ├── README.md / README_CN.md        英文／繁體中文首頁
 ├── CHANGELOG.md                   應用程式更新紀錄
@@ -75,6 +82,8 @@ smart-social-downloader/
 │   ├── version.py                 唯一應用程式版本來源
 │   ├── app.py                     組裝入口
 │   ├── app_context.py             具型別的狀態、服務與生命週期
+│   ├── session_storage.py         DPAPI／獨立金鑰／記憶體登入保存
+│   ├── local_media.py             限定工作檔案的有界網頁媒體讀取
 │   ├── state_writer.py            不可變快照、合併更新及保存確認
 │   ├── database_maintenance.py    SQLite 診斷、有效備份及 VACUUM
 │   ├── json_budget.py             保存及 IPC 的 UTF-8 JSON 容量限制
@@ -102,6 +111,10 @@ smart-social-downloader/
 │   ├── check_workflows.py          已審查 Action 來源／完整 SHA 檢查
 │   ├── check_installation.py       Windows 新來源／venv 安裝驗收
 │   ├── check_dependency_faults.py  版本、警告與傳輸故障回歸門檻
+│   ├── check_docker.py             隔離 Docker 映像及建置內容驗收
+│   ├── docker_runtime_probe.py     經標準輸入執行的合成 FFmpeg／Node 檢查
+│   ├── docker_service_acceptance.py  隔離 Compose 儲存、連線及回復驗收
+│   ├── docker_storage_probe.py     receipt 限定的合成歷史／媒體及故障注入
 │   ├── measure_persistence.py      隔離合成保存與 API 延遲量測
 │   └── measure_capacity.py         帳號掃描、IPC 及 64 MiB 邊界驗收
 ├── docs/                          操作、架構與維護文件
@@ -149,7 +162,7 @@ GitHub repo 發布後，可使用 Issue 表單回報錯誤、安裝問題或功�
 
 待修問題、架構改善與發布驗收統一列於 [Roadmap](ROADMAP.md)，已完成里程碑見 [CHANGELOG](CHANGELOG.md)。
 
-**Docker 化部署**已加入[未來清單](ROADMAP.md#docker-化部署)：Python 3.12 映像、Compose、資料／媒體持久化、健康檢查及容器登入保存。此項尚未實作。
+**Docker 部署設定**已提供 Python 3.12／Compose、三個持久化 volume、本機健康檢查、[備份回復](docs/DOCKER_STORAGE.md)及[主機 Chrome 登入／瀏覽器檔案操作](docs/DOCKER_LOGIN.md)。Linux 預設僅保留記憶體登入，可選配獨立金鑰加密保存。實驗性 Linux amd64 已通過實際建置、[9 項 runtime 檢查](docs/DOCKER_ACCEPTANCE.md)與 [14 項本機服務／儲存驗收](docs/DOCKER_SERVICE_ACCEPTANCE.md)，Linux CI 會執行完整工具。跨實體主機、真實版本遷移與 Chrome 登入仍列於[未來清單](ROADMAP.md#docker-化部署)，尚未發布預建映像。
 
 ## 授權
 

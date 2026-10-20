@@ -18,6 +18,8 @@ logs/
 build/
 dist/
 release/
+backups/
+.secrets/
 wheelhouse/
 .release-check/
 .pytest_cache/

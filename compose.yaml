@@ -1,0 +1,84 @@
+name: smart-social-downloader
+
+services:
+  downloader:
+    image: ${SSDL_IMAGE:-smart-social-downloader:docker-preview}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    pull_policy: build
+    platform: linux/amd64
+    init: true
+    restart: unless-stopped
+    stop_grace_period: 120s
+    read_only: true
+    tmpfs:
+      - /tmp:rw,nosuid,nodev,noexec,size=536870912,mode=0700,uid=10001,gid=10001
+    ports:
+      - "127.0.0.1:${SSDL_PORT:-8765}:${SSDL_PORT:-8765}"
+    environment:
+      SSDL_PORT: "${SSDL_PORT:-8765}"
+      SSDL_CONTAINER: "1"
+      SSDL_DOWNLOAD_DIR: /downloads
+      SSDL_MEDIA_ROOT: /downloads
+      SSDL_CACHE_DIR: /app/cache
+      XDG_CACHE_HOME: /app/cache
+    volumes:
+      - app-data:/app/data
+      - cache:/app/cache
+      - media:/downloads
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+  storage:
+    profiles: [maintenance]
+    image: ${SSDL_IMAGE:-smart-social-downloader:docker-preview}
+    pull_policy: never
+    platform: linux/amd64
+    init: true
+    read_only: true
+    network_mode: none
+    entrypoint: [python, -u, docker/storage.py]
+    command: [--help]
+    healthcheck:
+      disable: true
+    volumes:
+      - app-data:/app/data
+      - media:/downloads
+      - type: bind
+        source: ${SSDL_BACKUP_DIR:-./backups}
+        target: /backups
+        bind:
+          create_host_path: false
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+  session-key:
+    profiles: [maintenance]
+    image: ${SSDL_IMAGE:-smart-social-downloader:docker-preview}
+    pull_policy: never
+    platform: linux/amd64
+    network_mode: none
+    read_only: true
+    entrypoint: [python, -u, docker/session_key.py]
+    healthcheck:
+      disable: true
+    volumes:
+      - type: bind
+        source: ${SSDL_X_KEY_DIR:-./.secrets}
+        target: /keys
+        bind:
+          create_host_path: false
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  app-data:
+  cache:
+  media:

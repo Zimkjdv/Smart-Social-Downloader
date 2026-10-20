@@ -1,0 +1,11 @@
+# Optional encrypted X session persistence; generate the external key first.
+services:
+  downloader:
+    environment:
+      SSDL_X_KEY_FILE: /run/secrets/x_session_key
+    secrets:
+      - x_session_key
+
+secrets:
+  x_session_key:
+    file: ${SSDL_X_KEY_DIR:-./.secrets}/x-session.key

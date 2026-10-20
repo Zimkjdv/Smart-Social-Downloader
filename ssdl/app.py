@@ -12,10 +12,10 @@ def create_app(root: Path = ROOT, **services) -> AppContext:
     return AppContext(root, **services)
 
 
-def main() -> int:
+def main(*, bind_host: str = "127.0.0.1") -> int:
     with create_app() as app:
         try:
-            with Server(("127.0.0.1", app.PORT), app.Handler) as server:
+            with Server((bind_host, app.PORT), app.Handler) as server:
                 app.start()
                 print(f"{APP_NAME} v{__version__}: http://127.0.0.1:{app.PORT}")
                 print(f"儲存位置: {app.state.download_dir}")

@@ -130,6 +130,7 @@
     scope.listen($('#top-pause'), 'click', togglePause);
 
     scope.listen($('#top-storage'), 'click', async () => {
+      if (state.fileActions === 'browser') { toast('ui.container_file_browser_hint'); return; }
       const button = $('#top-storage');
       button.disabled = true;
       try { await api('/api/downloads/open', { method: 'POST', body: '{}' }); }
@@ -216,7 +217,7 @@
       if (!scope.active) return;
       if (filePicker.classList.contains('hidden')) return;
       filePicker.classList.add('hidden');
-      const key = filePicker.dataset.mode === 'open-folder' ? 'openFolder' : 'openMedia';
+      const key = ['open-folder', 'browse'].includes(filePicker.dataset.mode) ? 'openFolder' : 'openMedia';
       const trigger = [...rows.querySelectorAll('[data-open-media], [data-open-folder]')].find((button) => button.dataset[key] === filePicker.dataset.jobId);
       trigger?.focus();
     }
@@ -226,6 +227,11 @@
       openingFile = true;
       closeFilePicker();
       try {
+        if (state.fileActions === 'browser' && mode === 'open-file') {
+          const query = new URLSearchParams({ file_index: String(index), filename: job.files[index] });
+          window.open(`/api/jobs/${encodeURIComponent(job.id)}/content?${query}`, '_blank', 'noopener');
+          return;
+        }
         await api(`/api/jobs/${encodeURIComponent(job.id)}/${mode}`, { method: 'POST', body: JSON.stringify({ file_index: index, filename: job.files[index] }) });
       } catch (error) { toast(error.message, true); await refresh(); }
       finally { openingFile = false; }
@@ -234,9 +240,10 @@
     let filePickerEpoch = 0;
 
     async function openFileAction(job, mode) {
+      if (state.fileActions === 'browser' && mode === 'open-folder') mode = 'browse';
       const count = job.file_count ?? job.files?.length ?? 0;
       if (!scope.active || openingFile || !count) return;
-      if (count === 1 && job.files?.length === 1) { runFileAction(job, mode, 0); return; }
+      if (mode !== 'browse' && count === 1 && job.files?.length === 1) { runFileAction(job, mode, 0); return; }
       const epoch = ++filePickerEpoch;
       filePicker.dataset.jobId = job.id;
       filePicker.dataset.mode = mode;
@@ -274,7 +281,7 @@
             icon.innerHTML = actionIcon(mode === 'open-folder' ? 'folder' : isImageFile(item.filename) ? 'image' : 'play');
             const label = document.createElement('span'); label.textContent = item.filename;
             button.append(icon, label);
-            button.addEventListener('click', () => runFileAction({ id: job.id, files: { [item.index]: item.filename } }, mode, item.index));
+            button.addEventListener('click', () => runFileAction({ id: job.id, files: { [item.index]: item.filename } }, mode === 'browse' ? 'open-file' : mode, item.index));
             list.append(button);
             firstChoice ||= button;
           }
@@ -303,6 +310,10 @@
     function renderFilePickerCopy(mode) {
       $('#file-picker-title').textContent = t(mode === 'open-folder' ? 'ui.choose_a_file_to_open_its_folder' : 'ui.choose_a_file_to_play_or_view_2');
       $('#file-picker-copy').textContent = t(mode === 'open-folder' ? 'ui.open_the_selected_file_s_folder' : 'ui.videos_images_and_audio_open_in_this');
+      if (state.fileActions === 'browser') {
+        $('#file-picker-title').textContent = t(mode === 'browse' ? 'ui.browser_job_files' : 'ui.choose_a_file_to_play_or_view_2');
+        $('#file-picker-copy').textContent = t('ui.browser_media_copy');
+      }
       const more = $('#file-picker-more');
       if (more) more.textContent = more.disabled ? t('ui.loading_files') : t('ui.show_more_files_count_remaining', { count: more.dataset.remaining || 0 });
     }

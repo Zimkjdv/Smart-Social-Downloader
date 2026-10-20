@@ -8,14 +8,18 @@ import json
 import io
 import mimetypes
 import os
+import stat
 import time
 import uuid
+import zipfile
 from contextlib import contextmanager
 from http.server import BaseHTTPRequestHandler
 from pathlib import Path
-from urllib.parse import parse_qs, unquote, urlparse
+from urllib.parse import parse_qs, quote, unquote, urlparse
 from .http_server import DeadlineReader, READ_SECONDS, WRITE_SECONDS
 from .database_maintenance import MaintenanceError
+from .local_media import serve_job_media
+from .session_storage import host_browser_required
 
 
 class RequestFormatError(ValueError):
@@ -57,7 +61,10 @@ class ApiHandler(BaseHTTPRequestHandler):
         return parsed
 
     def log_message(self, format: str, *args) -> None:
-        if getattr(self, "command", None) == "GET" and urlparse(self.path).path in {"/api/state", "/api/summary", "/api/jobs"} and len(args) > 1 and args[1] == "200":
+        if urlparse(self.path).path.startswith("/api/jobs/") and urlparse(self.path).path.endswith("/content"):
+            print("[%s] Local media response" % self.log_date_time_string())
+            return
+        if getattr(self, "command", None) == "GET" and urlparse(self.path).path in {"/api/state", "/api/summary", "/api/jobs", "/api/health"} and len(args) > 1 and args[1] == "200":
             return
         print("[%s] %s" % (self.log_date_time_string(), self.app.redact_text(format % args)))
 
@@ -92,7 +99,8 @@ class ApiHandler(BaseHTTPRequestHandler):
             self.send_header("Access-Control-Allow-Methods", "POST, OPTIONS")
             self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-SSDL-Extension")
         self.end_headers()
-        self.wfile.write(body)
+        if self.command != "HEAD":
+            self.wfile.write(body)
 
     def _json(self, status: int, data: dict) -> None:
         body = json.dumps(self.app.redact_fields(data), ensure_ascii=False).encode("utf-8")
@@ -191,6 +199,11 @@ class ApiHandler(BaseHTTPRequestHandler):
         # New read-only API routes inherit the same policy automatically.
         if path.startswith("/api/") and not self._local_request():
             return self._json(403, {"error": "僅允許本機操作"})
+        if path.startswith("/api/jobs/") and path.endswith("/content"):
+            return serve_job_media(self)
+        if path == "/api/health":
+            health = self.app.health()
+            return self._json(200 if health["status"] == "healthy" else 503, health)
         if path.startswith("/api/jobs/") and path.endswith("/thumbnail"):
             job_id = path.removeprefix("/api/jobs/").removesuffix("/thumbnail")
             with self.app.lock:
@@ -241,9 +254,39 @@ class ApiHandler(BaseHTTPRequestHandler):
         if path == "/api/diagnostics":
             return self._json(200, self.app._diagnostics())
         if path == "/api/auth/x/setup":
-            return self._json(200, {"extension_dir": str(self.app.X_AUTH.extension_directory),
+            auth = self.app.X_AUTH.status()
+            return self._json(200, {"extension_dir": "" if host_browser_required() else str(self.app.X_AUTH.extension_directory),
                                     "extension_id": self.app.EXTENSION_ID, "port": self.app.PORT,
-                                    "origin": self.app.X_AUTH.origin})
+                                    "origin": self.app.X_AUTH.origin, "host_browser": host_browser_required(),
+                                    "storage_mode": auth.get("storage_mode", "dpapi" if os.name == "nt" else "memory"),
+                                    "persistent": auth.get("persistent", os.name == "nt")})
+        if path == "/api/auth/x/connector":
+            buffer = io.BytesIO()
+            try:
+                base = self.app.ROOT / "chrome-extension"
+                if base.resolve() != base or base.is_symlink():
+                    raise ValueError("linked source")
+                with zipfile.ZipFile(buffer, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+                    for name in ("manifest.json", "background.js", "connect.js", "popup.html", "popup.js", "README.md"):
+                        target = base / name
+                        metadata = target.lstat()
+                        if (not stat.S_ISREG(metadata.st_mode) or metadata.st_nlink != 1
+                                or metadata.st_size > 256 * 1024
+                                or getattr(metadata, "st_file_attributes", 0) & 0x400):
+                            raise ValueError("unsafe source")
+                        descriptor = os.open(target, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0))
+                        with os.fdopen(descriptor, "rb") as source:
+                            opened = os.fstat(source.fileno())
+                            if (not stat.S_ISREG(opened.st_mode)
+                                    or (opened.st_dev, opened.st_ino) != (metadata.st_dev, metadata.st_ino)):
+                                raise ValueError("changed source")
+                            content = source.read(256 * 1024 + 1)
+                        if len(content) > 256 * 1024:
+                            raise ValueError("source too large")
+                        archive.writestr("chrome-extension/" + name, content)
+            except (OSError, ValueError):
+                return self._json(400, {"error": "無法建立連接器下載檔，請確認公開來源檔案完整。"})
+            return self._send(200, buffer.getvalue(), "application/zip")
         if path == "/" or path == "/index.html":
             target = self.app.STATIC / "index.html"
         elif path == "/chrome-connect":
@@ -268,6 +311,11 @@ class ApiHandler(BaseHTTPRequestHandler):
             self._json(503, {"error": "本機服務正在關閉，請重新啟動後再操作。"})
         finally:
             self._discard_rejected_body()
+
+    def do_HEAD(self) -> None:
+        if urlparse(self.path).path.startswith("/api/jobs/") and urlparse(self.path).path.endswith("/content"):
+            return self.do_GET()
+        return self._send(405, b"", "text/plain")
 
     @contextmanager
     def _mutation(self):
@@ -346,12 +394,17 @@ class ApiHandler(BaseHTTPRequestHandler):
 
         if path == "/api/auth/x/connect":
             try:
-                self.app.X_AUTH.connect()
+                result = self.app.X_AUTH.connect()
             except self.app.AuthError as exc:
                 return self._json(400, {"error": str(exc)})
-            return self._json(202, self._state())
+            response = self._state()
+            if isinstance(result, dict) and result.get("pairing_url"):
+                response["pairing_url"] = result["pairing_url"]
+            return self._json(202, response)
 
         if path in {"/api/auth/x/login", "/api/auth/x/open-extensions"}:
+            if host_browser_required():
+                return self._json(400, {"error": "請在目前的 Chrome 開啟 X，或在網址列輸入 chrome://extensions 管理連接器。"})
             try:
                 if path.endswith("/login"):
                     self.app.X_AUTH.open_x()
@@ -575,7 +628,7 @@ class ApiHandler(BaseHTTPRequestHandler):
             except (OSError, RuntimeError, ValueError) as exc:
                 return self._json(400, {"error": str(exc)})
             try:
-                target_dir = Path(raw_dir).expanduser().resolve()
+                target_dir = self.app.resolve_download_directory(raw_dir)
                 target_dir.mkdir(parents=True, exist_ok=True)
                 if not target_dir.is_dir():
                     raise ValueError("指定路徑不是資料夾")
@@ -642,16 +695,21 @@ class ApiHandler(BaseHTTPRequestHandler):
             if data.get("filename") != files[index]:
                 return self._json(409, {"error": "檔案清單已更新，請重新選擇要開啟的檔案"})
             try:
-                root = Path(directory).resolve()
+                root = self.app.resolve_download_directory(directory)
                 target = (root / files[index]).resolve()
                 if not target.is_relative_to(root):
                     return self._json(403, {"error": "檔案路徑不在此項目的下載資料夾內"})
                 if not target.is_file():
                     return self._json(404, {"error": "找不到檔案，可能已被移動或刪除"})
-                if os.name != "nt":
-                    return self._json(400, {"error": "目前僅支援在 Windows 開啟檔案與資料夾"})
                 if action == "open-file" and target.suffix.lower() not in self.app.MEDIA_EXTENSIONS:
                     return self._json(400, {"error": "此檔案不是支援的圖片、影片或音訊格式"})
+                if host_browser_required():
+                    if action == "open-folder":
+                        return self._json(400, {"error": "請使用網頁中的工作檔案清單；容器無法開啟主機檔案總管。"})
+                    return self._json(200, {"opened": True, "browser": True,
+                        "url": f"/api/jobs/{job_id}/content?file_index={index}&filename=" + quote(files[index], safe="")})
+                if os.name != "nt":
+                    return self._json(400, {"error": "目前僅支援在 Windows 開啟檔案與資料夾"})
                 os.startfile(str(target if action == "open-file" else target.parent))
             except (OSError, ValueError, TypeError, RuntimeError):
                 return self._json(400, {"error": "無法開啟檔案或資料夾，請確認檔案存在且已設定預設開啟程式"})

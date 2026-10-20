@@ -109,12 +109,14 @@ class StateRepository:
 
         directory = self.app.state.download_dir
         if payload.get("download_dir"):
-            directory = Path(payload["download_dir"]).expanduser().resolve()
+            directory = self.app.resolve_download_directory(payload["download_dir"])
         jobs = {}
         for stored in payload["jobs"][:self.app.MAX_JOBS]:
             if stored.get("remove_when_finished"):
                 continue
             item = self.app.redact_fields(stored)
+            if self.app.MEDIA_ROOT is not None and item.get("output_dir"):
+                self.app.resolve_download_directory(item["output_dir"])
             if "platform" not in item:
                 item["platform"] = self.app._platform(item["url"])
             item.setdefault("title", "等待下載")
