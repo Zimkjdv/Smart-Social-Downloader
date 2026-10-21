@@ -1,5 +1,57 @@
 # Regression and acceptance tests
 
+## Docker login and media HTTP — 2026-10-22
+
+The combined `--interaction` gate passes **9 runtime + 14 service + 15 interaction
+stages**, exit code 0, `passed: true`, `complete: true`, including cleanup of all
+owned resources. Local run: **01:45:13–01:46:36 Asia/Taipei**, Docker Engine
+**29.8.2**, Compose **5.6.0**, Linux amd64, Python **3.12.15**, Node **22.23.3**.
+The runtime source fingerprint is
+`b427feb5b549e69d3a2d4713830f1c173ac16a51b97f1003885ccf76e41f52d5`;
+interaction source fingerprint:
+`f8dac53261cb70216954e5c8d43e4866e272c3aeadfa566665d45663fc74943e`.
+
+The real service accepts invented connector sessions, rejects wrong/replayed,
+cancelled and replaced tickets, writes no memory-mode login, and loses that login
+on restart. The shipped generator creates a private 32-byte UID 10001 key and
+refuses overwrite. AES-GCM envelopes use fresh nonces and reject corruption;
+actual service restarts restore with the matching key, preserve ciphertext under
+wrong/missing keys, recover with the original key and remain disconnected after
+Disconnect/restart. No real X session or browser profile is read.
+
+The same container serves paged recorded files and original hash-identical PNG
+and generated MP4 bytes with HEAD/Range/If-Range and security headers. It rejects
+escaping symlinks, stale/traversal selections and untrusted origins. Renaming a
+file leaves the completed job intact. Four unread 16 MiB synthetic responses fill
+the reader slots; another read receives 503 while health stays available. Closing
+the clients releases the slots and restores reads.
+
+Initial local attempt stops at `engine_failed` while Docker Desktop is starting;
+a later full run reaches the new login contract. Actual Compose 5.6.0 resolves
+the short secret target to `/run/secrets/x_session_key`, so the first strict
+basename assertion fails. Accept only the two equivalent normalized target forms,
+add rejection regressions for maintenance-key exposure/other target paths, and
+repeat the full gate successfully. **43 focused tool/release/workflow contracts
+pass in 2.124 seconds**, plus **two native file-action dispatch tests in 1.036
+seconds** using a mocked desktop launcher, including stale/deleted selections.
+
+Full checkout regression before the two native additions: **316 Python tests in
+98.505 seconds**, zero skips. A Git-index export excludes the deferred comparison
+document and verifies **193** source ZIP members; extracted-source acceptance
+passes **318 Python tests in 98.257 seconds / 23 Node tests**, followed by **116**
+dependency-fault checks in **74.156 seconds** with only the existing reviewed SSL
+observation and no unexpected failures. **102** Python syntax checks, **438** local
+documentation links and the eight pinned Action references also pass. The only
+remaining untracked file is the deliberately deferred comparison document.
+
+This gate resolves the real login override but substitutes a receipt-owned
+read-only key volume for the operator's host file-backed secret. Actual host
+secret ownership/sharing, real Chrome installation/default/custom port/ten-minute
+expiry, real X login, browser codec playback, Windows player/Explorer interaction,
+physical-host transport and actual version migration remain unaccepted. Procedure
+and fixture differences: [interaction acceptance](DOCKER_INTERACTION_ACCEPTANCE.md).
+
+
 ## Compose v2/v5 acceptance compatibility — 2026-10-21
 
 The [first pushed Docker job](https://github.com/Zimkjdv/Smart-Social-Downloader/actions/runs/39509618385)

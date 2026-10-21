@@ -98,8 +98,9 @@ There is no prune operation. Temporary image tags/build caches follow the runtim
 gate's cleanup rules. An interruption of the host Python process may leave owned
 fixtures for inspection; never use a broad prune to recover them.
 
-The existing Linux CI job runs `--service` and includes its safe receipt in the job
-summary. Current local evidence and scope are in [TESTING](TESTING.md). Storage and
+The existing Linux CI job runs `--interaction`, which includes `--service` and the
+[login/media gate](DOCKER_INTERACTION_ACCEPTANCE.md), and includes its safe receipt
+in the job summary. Current local evidence and scope are in [TESTING](TESTING.md). Storage and
 network acceptance does not prove host-Chrome pairing, real X login, active
 platform-download shutdown, browser playback or a complete deployment release.
 Remaining work is listed in [ROADMAP](../ROADMAP.md#docker-化部署).

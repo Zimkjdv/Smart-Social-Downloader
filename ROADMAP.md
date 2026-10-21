@@ -1,6 +1,6 @@
 # Roadmap
 
-更新：2026-10-21。此檔是**未完成工作與最新審查發現的唯一總清單**；完成紀錄移至 [CHANGELOG](CHANGELOG.md)。目前基準為 Windows／Python 3.12，沒有 Python 3.10 驗收工作。下列核取方塊均尚未完成，不代表已修正或已發布。N01～N08 已完成並移到 [CHANGELOG](CHANGELOG.md#unreleased)，回歸結果見 [TESTING](docs/TESTING.md)。N07 的索引評估已記錄，實際索引／游標儲存列為後續選配，尚未實作。
+更新：2026-10-22。此檔是**未完成工作與最新審查發現的唯一總清單**；完成紀錄移至 [CHANGELOG](CHANGELOG.md)。目前基準為 Windows／Python 3.12，沒有 Python 3.10 驗收工作。下列核取方塊均尚未完成，不代表已修正或已發布。N01～N08 已完成並移到 [CHANGELOG](CHANGELOG.md#unreleased)，回歸結果見 [TESTING](docs/TESTING.md)。N07 的索引評估已記錄，實際索引／游標儲存列為後續選配，尚未實作。
 
 ## 本輪整體審查
 
@@ -37,8 +37,10 @@ N01～N08 已移至 [CHANGELOG](CHANGELOG.md#unreleased)。本輪列出的修正
 
 第 1～4 項的來源實作、第 5 項的隔離 runtime 驗收及第 2／3 項的本機 Compose 驗收已完成並移至 [CHANGELOG](CHANGELOG.md#unreleased)。2026-10-21 已實際通過 9 項 FFmpeg／Node／來源排除及 14 項服務／儲存驗收，含 UID 權限、資料保留、故障健康狀態、備份校驗、真正還原中斷、跨專案搬遷及保留映像回復。範圍見 [Docker 文件](docs/DOCKER.md)、[服務驗收](docs/DOCKER_SERVICE_ACCEPTANCE.md)及[實測紀錄](docs/TESTING.md)。動態 Chrome 仍為選配，沒有發布預建映像；同機隔離驗收不代表以下跨主機／登入工作完成。
 
+2026-10-22 已完成第 4 項可自動化的 [15 項登入／媒體容器驗收](docs/DOCKER_INTERACTION_ACCEPTANCE.md)：記憶體登入、獨立金鑰生成／權限／唯讀掛載、AES-GCM 保存與重啟、錯誤／遺失金鑰保留原資料、金鑰恢復與斷開連接；合成 connector 取消／重配及網頁分頁、原始 PNG／MP4 位元組、HEAD／Range、路徑拒絕、改名及併發讀取恢復。9＋14＋15 項已實測通過。Windows 原生檔案／資料夾分派與失效選取新增隔離回歸，沒有啟動真實播放器。完成紀錄移至 CHANGELOG；這些不取代下列真人或主機檔案權限驗收。
+
 - [ ] **跨實體主機與實際版本升級**：在另一台主機驗收備份搬遷、主機 bind 權限／Docker Desktop 目錄分享；有真實新版本時驗收資料遷移與匹配舊版本回復。本輪已測同一引擎上的獨立 volumes／專案與經主機傳輸的備份，以及僅加標籤的不同映像；不能據此宣稱跨硬體或實際版本遷移已完成。
-- [ ] 實際驗收第 4 項：記憶體登入、獨立金鑰的權限／加密保存／重啟／遺失或錯誤金鑰／斷開連接，主機 Chrome 的首次安裝、預設／自訂 port、取消／過期／重配，以及網頁檔案清單、原始位元組／HEAD／Range、搬移或刪檔／路徑拒絕／併發讀取與 Windows 原生操作回歸。第 5 項的 runtime 驗收未涵蓋這些流程，尚無真實配對或播放驗收證據。
+- [ ] **第 4 項真人與主機驗收**：實際主機檔案型 Compose secret 的權限／Docker Desktop 分享（自動 gate 使用獨立唯讀 key volume）；主機 Chrome 首次安裝、預設／自訂 port、取消／十分鐘過期／重配、真實登入失效；實際瀏覽器播放／編碼支援及 Windows 預設播放器／檔案總管。合成 API 配對與原始位元組讀取不等於真人配對或播放已驗收。
 - [ ] 完成安裝、重啟恢復、媒體持久化與登入驗收，再將文件中的實驗操作程序升格為正式部署指引。Docker 不算目前已驗收的 P0／P1／P2。
 
 ### 去重與匯入選配

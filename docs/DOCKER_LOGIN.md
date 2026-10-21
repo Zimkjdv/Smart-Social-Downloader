@@ -1,6 +1,6 @@
 # Docker X login and browser file actions
 
-Docker milestone 4 is implemented in source. **The isolated FFmpeg/Node/context container gate passes, but real Chrome pairing, encrypted restart and browser playback acceptance remain pending.** The runtime gate loads no saved login or application service. Follow [deployment](DOCKER.md) and [storage/recovery](DOCKER_STORAGE.md) first. Native Windows remains the primary accepted environment.
+Docker milestone 4 is implemented in source. The [interaction gate](DOCKER_INTERACTION_ACCEPTANCE.md) exercises invented login, encrypted restart/recovery and media HTTP access in real containers. Real host Chrome pairing, host secret-file permissions and browser playback remain separate acceptance work. Follow [deployment](DOCKER.md) and [storage/recovery](DOCKER_STORAGE.md) first. Native Windows remains the primary accepted environment.
 
 ## Choose session storage
 
@@ -86,6 +86,8 @@ Raw media uses fixed MIME mappings, no-store/nosniff headers and a sandbox polic
 
 ## Pending acceptance
 
-No new tests were added or run for this implementation. Real Windows regression, Docker secret ownership/default memory behavior, encrypted reconnect/restart, original/wrong/lost key handling, Chrome pairing/cancel/custom port, original-byte/Range playback and browser/native action behavior still require acceptance. They remain explicit in [ROADMAP](../ROADMAP.md#docker-化部署).
+The [15-stage interaction gate](DOCKER_INTERACTION_ACCEPTANCE.md) covers default memory behavior, private generated keys/read-only key mounts, encrypted restart, wrong/missing key preservation, original-key recovery, disconnect, synthetic connector cancellation/re-pairing, paged files, original PNG/MP4 bytes, HEAD/Range, moved files, escaping paths and reader-slot recovery. It includes the nine runtime and 14 service stages; [TESTING](TESTING.md) records actual results.
+
+The gate substitutes a private owned key volume for the operator's host file-backed secret. Actual host permissions/sharing, real Chrome installation/default/custom port/expiry, browser playback/codecs and Windows default-app/Explorer interaction still require acceptance. These remain explicit in [ROADMAP](../ROADMAP.md#docker-化部署).
 
 References: [Compose secrets](https://docs.docker.com/compose/how-tos/use-secrets/), [PyCryptodome AES-GCM](https://www.pycryptodome.org/), [HTTP Range](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Range), [Chrome cookies API](https://developer.chrome.com/docs/extensions/reference/api/cookies).

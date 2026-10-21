@@ -287,6 +287,7 @@ def main(arguments=None):
     parser.add_argument("--docker", default=docker_executable(), help="Docker CLI executable")
     parser.add_argument("--host", help="Explicit Docker engine endpoint, if needed")
     parser.add_argument("--service", action="store_true", help="Also accept disposable Compose storage/network/recovery")
+    parser.add_argument("--interaction", action="store_true", help="Also accept service, invented login and browser media HTTP")
     parser.add_argument("--report", type=Path, default=ROOT / "data/docker-runtime.json")
     args = parser.parse_args(arguments)
     report = {"schema": 1, "passed": False, "complete": False, "code": "check_incomplete", "checks": [],
@@ -303,12 +304,17 @@ def main(arguments=None):
             if plugins.is_dir():
                 (Path(config) / "config.json").write_text(json.dumps({"cliPluginsExtraDirs": [str(plugins)]}), encoding="utf-8")
             docker = Docker(args.docker, Path(config), args.host)
-            if args.service:
+            if args.service or args.interaction:
                 sys.path.insert(0, str(ROOT))
                 # Script and package callers must share the same exception type.
                 sys.modules.setdefault("tools.check_docker", sys.modules[__name__])
                 from tools.docker_service_acceptance import run_checks
-                report = run_gate(docker, ROOT, report, service_gate=run_checks)
+                def service_gate(*values):
+                    run_checks(*values)
+                    if args.interaction:
+                        from tools.docker_interaction_acceptance import run_checks as interaction_checks
+                        interaction_checks(*values)
+                report = run_gate(docker, ROOT, report, service_gate=service_gate)
             else:
                 report = run_gate(docker, ROOT, report)
         report["finished_utc"] = datetime.now(timezone.utc).isoformat(timespec="seconds")

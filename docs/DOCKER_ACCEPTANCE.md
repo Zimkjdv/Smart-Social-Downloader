@@ -15,6 +15,7 @@ python tools/check_docker.py --report data/docker-runtime.json
 ```
 
 Add `--service` to also run the [Compose storage/network/recovery matrix](DOCKER_SERVICE_ACCEPTANCE.md).
+Add `--interaction` to include both that matrix and [login/media HTTP acceptance](DOCKER_INTERACTION_ACCEPTANCE.md).
 That mode uses a local engine, disposable application volumes and invented history
 after these runtime checks pass. The default runtime-only mode still mounts no
 application volumes and starts no application service.
@@ -92,7 +93,7 @@ restart WSL/services or change Windows features to work around it.
 ## CI and evidence boundary
 
 The `docker-runtime` job in [checks.yml](../.github/workflows/checks.yml) runs this
-gate with `--service` on an Ubuntu 24.04 hosted runner with Python 3.12. Ubuntu is the **CI host**;
+gate with `--interaction` on an Ubuntu 24.04 hosted runner with Python 3.12. Ubuntu is the **CI host**;
 the image still uses the pinned Debian Bookworm bases. The job reuses reviewed
 full-SHA checkout/setup-python actions, requires no registry credentials and
 writes the categorical receipt to the job summary even on failure. It builds and

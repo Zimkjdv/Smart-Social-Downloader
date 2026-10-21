@@ -27,6 +27,10 @@ Those tests verify source selection, receipts and owned cleanup; only the actual
 [Docker runtime/service gates](DOCKER_SERVICE_ACCEPTANCE.md) establish container
 execution evidence. The helper is shipped by the existing code-only fixture policy.
 
+The [interaction gate](DOCKER_INTERACTION_ACCEPTANCE.md) separately exercises real
+container sessions/media. Native action regression mocks desktop launching;
+it never opens a user's media viewer or file manager.
+
 ## Reviewed packaging boundaries
 
 `tools/package_source.py` combines a fixed root-file list, shallow globs for

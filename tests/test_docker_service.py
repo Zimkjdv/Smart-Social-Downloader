@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 from tools import check_docker as gate
 from tools import docker_service_acceptance as service
-from tests.helpers.docker import FakeDocker
+from tests.helpers.docker import FakeDocker, ServiceDocker
 
 
 def compose_model(port=8765):
@@ -20,17 +20,6 @@ def compose_model(port=8765):
                                    (("app-data", "/app/data"), ("cache", "/app/cache"), ("media", "/downloads"))]},
         "storage": {"network_mode": "none", "read_only": True, "entrypoint": ["python", "-u", "docker/storage.py"],
                     "volumes": [{"type": "bind", "source": "invented", "target": "/backups", "bind": {"create_host_path": False}}]}}}
-
-
-class ServiceDocker:
-    prefix = ["docker"]
-    def __init__(self, receipt="a" * 32):
-        self.receipt, self.calls = receipt, []
-    def run(self, args, **kwargs):
-        self.calls.append((args, kwargs))
-        if args[:2] in (["volume", "inspect"], ["network", "inspect"]):
-            return 0, json.dumps({"ssdl.acceptance": self.receipt})
-        return 0, ""
 
 
 class DockerServiceTests(unittest.TestCase):

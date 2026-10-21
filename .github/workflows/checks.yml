@@ -21,8 +21,8 @@ jobs:
           python-version: '3.12'
       - name: Check reviewed action pins
         run: python tools/check_workflows.py
-      - name: Accept Docker runtime, Compose storage and network policy
-        run: python tools/check_docker.py --service --report "$RUNNER_TEMP/ssdl-docker-runtime.json"
+      - name: Accept Docker runtime, service, login and media
+        run: python tools/check_docker.py --interaction --report "$RUNNER_TEMP/ssdl-docker-runtime.json"
       - name: Publish categorical acceptance receipt
         if: always()
         shell: bash

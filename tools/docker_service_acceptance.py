@@ -113,8 +113,9 @@ class Fixtures:
     def group(self, name):
         return {kind: self.volume(name + "-" + kind) for kind in ("data", "cache", "media")}
 
-    def helper(self, volumes, backups=None, *, root=False):
-        require(set(volumes.values()) <= set(self.volumes) and (not backups or backups in self.volumes), "foreign_fixture_mount")
+    def helper(self, volumes, backups=None, *, root=False, keys=None):
+        require(set(volumes.values()) <= set(self.volumes) and (not backups or backups in self.volumes)
+                and (not keys or keys in self.volumes), "foreign_fixture_mount")
         self.sequence += 1
         name = self.prefix + "-helper-" + str(self.sequence)
         self.containers.append(name)
@@ -129,6 +130,8 @@ class Fixtures:
                 arguments += ["--mount", f"type=volume,source={volumes[kind]},target={destination}"]
         if backups:
             arguments += ["--mount", f"type=volume,source={backups},target=/backups"]
+        if keys:
+            arguments += ["--mount", f"type=volume,source={keys},target=/keys"]
         arguments += ["--entrypoint", "python", self.image, "-c", "import time; time.sleep(900)"]
         self.docker.run(arguments)
         return name

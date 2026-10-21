@@ -55,10 +55,11 @@ YouTube 等部分網站需要 **Node.js 22+ 或 Deno 2.3+**。環境診斷提示
 | [架構](docs/ARCHITECTURE.md) · [P2 實作](docs/P2_COMPLETION.md) | 模組分工、語系 key、播放器選擇與冷卻 |
 | [發布與隱私](docs/RELEASE.md) · [維護指南](docs/MAINTENANCE.md) | 原始碼包、版本規則及發布清單 |
 | [安裝驗收](docs/INSTALLATION_ACCEPTANCE.md) · [控制台驗收](docs/CONSOLE_ACCEPTANCE.md) | 全新來源／venv、更新恢復、真正 Ctrl+C 與 Windows CI |
-| [Docker 部署](docs/DOCKER.md) · [儲存與回復](docs/DOCKER_STORAGE.md) | 實驗性 Linux amd64 設定、健康檢查、持久化、備份與回復；容器驗收待辦 |
+| [Docker 部署](docs/DOCKER.md) · [儲存與回復](docs/DOCKER_STORAGE.md) | 實驗性 Linux amd64 設定、健康檢查、持久化、備份與回復；仍待主機／瀏覽器驗收 |
 | [Docker 登入與檔案](docs/DOCKER_LOGIN.md) | 主機 Chrome 配對、記憶體／獨立金鑰登入及瀏覽器媒體操作 |
 | [Docker runtime 驗收](docs/DOCKER_ACCEPTANCE.md) | 隔離映像／建置內容、合成 FFmpeg／Node 檢查與 Linux CI |
 | [Docker 服務驗收](docs/DOCKER_SERVICE_ACCEPTANCE.md) | 隔離 Compose 啟動、儲存、備份還原、故障恢復與本機連線檢查 |
+| [Docker 登入／媒體驗收](docs/DOCKER_INTERACTION_ACCEPTANCE.md) | 合成登入、加密重啟／金鑰恢復及原始位元組 HTTP 檔案讀取 |
 
 首頁及操作指南提供中英文；維護、貢獻與安全回報文件以英文為主。
 
@@ -115,6 +116,8 @@ smart-social-downloader/
 │   ├── docker_runtime_probe.py     經標準輸入執行的合成 FFmpeg／Node 檢查
 │   ├── docker_service_acceptance.py  隔離 Compose 儲存、連線及回復驗收
 │   ├── docker_storage_probe.py     receipt 限定的合成歷史／媒體及故障注入
+│   ├── docker_interaction_acceptance.py  容器登入及媒體 HTTP 驗收
+│   ├── docker_interaction_probe.py  合成登入／金鑰／媒體資料操作
 │   ├── measure_persistence.py      隔離合成保存與 API 延遲量測
 │   └── measure_capacity.py         帳號掃描、IPC 及 64 MiB 邊界驗收
 ├── docs/                          操作、架構與維護文件
@@ -162,7 +165,7 @@ GitHub repo 發布後，可使用 Issue 表單回報錯誤、安裝問題或功�
 
 待修問題、架構改善與發布驗收統一列於 [Roadmap](ROADMAP.md)，已完成里程碑見 [CHANGELOG](CHANGELOG.md)。
 
-**Docker 部署設定**已提供 Python 3.12／Compose、三個持久化 volume、本機健康檢查、[備份回復](docs/DOCKER_STORAGE.md)及[主機 Chrome 登入／瀏覽器檔案操作](docs/DOCKER_LOGIN.md)。Linux 預設僅保留記憶體登入，可選配獨立金鑰加密保存。實驗性 Linux amd64 已通過實際建置、[9 項 runtime 檢查](docs/DOCKER_ACCEPTANCE.md)與 [14 項本機服務／儲存驗收](docs/DOCKER_SERVICE_ACCEPTANCE.md)，Linux CI 會執行完整工具。跨實體主機、真實版本遷移與 Chrome 登入仍列於[未來清單](ROADMAP.md#docker-化部署)，尚未發布預建映像。
+**Docker 部署設定**已提供 Python 3.12／Compose、三個持久化 volume、本機健康檢查、[備份回復](docs/DOCKER_STORAGE.md)及[主機 Chrome 登入／瀏覽器檔案操作](docs/DOCKER_LOGIN.md)。Linux 預設僅保留記憶體登入，可選配獨立金鑰加密保存。實驗性 Linux amd64 已通過實際建置、[9 項 runtime 檢查](docs/DOCKER_ACCEPTANCE.md)、[14 項服務／儲存驗收](docs/DOCKER_SERVICE_ACCEPTANCE.md)及 [15 項合成登入／媒體 HTTP 驗收](docs/DOCKER_INTERACTION_ACCEPTANCE.md)，Linux CI 會執行完整工具。主機 secret 檔案權限、跨實體主機、真實版本遷移與真人 Chrome／播放操作仍列於[未來清單](ROADMAP.md#docker-化部署)，尚未發布預建映像。
 
 ## 授權
 

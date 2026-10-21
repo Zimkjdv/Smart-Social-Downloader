@@ -6,6 +6,11 @@ The first four Docker roadmap items provide source configuration for an **experi
 
 Docker Desktop was found off PATH; its initial WSL query timeout cleared after startup. **A real Linux amd64 build, all nine runtime/context checks and all 14 local Compose storage/network stages pass on 2026-10-21.** The service gate starts the actual entry, checks restart retention, backup/restore, failure recovery, local ports and origin policy. Component versions and fingerprints are in [TESTING](TESTING.md); fixture changes are in [service acceptance](DOCKER_SERVICE_ACCEPTANCE.md). Real downloads, Chrome login, another physical host and actual version migrations remain unaccepted. The commands below remain experimental operator procedures; see [ROADMAP](../ROADMAP.md#docker-化部署) for remaining release acceptance.
 
+On 2026-10-22 the combined gate also passes **15 login/media stages** with invented
+sessions, encrypted restart/key recovery and original-byte HTTP media reads. See
+[interaction acceptance](DOCKER_INTERACTION_ACCEPTANCE.md) for the private key-volume
+substitution and the remaining real host-secret/Chrome/browser checks.
+
 ## Build inputs
 
 | File | Responsibility |
@@ -103,7 +108,7 @@ An idle or paused queue can be healthy. A failed individual download or a platfo
 | `cache` | `/app/cache` | Disposable thumbnails and XDG engine caches |
 | `media` | `/downloads` | Downloaded media |
 
-Mounts must be present and writable as UID/GID 10001. The root filesystem is read-only; `/tmp` is private temporary storage. Startup checks access and holds exclusive data/media locks until application cleanup finishes. It refuses interrupted restoration or concurrent ownership. Backup/restore, existing-volume permissions, upgrades and recovery procedures are in the [storage guide](DOCKER_STORAGE.md); actual container acceptance remains pending.
+Mounts must be present and writable as UID/GID 10001. The root filesystem is read-only; `/tmp` is private temporary storage. Startup checks access and holds exclusive data/media locks until application cleanup finishes. It refuses interrupted restoration or concurrent ownership. Backup/restore, existing-volume permissions, upgrades and recovery procedures are in the [storage guide](DOCKER_STORAGE.md); physical-host and actual-version migration acceptance remains pending.
 
 Native Windows history, Cookie storage and downloads are not imported automatically. Settings paths refer to the **container filesystem**, not Windows drive letters. Docker confines download destinations to `/downloads` and its subdirectories, including paths read from saved history; moving existing native settings into the data volume is unsupported.
 
@@ -120,7 +125,7 @@ Compose uses an init process, forwards termination and allows 120 seconds before
 The recipe installs the ordinary backend/UI, download engines, FFmpeg and Node. Public URL compatibility still depends on the platform and extractor.
 
 - Chrome, Playwright and desktop media viewers are not installed. Dynamic JavaScript capture remains optional future container work.
-- Linux uses memory-only X login by default, with optional external-key AES-GCM persistence through a Compose secret. Pairing uses the existing connector in host Chrome; see [setup and recovery](DOCKER_LOGIN.md). Actual container/Chrome acceptance is still pending.
+- Linux uses memory-only X login by default, with optional external-key AES-GCM persistence through a Compose secret. Pairing uses the existing connector in host Chrome; see [setup and recovery](DOCKER_LOGIN.md). Invented session/restart and media HTTP acceptance pass the [interaction gate](DOCKER_INTERACTION_ACCEPTANCE.md); real Chrome pairing, host secret-file permissions and browser playback remain pending.
 - File actions use browser playback/viewing and a paged job file list. A container does not launch the host's player or file manager. Native Windows keeps its desktop actions; browser codec support can differ.
 
 To inspect a build's recorded versions:

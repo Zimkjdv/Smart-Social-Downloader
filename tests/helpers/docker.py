@@ -12,6 +12,19 @@ DOCKERFILE = ("FROM node:22.23.3-bookworm-slim@sha256:" + "1" * 64 + " AS node_r
               "FROM python:3.12.15-slim-bookworm@sha256:" + "2" * 64 + " AS runtime\n").encode()
 
 
+class ServiceDocker:
+    prefix = ["docker"]
+
+    def __init__(self, receipt="a" * 32):
+        self.receipt, self.calls = receipt, []
+
+    def run(self, args, **kwargs):
+        self.calls.append((args, kwargs))
+        if args[:2] in (["volume", "inspect"], ["network", "inspect"]):
+            return 0, json.dumps({"ssdl.acceptance": self.receipt})
+        return 0, ""
+
+
 class FakeDocker:
     def __init__(self, *, fail=None):
         self.fail = fail

@@ -104,6 +104,8 @@ smart-social-downloader/
 │   ├── docker_runtime_probe.py # 合成影音及 Node provider，經 stdin 傳入容器
 │   ├── docker_service_acceptance.py # 真正 Compose／volume／備份／連線隔離驗收
 │   ├── docker_storage_probe.py # 需 receipt 的合成資料與還原中斷注入
+│   ├── docker_interaction_acceptance.py # 真正容器登入／重啟及 HTTP 媒體驗收
+│   ├── docker_interaction_probe.py # 僅供隔離 fixture 的合成金鑰／登入／媒體操作
 │   ├── measure_persistence.py # 隔離合成歷史保存／API 延遲量測
 │   └── measure_capacity.py    # 合成帳號掃描、IPC 及保存容量邊界
 ├── docs/                     # 使用、發布、去重及架構說明
