@@ -52,6 +52,15 @@ seconds**, with only the existing reviewed SSL observation and zero skips or
 unexpected faults. **105** Python syntax checks, **460** local documentation
 links and eight pinned Action references pass.
 
+The [first pushed host-gate run](https://github.com/Zimkjdv/Smart-Social-Downloader/actions/runs/39661649472)
+passes all 46 Docker stages on Linux, including POSIX ownership/private modes,
+native missing-bind rejection and missing-secret rejection, plus the fresh
+Windows installation job. Windows full regression fails only the new synthetic
+owner-alias case: it installs an owner-relative ACL without establishing the
+current user as owner, although that is the condition under test. Explicitly set
+the temporary fixture's owner before applying the alias, avoiding dependence on
+the Windows token's default owner. The production ACL owner check is unchanged.
+
 ## Docker login and media HTTP — 2026-10-22
 
 The combined `--interaction` gate passes **9 runtime + 14 service + 15 interaction

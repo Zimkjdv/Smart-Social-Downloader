@@ -34,6 +34,8 @@ class HostDockerTests(unittest.TestCase):
             native = Path(host.os.environ['SystemRoot']) / 'System32/WindowsPowerShell/v1.0'
             script = r'''
 $acl=[System.Security.AccessControl.DirectorySecurity]::new()
+# This case exercises the current-owner alias, so establish that owner explicitly.
+$acl.SetOwner([System.Security.Principal.WindowsIdentity]::GetCurrent().User)
 $acl.SetAccessRuleProtection($true,$false)
 $ids=@('S-1-3-4','S-1-5-18','S-1-5-32-544')
 if($env:SSDL_TEST_WORLD -eq '1'){$ids+='S-1-1-0'}
