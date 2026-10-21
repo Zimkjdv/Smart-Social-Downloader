@@ -288,6 +288,7 @@ def main(arguments=None):
     parser.add_argument("--host", help="Explicit Docker engine endpoint, if needed")
     parser.add_argument("--service", action="store_true", help="Also accept disposable Compose storage/network/recovery")
     parser.add_argument("--interaction", action="store_true", help="Also accept service, invented login and browser media HTTP")
+    parser.add_argument("--host-storage", action="store_true", help="Also accept actual private host binds and Compose file secrets")
     parser.add_argument("--report", type=Path, default=ROOT / "data/docker-runtime.json")
     args = parser.parse_args(arguments)
     report = {"schema": 1, "passed": False, "complete": False, "code": "check_incomplete", "checks": [],
@@ -304,16 +305,19 @@ def main(arguments=None):
             if plugins.is_dir():
                 (Path(config) / "config.json").write_text(json.dumps({"cliPluginsExtraDirs": [str(plugins)]}), encoding="utf-8")
             docker = Docker(args.docker, Path(config), args.host)
-            if args.service or args.interaction:
+            if args.service or args.interaction or args.host_storage:
                 sys.path.insert(0, str(ROOT))
                 # Script and package callers must share the same exception type.
                 sys.modules.setdefault("tools.check_docker", sys.modules[__name__])
                 from tools.docker_service_acceptance import run_checks
                 def service_gate(*values):
                     run_checks(*values)
-                    if args.interaction:
+                    if args.interaction or args.host_storage:
                         from tools.docker_interaction_acceptance import run_checks as interaction_checks
                         interaction_checks(*values)
+                    if args.host_storage:
+                        from tools.docker_host_acceptance import run_checks as host_checks
+                        host_checks(*values)
                 report = run_gate(docker, ROOT, report, service_gate=service_gate)
             else:
                 report = run_gate(docker, ROOT, report)

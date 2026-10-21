@@ -106,6 +106,8 @@ smart-social-downloader/
 │   ├── docker_storage_probe.py # 需 receipt 的合成資料與還原中斷注入
 │   ├── docker_interaction_acceptance.py # 真正容器登入／重啟及 HTTP 媒體驗收
 │   ├── docker_interaction_probe.py # 僅供隔離 fixture 的合成金鑰／登入／媒體操作
+│   ├── docker_host_acceptance.py # 私有主機資料夾、檔案型 secret 與還原登入驗收
+│   ├── docker_host_probe.py    # receipt 限定的 bind 權限／歸還擁有者與備份檢查
 │   ├── measure_persistence.py # 隔離合成歷史保存／API 延遲量測
 │   └── measure_capacity.py    # 合成帳號掃描、IPC 及保存容量邊界
 ├── docs/                     # 使用、發布、去重及架構說明

@@ -1,6 +1,6 @@
 # Docker X login and browser file actions
 
-Docker milestone 4 is implemented in source. The [interaction gate](DOCKER_INTERACTION_ACCEPTANCE.md) exercises invented login, encrypted restart/recovery and media HTTP access in real containers. Real host Chrome pairing, host secret-file permissions and browser playback remain separate acceptance work. Follow [deployment](DOCKER.md) and [storage/recovery](DOCKER_STORAGE.md) first. Native Windows remains the primary accepted environment.
+Docker milestone 4 is implemented in source. The [interaction gate](DOCKER_INTERACTION_ACCEPTANCE.md) exercises invented login, encrypted restart/recovery and media HTTP access in real containers; the [host gate](DOCKER_HOST_ACCEPTANCE.md) additionally uses private host directories and actual file-backed Compose secrets. Real host Chrome pairing, browser playback and other machines remain separate acceptance work. Follow [deployment](DOCKER.md) and [storage/recovery](DOCKER_STORAGE.md) first. Native Windows remains the primary accepted environment.
 
 ## Choose session storage
 
@@ -50,7 +50,19 @@ docker compose --profile maintenance run --rm --no-deps session-key
 
 The helper creates exactly 32 random bytes at `.secrets/x-session.key`, with private permissions, and never prints or overwrites key material. If a key already exists, it fails instead of rotating it. Linux Compose file-backed secrets retain host file ownership; the key must remain readable by UID 10001. Do not rely on `uid`/`mode` declarations to repair a file-backed secret. On Windows, keep the host directory accessible only to the intended user and Docker Desktop.
 
-Stop the current downloader, then recreate it with the override:
+Verify the generated key before enabling the override:
+
+First confirm the intended key file exists. Docker Desktop may create a directory
+for a missing source despite the Compose bind setting; see [observed behavior](DOCKER_HOST_ACCEPTANCE.md#missing-paths-on-docker-desktop).
+From PowerShell, using the selected key directory:
+
+```powershell
+$keyDirectory = if ($env:SSDL_X_KEY_DIR) { $env:SSDL_X_KEY_DIR } else { '.\.secrets' }
+$sessionKey = Join-Path $keyDirectory 'x-session.key'
+if (-not (Test-Path -LiteralPath $sessionKey -PathType Leaf) -or (Get-Item -LiteralPath $sessionKey).Length -ne 32) {
+    throw 'Expected an existing private 32-byte session key file.'
+}
+```
 
 ```powershell
 docker compose stop downloader
@@ -88,6 +100,6 @@ Raw media uses fixed MIME mappings, no-store/nosniff headers and a sandbox polic
 
 The [15-stage interaction gate](DOCKER_INTERACTION_ACCEPTANCE.md) covers default memory behavior, private generated keys/read-only key mounts, encrypted restart, wrong/missing key preservation, original-key recovery, disconnect, synthetic connector cancellation/re-pairing, paged files, original PNG/MP4 bytes, HEAD/Range, moved files, escaping paths and reader-slot recovery. It includes the nine runtime and 14 service stages; [TESTING](TESTING.md) records actual results.
 
-The gate substitutes a private owned key volume for the operator's host file-backed secret. Actual host permissions/sharing, real Chrome installation/default/custom port/expiry, browser playback/codecs and Windows default-app/Explorer interaction still require acceptance. These remain explicit in [ROADMAP](../ROADMAP.md#docker-化部署).
+The interaction gate substitutes a private owned key volume; `--host-storage` adds actual host binds/file secrets, private ACL/UID checks and encrypted-login backup/restore. Real Chrome installation/default/custom port/expiry, browser playback/codecs, Windows default-app/Explorer interaction and another host's configuration still require acceptance. These remain explicit in [ROADMAP](../ROADMAP.md#docker-化部署).
 
 References: [Compose secrets](https://docs.docker.com/compose/how-tos/use-secrets/), [PyCryptodome AES-GCM](https://www.pycryptodome.org/), [HTTP Range](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Range), [Chrome cookies API](https://developer.chrome.com/docs/extensions/reference/api/cookies).

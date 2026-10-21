@@ -1,6 +1,6 @@
 # Docker storage, backup and recovery
 
-This guide accompanies the [Docker deployment configuration](DOCKER.md). **Real local Compose storage/network acceptance passes on 2026-10-21:** new/existing named volumes, permission failures, restart retention, offline backup, corrupted/nonempty restore rejection, interrupted promotion refusal, transported-backup recovery and retained-image selection. See the [14-stage service gate](DOCKER_SERVICE_ACCEPTANCE.md) and [evidence](TESTING.md). The fixture uses independent projects on one engine and a named backup volume; a second physical host, operator bind permissions and actual cross-version migrations remain unaccepted. Keep the source revision, local modifications and image ID with each installation's records. For host-Chrome pairing, memory-only login and a separately backed-up optional encryption key, see [Docker login](DOCKER_LOGIN.md).
+This guide accompanies the [Docker deployment configuration](DOCKER.md). **Real local Compose storage/network acceptance passes on 2026-10-21:** new/existing named volumes, permission failures, restart retention, offline backup, corrupted/nonempty restore rejection, interrupted promotion refusal, transported-backup recovery and retained-image selection. See the [14-stage service gate](DOCKER_SERVICE_ACCEPTANCE.md) and [evidence](TESTING.md). The fixture uses independent projects on one engine and a named backup volume; the newer [host gate](DOCKER_HOST_ACCEPTANCE.md) covers actual private host binds and restored encrypted login. A second physical host and actual cross-version migrations remain unaccepted. Keep the source revision, local modifications and image ID with each installation's records. For host-Chrome pairing, memory-only login and a separately backed-up optional encryption key, see [Docker login](DOCKER_LOGIN.md).
 
 ## Storage contract
 
@@ -30,12 +30,14 @@ Backups contain private history and media. Use a private local directory with su
 
 The uncompressed tar format supports large media without a fixed per-file size cap; each backup is limited to 200,000 directory/file entries. Creation and restoration read the archive for checksum verification, so budget additional disk I/O and destination capacity. A failure does not automatically delete old snapshots to free space.
 
-The maintenance profile bind-mounts `${SSDL_BACKUP_DIR:-./backups}` at `/backups`. It requires an existing directory and does not create arbitrary host paths. `backups/` is excluded from Git and from the Docker/source context allowlists.
+The maintenance profile bind-mounts `${SSDL_BACKUP_DIR:-./backups}` at `/backups` with `create_host_path: false`. Pre-create and verify the intended private directory: Docker Desktop can still create a missing source directory, as recorded by the [host gate](DOCKER_HOST_ACCEPTANCE.md). `backups/` is excluded from Git and from the Docker/source context allowlists.
 
 On Windows, create the default directory from the project root (Docker Desktop needs access to it):
 
 ```powershell
 New-Item -ItemType Directory -Force .\backups
+$backupDirectory = if ($env:SSDL_BACKUP_DIR) { $env:SSDL_BACKUP_DIR } else { '.\backups' }
+if (-not (Test-Path -LiteralPath $backupDirectory -PathType Container)) { throw 'Backup directory is missing.' }
 ```
 
 On Linux, create that specific directory for the container user:
@@ -45,6 +47,15 @@ sudo install -d -m 0700 -o 10001 -g 10001 ./backups
 ```
 
 For another location, set `SSDL_BACKUP_DIR` to its absolute path in the shell used for Compose commands. Keep the same `SSDL_PORT`, `SSDL_IMAGE` and Compose project selection throughout an operation. The maintenance profile uses the already built application image, no network and no Docker socket.
+
+The examples below use the base Compose file. If encrypted X persistence is
+enabled, keep **both** `-f compose.yaml -f compose.login.yaml` on downloader
+stop/start/build commands, especially when resuming after backup or restore.
+Storage maintenance itself needs no key and can use the base file alone.
+
+The [eight-stage host gate](DOCKER_HOST_ACCEPTANCE.md) verifies real host backups,
+file-secret permissions and restored encrypted login locally. The earlier
+service gate's named-backup-volume substitution does not limit this newer gate.
 
 ## Make a complete offline backup
 

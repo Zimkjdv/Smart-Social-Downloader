@@ -60,6 +60,7 @@ YouTube 等部分網站需要 **Node.js 22+ 或 Deno 2.3+**。環境診斷提示
 | [Docker runtime 驗收](docs/DOCKER_ACCEPTANCE.md) | 隔離映像／建置內容、合成 FFmpeg／Node 檢查與 Linux CI |
 | [Docker 服務驗收](docs/DOCKER_SERVICE_ACCEPTANCE.md) | 隔離 Compose 啟動、儲存、備份還原、故障恢復與本機連線檢查 |
 | [Docker 登入／媒體驗收](docs/DOCKER_INTERACTION_ACCEPTANCE.md) | 合成登入、加密重啟／金鑰恢復及原始位元組 HTTP 檔案讀取 |
+| [Docker 主機儲存驗收](docs/DOCKER_HOST_ACCEPTANCE.md) | 真正私有主機掛載、檔案型 secret 及加密登入備份／恢復 |
 
 首頁及操作指南提供中英文；維護、貢獻與安全回報文件以英文為主。
 
@@ -118,6 +119,8 @@ smart-social-downloader/
 │   ├── docker_storage_probe.py     receipt 限定的合成歷史／媒體及故障注入
 │   ├── docker_interaction_acceptance.py  容器登入及媒體 HTTP 驗收
 │   ├── docker_interaction_probe.py  合成登入／金鑰／媒體資料操作
+│   ├── docker_host_acceptance.py   真正主機掛載／ACL／檔案型 secret 驗收
+│   ├── docker_host_probe.py        receipt 限定的主機權限與備份檢查
 │   ├── measure_persistence.py      隔離合成保存與 API 延遲量測
 │   └── measure_capacity.py         帳號掃描、IPC 及 64 MiB 邊界驗收
 ├── docs/                          操作、架構與維護文件
@@ -165,7 +168,7 @@ GitHub repo 發布後，可使用 Issue 表單回報錯誤、安裝問題或功�
 
 待修問題、架構改善與發布驗收統一列於 [Roadmap](ROADMAP.md)，已完成里程碑見 [CHANGELOG](CHANGELOG.md)。
 
-**Docker 部署設定**已提供 Python 3.12／Compose、三個持久化 volume、本機健康檢查、[備份回復](docs/DOCKER_STORAGE.md)及[主機 Chrome 登入／瀏覽器檔案操作](docs/DOCKER_LOGIN.md)。Linux 預設僅保留記憶體登入，可選配獨立金鑰加密保存。實驗性 Linux amd64 已通過實際建置、[9 項 runtime 檢查](docs/DOCKER_ACCEPTANCE.md)、[14 項服務／儲存驗收](docs/DOCKER_SERVICE_ACCEPTANCE.md)及 [15 項合成登入／媒體 HTTP 驗收](docs/DOCKER_INTERACTION_ACCEPTANCE.md)，Linux CI 會執行完整工具。主機 secret 檔案權限、跨實體主機、真實版本遷移與真人 Chrome／播放操作仍列於[未來清單](ROADMAP.md#docker-化部署)，尚未發布預建映像。
+**Docker 部署設定**已提供 Python 3.12／Compose、三個持久化 volume、本機健康檢查、[備份回復](docs/DOCKER_STORAGE.md)及[主機 Chrome 登入／瀏覽器檔案操作](docs/DOCKER_LOGIN.md)。Linux 預設僅保留記憶體登入，可選配獨立金鑰加密保存。實驗性 Linux amd64 已通過實際建置、[9 項 runtime 檢查](docs/DOCKER_ACCEPTANCE.md)、[14 項服務／儲存驗收](docs/DOCKER_SERVICE_ACCEPTANCE.md)、[15 項合成登入／媒體 HTTP 驗收](docs/DOCKER_INTERACTION_ACCEPTANCE.md)及 [8 項真實主機儲存驗收](docs/DOCKER_HOST_ACCEPTANCE.md)，Linux CI 會執行完整工具。跨實體主機、真實版本遷移與真人 Chrome／播放操作仍列於[未來清單](ROADMAP.md#docker-化部署)，尚未發布預建映像。
 
 ## 授權
 

@@ -11,6 +11,12 @@ sessions, encrypted restart/key recovery and original-byte HTTP media reads. See
 [interaction acceptance](DOCKER_INTERACTION_ACCEPTANCE.md) for the private key-volume
 substitution and the remaining real host-secret/Chrome/browser checks.
 
+The later [host-storage gate](DOCKER_HOST_ACCEPTANCE.md) adds eight actual host
+bind/file-secret stages, including private Windows ACLs and restored encrypted
+login, and passes locally on 2026-10-22. It records Docker Desktop's automatic
+creation of missing source directories and validates rejection of invalid
+directory keys. Cross-machine/version and real browser acceptance remain pending.
+
 ## Build inputs
 
 | File | Responsibility |
@@ -125,7 +131,7 @@ Compose uses an init process, forwards termination and allows 120 seconds before
 The recipe installs the ordinary backend/UI, download engines, FFmpeg and Node. Public URL compatibility still depends on the platform and extractor.
 
 - Chrome, Playwright and desktop media viewers are not installed. Dynamic JavaScript capture remains optional future container work.
-- Linux uses memory-only X login by default, with optional external-key AES-GCM persistence through a Compose secret. Pairing uses the existing connector in host Chrome; see [setup and recovery](DOCKER_LOGIN.md). Invented session/restart and media HTTP acceptance pass the [interaction gate](DOCKER_INTERACTION_ACCEPTANCE.md); real Chrome pairing, host secret-file permissions and browser playback remain pending.
+- Linux uses memory-only X login by default, with optional external-key AES-GCM persistence through a Compose secret. Pairing uses the existing connector in host Chrome; see [setup and recovery](DOCKER_LOGIN.md). Invented session/restart and media HTTP acceptance pass the [interaction gate](DOCKER_INTERACTION_ACCEPTANCE.md), with actual host file secrets/backup recovery covered by the [host gate](DOCKER_HOST_ACCEPTANCE.md). Real Chrome pairing and browser playback remain pending.
 - File actions use browser playback/viewing and a paged job file list. A container does not launch the host's player or file manager. Native Windows keeps its desktop actions; browser codec support can differ.
 
 To inspect a build's recorded versions:

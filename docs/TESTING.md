@@ -1,5 +1,57 @@
 # Regression and acceptance tests
 
+## Actual host binds and file secrets — 2026-10-22
+
+Local `--host-storage` acceptance passes **9 + 14 + 15 + 8 = 46** stages,
+`passed: true`, `complete: true`, exit code 0 and owned-resource cleanup.
+Run: **03:14:04–03:15:58 Asia/Taipei**, Docker **29.8.2**, Compose **5.6.0**,
+Linux amd64 image, Windows host permission mode `windows_acl`. Runtime source
+and image identities match the preceding accepted interaction run. Host-source
+SHA-256: `0f6e378e585f3697eed716cae0d2c34345bfdf94008609df5fb97af91a18eec6`.
+
+The actual Compose maintenance commands generate a host key, reject overwrite,
+create an offline host archive/checksum and restore it into fresh application
+volumes/project. The downloader receives the real file-backed secret as a
+read-only bind, restores invented login after restart and recovers encrypted
+login/settings/original/partial media from the backup. Complete source/restored
+file inventories match before starting the recovery service; the external key
+is excluded from the archive and cache is excluded. No real X cookie, browser
+profile, platform media or production installation is used.
+
+The first Windows permission implementation reproduces module-autoload failure
+under an inherited PowerShell 7 module path, then `Set-Acl` requesting unavailable
+`SeSecurityPrivilege`. Restrict the child Windows PowerShell module path and use
+.NET access-rule-only persistence. A later strict ACL comparison rejects the
+`OWNER RIGHTS` alias after Docker host access. Anonymous checks confirm the
+actual directory owner remains the executor; accept that fixed alias only under
+the owner match, and regress rejection of an Everyone rule on an empty fixture.
+POSIX ownership/mode changes apply only to Linux binds.
+
+Desktop behavior differs from the original no-create expectation: a missing bind
+source becomes a private directory, and a missing file secret can become an
+empty directory. Record `host_missing_bind: desktop_created_private_directory`
+and `host_missing_secret: desktop_directory_key_rejected`; authentication refuses
+the invalid key, the original ciphertext/key/media remain intact, and cleanup
+removes the fixture directory. Document explicit operator path checks. Ordinary
+Linux acceptance requires native missing-source rejection rather than accepting
+this Desktop behavior. This matrix still does not transport a backup between two
+physical hosts or verify actual application-version migration/real browser login.
+
+See [host gate procedure and scope](DOCKER_HOST_ACCEPTANCE.md).
+
+Full local checkout regression passes **328 Python tests in 99.972 seconds**,
+zero skips; **55** focused Docker/release/workflow/native-action contracts pass
+in **4.324 seconds**, and **23 Node tests** pass. The ten new host cases cover
+native private ACLs, owner-alias/Everyone behavior, CLI gate ordering, mount
+contracts, foreign resources, path/receipt rejection and source inclusion.
+
+Git-index source export excludes the deferred comparison document and verifies
+**197** ZIP members. Extracted-source acceptance passes **328 Python tests in
+98.881 seconds / 23 Node tests**, then **116** dependency-fault cases in **71.657
+seconds**, with only the existing reviewed SSL observation and zero skips or
+unexpected faults. **105** Python syntax checks, **460** local documentation
+links and eight pinned Action references pass.
+
 ## Docker login and media HTTP — 2026-10-22
 
 The combined `--interaction` gate passes **9 runtime + 14 service + 15 interaction

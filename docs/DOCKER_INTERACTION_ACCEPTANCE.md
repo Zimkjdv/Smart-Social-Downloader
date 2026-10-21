@@ -49,9 +49,14 @@ root helper only assigns that empty key directory to UID 10001; generation and
 session operations use UID 10001. The fixture maps that key volume read-only to
 `/run/secrets`, after renaming the generated file to the Compose secret target.
 It checks the actual login override model separately. This deliberate substitute
-avoids relying on host filesystem permissions: **actual host file-backed Compose
-secret mounts, Docker Desktop directory sharing and second-host permissions
-still require operator acceptance**. No production key is rotated.
+avoids relying on host filesystem permissions: **this matrix alone does not
+establish actual host file-backed secrets or Docker Desktop sharing**. No
+production key is rotated; the later host gate supplies local host evidence.
+
+The later [host-storage gate](DOCKER_HOST_ACCEPTANCE.md) supplements this matrix
+with actual host binds/file secrets, private permissions and encrypted-login
+backup/restore. Use `--host-storage` to run both; its results cover the current
+host, rather than all machines or real Chrome pairing.
 
 The source probe is streamed into owned helpers and the fixture container; it is
 excluded from runtime build inputs. The gate uses the real authentication manager,
@@ -63,7 +68,7 @@ resources created by this attempt. There is no prune operation.
 
 Real host Chrome installation/default and custom-port pairing, ten-minute expiry,
 revoked/expired X login, actual browser playback/codec behavior, Windows default
-player/Explorer interaction, host secret binds and physical-host/version migration
+player/Explorer interaction and physical-host/version migration
 remain in [ROADMAP](../ROADMAP.md#docker-化部署). Synthetic protocol requests and
 original-byte HTTP checks do not prove those interactions. Docker remains
 experimental, with no published prebuilt image. See [test evidence](TESTING.md).

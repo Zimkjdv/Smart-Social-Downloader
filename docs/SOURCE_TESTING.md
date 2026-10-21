@@ -31,6 +31,11 @@ The [interaction gate](DOCKER_INTERACTION_ACCEPTANCE.md) separately exercises re
 container sessions/media. Native action regression mocks desktop launching;
 it never opens a user's media viewer or file manager.
 
+The [host-storage gate](DOCKER_HOST_ACCEPTANCE.md) further checks actual private
+host bind directories and file-backed secrets. Its probes stay outside the
+runtime image. Shared contracts use the same fake CLI; native ACL regressions
+use only empty temporary Windows directories.
+
 ## Reviewed packaging boundaries
 
 `tools/package_source.py` combines a fixed root-file list, shallow globs for
