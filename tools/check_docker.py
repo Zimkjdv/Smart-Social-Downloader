@@ -289,8 +289,12 @@ def main(arguments=None):
     parser.add_argument("--service", action="store_true", help="Also accept disposable Compose storage/network/recovery")
     parser.add_argument("--interaction", action="store_true", help="Also accept service, invented login and browser media HTTP")
     parser.add_argument("--host-storage", action="store_true", help="Also accept actual private host binds and Compose file secrets")
+    parser.add_argument("--browser", action="store_true", help="Also accept host Chrome file UI and actual PNG/H.264 decoding")
+    parser.add_argument("--browser-headed", action="store_true", help="Show the isolated Chrome window (requires --browser)")
     parser.add_argument("--report", type=Path, default=ROOT / "data/docker-runtime.json")
     args = parser.parse_args(arguments)
+    if args.browser_headed and not args.browser:
+        parser.error("--browser-headed requires --browser")
     report = {"schema": 1, "passed": False, "complete": False, "code": "check_incomplete", "checks": [],
               "started_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
               "gate_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest()}
@@ -305,19 +309,22 @@ def main(arguments=None):
             if plugins.is_dir():
                 (Path(config) / "config.json").write_text(json.dumps({"cliPluginsExtraDirs": [str(plugins)]}), encoding="utf-8")
             docker = Docker(args.docker, Path(config), args.host)
-            if args.service or args.interaction or args.host_storage:
+            if args.service or args.interaction or args.host_storage or args.browser:
                 sys.path.insert(0, str(ROOT))
                 # Script and package callers must share the same exception type.
                 sys.modules.setdefault("tools.check_docker", sys.modules[__name__])
                 from tools.docker_service_acceptance import run_checks
                 def service_gate(*values):
                     run_checks(*values)
-                    if args.interaction or args.host_storage:
+                    if args.interaction or args.host_storage or args.browser:
                         from tools.docker_interaction_acceptance import run_checks as interaction_checks
                         interaction_checks(*values)
-                    if args.host_storage:
+                    if args.host_storage or args.browser:
                         from tools.docker_host_acceptance import run_checks as host_checks
                         host_checks(*values)
+                    if args.browser:
+                        from tools.docker_browser_acceptance import run_checks as browser_checks
+                        browser_checks(*values, headed=args.browser_headed)
                 report = run_gate(docker, ROOT, report, service_gate=service_gate)
             else:
                 report = run_gate(docker, ROOT, report)

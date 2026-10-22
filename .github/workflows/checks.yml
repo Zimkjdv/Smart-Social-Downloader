@@ -21,8 +21,10 @@ jobs:
           python-version: '3.12'
       - name: Check reviewed action pins
         run: python tools/check_workflows.py
-      - name: Accept Docker runtime, service, login, media and host storage
-        run: python tools/check_docker.py --host-storage --report "$RUNNER_TEMP/ssdl-docker-runtime.json"
+      - name: Install host-only browser acceptance dependency
+        run: python -m pip install -r requirements-browser.txt
+      - name: Accept Docker runtime, storage, login and host Chrome playback
+        run: python tools/check_docker.py --browser --report "$RUNNER_TEMP/ssdl-docker-runtime.json"
       - name: Publish categorical acceptance receipt
         if: always()
         shell: bash

@@ -6,7 +6,14 @@ Application changes are recorded here. Download engine and Chrome connector vers
 
 No GitHub release or tag has been created.
 
+### Fixed
+
+- Docker/browser inline playback (2026-10-22): actual host Chrome acceptance exposes native MP4 documents issuing `Origin: null` media requests under the opaque sandbox, so the existing local-source guard rejects playback. Retain same-origin only for fixed inert inline media MIME types, keep scripts disabled/default-denied sources/nosniff, preserve opaque attachment fallback and continue rejecting null/foreign API origins. A real Chrome regression reproduces failure with the old header and verifies decode, playback and seek with the correction.
+
 ### Added
+
+- Docker host Chrome acceptance (2026-10-22): add `--browser` and optional `--browser-headed`, with seven stages driving the actual file UI, keyboard selection, PNG decode, native H.264 playback/seek, reload retention, moved-file rejection and healthy subsequent reads. Use a fresh host Chrome context and invented paused Docker project; permit only fixture-origin GET/HEAD requests, block service workers/download acceptance, retain categorical receipts and clean owned resources. The image still has no Chrome/Playwright and no real X/profile data is loaded. Linux CI now runs the combined 53-stage gate; source packages, both README trees and [browser procedure](docs/DOCKER_BROWSER_ACCEPTANCE.md) are updated. Physical-host migration is deferred at the user's request; human connector/login, sound/other codecs, Explorer and actual version migration remain in ROADMAP.
+- Verification: **344 Python tests in 104.152 seconds / 23 Node**, zero skips; **53 actual local Docker/Chrome stages** with cleanup. Sixteen new contracts/regressions include actual native Chrome playback and policy, unknown/active-format handling, local-source guards, CLI gate ordering, isolated requests, bounded polling and receipt redaction. Source archive acceptance and CI evidence are recorded in [TESTING](docs/TESTING.md).
 
 - Make the synthetic Windows owner-alias ACL fixture establish the current user as owner before checking the alias. The first Linux CI already passes all **46** Docker stages and fresh installation succeeds; the Windows case had relied on the token's default owner. This corrects test setup while preserving the production requirement that the alias refer to the current owner identity.
 

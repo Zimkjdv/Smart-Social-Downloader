@@ -101,7 +101,9 @@ production directory. A failed attempt is not acceptance evidence.
 Results are recorded in [TESTING](TESTING.md). Linux CI covers ordinary POSIX bind
 permissions; local Docker Desktop acceptance covers this Windows host's sharing
 and ACL behavior. These runs do not prove another machine's sharing/security
-configuration, real account login, browser decoding or a future database migration.
+configuration, real account login or a future database migration. The newer
+[host Chrome gate](DOCKER_BROWSER_ACCEPTANCE.md) adds actual PNG/H.264 decoding
+and UI acceptance on this host.
 The deployment remains experimental; see [ROADMAP](../ROADMAP.md#docker-化部署).
 
 References: [Docker bind mounts](https://docs.docker.com/engine/storage/bind-mounts/),

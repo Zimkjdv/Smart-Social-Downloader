@@ -125,7 +125,11 @@ def serve_job_media(handler):
             handler.send_header("Accept-Ranges", "bytes")
             handler.send_header("Cache-Control", "no-store")
             handler.send_header("X-Content-Type-Options", "nosniff")
-            handler.send_header("Content-Security-Policy", "sandbox; default-src 'none'; media-src 'self'; img-src 'self'; style-src 'unsafe-inline'")
+            # Native media documents issue same-origin Range requests. An opaque
+            # sandbox origin turns these into Origin: null, rejected by our API.
+            # Retain origin only for fixed inert MIME types; never enable scripts.
+            sandbox = "sandbox allow-same-origin" if disposition == "inline" else "sandbox"
+            handler.send_header("Content-Security-Policy", f"{sandbox}; default-src 'none'; media-src 'self'; img-src 'self'; style-src 'unsafe-inline'")
             handler.send_header("Content-Disposition", f"{disposition}; filename=media{target.suffix.lower()}; filename*=UTF-8''{filename}")
             if partial:
                 handler.send_header("Content-Range", f"bytes {first}-{last}/{total}")

@@ -21,7 +21,7 @@ ROOT_FILES = (".gitignore", "LICENSE", "THIRD_PARTY_NOTICES.md", "README.md", "R
 SOURCE_GLOBS = {"static": ("*.js", "*.css", "*.html"),
                 "docker": ("entrypoint.py", "runtime.py", "storage.py", "healthcheck.py", "session_key.py", "debian.sources"),
                 "chrome-extension": ("*.js", "*.html", "manifest.json", "README.md"),
-                "tools": ("manage.py", "package_source.py", "check_source_archive.py", "check_workflows.py", "check_installation.py", "check_dependency_faults.py", "check_docker.py", "docker_runtime_probe.py", "docker_service_acceptance.py", "docker_storage_probe.py", "docker_interaction_acceptance.py", "docker_interaction_probe.py", "docker_host_acceptance.py", "docker_host_probe.py", "measure_state.py", "measure_persistence.py", "measure_capacity.py"),
+                "tools": ("manage.py", "package_source.py", "check_source_archive.py", "check_workflows.py", "check_installation.py", "check_dependency_faults.py", "check_docker.py", "docker_runtime_probe.py", "docker_service_acceptance.py", "docker_storage_probe.py", "docker_interaction_acceptance.py", "docker_interaction_probe.py", "docker_host_acceptance.py", "docker_host_probe.py", "docker_browser_acceptance.py", "measure_state.py", "measure_persistence.py", "measure_capacity.py"),
                 "docs": ("*.md",), "docs/images": ("dashboard-preview.svg",),
                 ".github/ISSUE_TEMPLATE": ("*.yml", "*.yaml"),
                 ".github": ("pull_request_template.md", "dependabot.yml"),

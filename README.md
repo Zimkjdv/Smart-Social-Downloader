@@ -61,6 +61,7 @@ For X login, sign into X in ordinary Chrome, then use **Settings → X sign-in**
 | [Docker service acceptance](docs/DOCKER_SERVICE_ACCEPTANCE.md) | Disposable Compose startup, storage, backup/restore, failure recovery and local network checks |
 | [Docker login/media acceptance](docs/DOCKER_INTERACTION_ACCEPTANCE.md) | Invented sessions, encrypted restart/key recovery and original-byte HTTP file access |
 | [Docker host storage acceptance](docs/DOCKER_HOST_ACCEPTANCE.md) | Actual private host binds, file-backed secrets and encrypted-login backup/recovery |
+| [Docker host Chrome acceptance](docs/DOCKER_BROWSER_ACCEPTANCE.md) | Real web file actions, keyboard navigation and PNG/H.264 decoding |
 
 The homepage and usage guides are bilingual. Several technical guides are currently in Traditional Chinese.
 
@@ -121,6 +122,7 @@ smart-social-downloader/
 │   ├── docker_interaction_probe.py  Invented session/key/media fixture actions
 │   ├── docker_host_acceptance.py   Actual host bind/ACL/file-secret acceptance
 │   ├── docker_host_probe.py        Receipt-gated host permissions and backup checks
+│   ├── docker_browser_acceptance.py Host Chrome file UI and actual PNG/H.264 playback
 │   ├── measure_persistence.py      Isolated synthetic saves and API latency
 │   └── measure_capacity.py         Account scan, IPC and 64 MiB boundary probes
 ├── docs/                          Usage, architecture and maintenance guides
@@ -168,7 +170,7 @@ Maintainers can run `python tools/check_source_archive.py` to build, verify and 
 
 Pending reliability fixes, architecture improvements and release acceptance are tracked in [Roadmap](ROADMAP.md). Completed implementation milestones are in [CHANGELOG](CHANGELOG.md).
 
-The experimental [Docker deployment](docs/DOCKER.md) includes Python 3.12/Compose, three persistent volumes, local networking/health checks, [backup/recovery](docs/DOCKER_STORAGE.md) and [host Chrome login/browser file actions](docs/DOCKER_LOGIN.md). Linux sessions use memory by default, with optional external-key encrypted persistence. Actual Linux amd64 builds, the [nine-check runtime gate](docs/DOCKER_ACCEPTANCE.md), [14-stage service/storage gate](docs/DOCKER_SERVICE_ACCEPTANCE.md), [15-stage invented-login/media HTTP gate](docs/DOCKER_INTERACTION_ACCEPTANCE.md) and [eight-stage actual host-storage gate](docs/DOCKER_HOST_ACCEPTANCE.md) pass; Linux CI runs the combined gate. Another physical host, actual version migrations and real Chrome/browser interaction remain on the [roadmap](ROADMAP.md#docker-化部署); no prebuilt image is published.
+The experimental [Docker deployment](docs/DOCKER.md) includes Python 3.12/Compose, three persistent volumes, local networking/health checks, [backup/recovery](docs/DOCKER_STORAGE.md) and [host Chrome login/browser file actions](docs/DOCKER_LOGIN.md). Linux sessions use memory by default, with optional external-key encrypted persistence. Actual Linux amd64 builds, the [nine-check runtime gate](docs/DOCKER_ACCEPTANCE.md), [14-stage service/storage gate](docs/DOCKER_SERVICE_ACCEPTANCE.md), [15-stage invented-login/media HTTP gate](docs/DOCKER_INTERACTION_ACCEPTANCE.md) and [eight-stage actual host-storage gate](docs/DOCKER_HOST_ACCEPTANCE.md) pass. The optional [seven-stage host Chrome gate](docs/DOCKER_BROWSER_ACCEPTANCE.md) adds actual UI, PNG decoding and H.264 play/seek checks; Linux CI runs the combined `--browser` gate. Another physical host (currently deferred), actual version migrations and human Chrome/login interaction remain on the [roadmap](ROADMAP.md#docker-化部署); no prebuilt image is published.
 
 ## License
 

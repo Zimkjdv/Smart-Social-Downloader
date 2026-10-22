@@ -15,7 +15,11 @@ The later [host-storage gate](DOCKER_HOST_ACCEPTANCE.md) adds eight actual host
 bind/file-secret stages, including private Windows ACLs and restored encrypted
 login, and passes locally on 2026-10-22. It records Docker Desktop's automatic
 creation of missing source directories and validates rejection of invalid
-directory keys. Cross-machine/version and real browser acceptance remain pending.
+directory keys. The optional [host Chrome gate](DOCKER_BROWSER_ACCEPTANCE.md) adds
+seven stages for the shipped UI, keyboard selection, actual PNG/H.264 decoding,
+playback/seek, refresh and missing-file recovery. Run `--browser` with host-only
+Playwright and existing Chrome. Physical-host migration is currently deferred;
+human connector/login, other codecs and actual version migration remain pending.
 
 ## Build inputs
 

@@ -66,9 +66,11 @@ resources created by this attempt. There is no prune operation.
 
 ## Remaining human/environment acceptance
 
-Real host Chrome installation/default and custom-port pairing, ten-minute expiry,
-revoked/expired X login, actual browser playback/codec behavior, Windows default
-player/Explorer interaction and physical-host/version migration
+The later [host Chrome gate](DOCKER_BROWSER_ACCEPTANCE.md) adds actual UI,
+keyboard selection, PNG decoding and H.264 playback/seek. Real host Chrome
+installation/default and custom-port pairing, ten-minute expiry, revoked/expired
+X login, sound/other codecs, Windows default player/Explorer interaction and
+physical-host/version migration
 remain in [ROADMAP](../ROADMAP.md#docker-化部署). Synthetic protocol requests and
 original-byte HTTP checks do not prove those interactions. Docker remains
 experimental, with no published prebuilt image. See [test evidence](TESTING.md).

@@ -1,5 +1,48 @@
 # Regression and acceptance tests
 
+## Host Chrome UI and actual playback — 2026-10-22
+
+Local `--browser` acceptance passes **9 + 14 + 15 + 8 + 7 = 53** stages,
+`passed: true`, `complete: true`, exit code 0 with owned-resource cleanup.
+Run: **21:59:17–22:01:24 Asia/Taipei**. Docker **29.8.2**, Compose **5.6.0**,
+installed host Google Chrome **155.0.8059.86**, Windows ACL host mode.
+Runtime source SHA-256: `51bb9a8c7201fd5f0a4786351bbeaffcad3d9eb6c4d1ab51c44ce201a6cfcc6a`.
+Image: `sha256:4f4bc4d46afec9348e0d8d345991750f7f28e8df687ed7c483d596e344962faa`.
+Browser-tool/probe SHA-256: `7b5d2daa889a7c990b101e59c32ff788215b5f364d780c78ad9748f78c869bea`.
+
+The initial gate passes actual PNG and keyboard selection but fails H.264
+playback: a native video document's opaque sandbox creates `Origin: null`,
+rejected by the API. A single-header probe restores metadata/Range reads.
+The minimized shipped-handler Chrome regression fails with the old policy;
+a controlled old-header attempt still fails with the corrected driver polling,
+then the fixed handler passes decode, advancing playback, seek and end.
+Native sandbox documents also block Playwright's in-page polling task;
+the acceptance helper polls through bounded driver-side element evaluation.
+No script permission is added. Fixed inert inline MIME types retain origin;
+SVG/unknown media remain attachment/octet-stream under the opaque sandbox,
+HTML is rejected and null/foreign origins remain rejected. See the
+[W3C sandbox directive](https://w3c.github.io/webappsec-csp/#directive-sandbox).
+
+The new seven stages pass against the actual Docker entry/UI and a fresh Chrome
+context, including page reload/refresh, missing-file status and subsequent image
+recovery. All media and sessions are invented. This does not install the real
+connector, log into X, exercise sound/other codecs or launch Explorer/player.
+The user has deferred physical-host migration. See [procedure and limits](DOCKER_BROWSER_ACCEPTANCE.md).
+
+Full local checkout: **344 Python tests in 104.152 seconds / 23 Node**, zero skips.
+The 16 new cases cover native Chrome decode/play/seek, media MIME/sandbox/null
+origin guards, exact browser request origins, dialog/CLI contracts, categorical
+failures and bounded driver polling. The initial 30 focused Docker contracts and
+subsequent 19 playback/browser/API-source cases also pass.
+
+A repeated final gate includes a bounded fire-and-observe play trigger, so a
+stalled `play()` promise cannot hang acceptance. All 53 stages and cleanup pass.
+The final helper also passes 19 focused playback/browser/source-policy cases.
+A Git-index export excludes the deferred comparison document, verifies **201**
+source ZIP members and passes **344 Python tests in 104.323 seconds / 23 Node**,
+then **116** dependency-fault cases in **72.078 seconds** with only the previously
+reviewed SSL warning and zero skips/unexpected faults.
+
 ## Actual host binds and file secrets — 2026-10-22
 
 Local `--host-storage` acceptance passes **9 + 14 + 15 + 8 = 46** stages,
