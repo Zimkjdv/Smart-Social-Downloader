@@ -70,6 +70,7 @@ smart-social-downloader/
 │   ├── pixiv_auth.py  Pixiv PKCE 授權及加密登入保存
 │   ├── pixiv_auth_exchange.py  隔離、固定端點的 Token 交換
 │   ├── pixiv_profiles.py  作者原圖掃描與核對後增量補抓
+│   ├── pixiv_paths.py  共用作者名／ID 資料夾及跨平台安全命名
 │   ├── video_quality.py       # 來源尺寸辨識及畫質顯示
 │   ├── web_media.py          # 通用 HTML／播放器媒體發現
 │   ├── browser_media.py      # 選配臨時 Chrome／受檢查傳輸

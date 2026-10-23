@@ -150,14 +150,20 @@ class ProfileArchive:
     def close(self):
         self.connection.close()
 
-    def verified_files(self, names):
-        """Retain only recorded, still-valid pages while a new account scan runs."""
-        wanted = {os.path.normcase(name) for name in names if isinstance(name, str)}
+    def verified_files(self, names=None, *, post_id=None):
+        """Read still-valid recorded pages, optionally scoped to one work/post."""
+        if names is None and post_id is None:
+            raise ValueError("A filename list or post ID is required")
+        wanted = None if names is None else {os.path.normcase(name) for name in names if isinstance(name, str)}
         result, seen = [], set()
-        if not wanted:
+        if wanted is not None and not wanted:
             return result
-        rows = self.connection.execute("SELECT files FROM posts WHERE directory=? AND account=?",
-                                       (self.scope, self.account))
+        query = "SELECT files FROM posts WHERE directory=? AND account=?"
+        parameters = (self.scope, self.account)
+        if post_id is not None:
+            query += " AND post_id=?"
+            parameters += (post_id,)
+        rows = self.connection.execute(query, parameters)
         for (raw,) in rows:
             try:
                 entries = json.loads(raw)
@@ -168,7 +174,8 @@ class ProfileArchive:
                     if not isinstance(name, str):
                         continue
                     key = os.path.normcase(name)
-                    if key in wanted and key not in seen and verify_entries(self.root, [entry], allow_legacy=True):
+                    if ((wanted is None or key in wanted) and key not in seen
+                            and verify_entries(self.root, [entry], allow_legacy=True)):
                         result.append(entry)
                         seen.add(key)
             except (ValueError, TypeError, OSError):

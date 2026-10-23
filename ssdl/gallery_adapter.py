@@ -14,6 +14,7 @@ from .video_quality import install_video_quality, validate_video_quality, video_
 from .media_contracts import platform_folder, DownloadError, x_cookie_values, _relative_files
 from . import media_engines as engines, request_policy
 from .media_engines import STREAM_INTEGRITY_OPTIONS
+from .pixiv_paths import author_folder
 
 # gallery-dl configuration is process-wide; orchestration holds this lock.
 GALLERY_LOCK = threading.Lock()
@@ -30,7 +31,7 @@ def configure_gallery(output_dir: Path, *, force=False, x_cookie_file="", x_cook
         # Each download has its own child process. Never persist OAuth cache bytes.
         engines.gallery_config.set(("cache",), "file", ":memory:")
         for key, value in {"refresh-token": pixiv_refresh_token, "include": "artworks", "ugoira": "original",
-                           "sanity": False, "max-posts": 0, "directory": ["pixiv", "{user[id]}"],
+                           "sanity": False, "max-posts": 0, "directory": ["pixiv", "{author_folder}"],
                            "filename": "{id}_p{num}.{extension}"}.items():
             engines.gallery_config.set(("extractor", "pixiv"), key, value)
     if x_cookies or x_cookie_file:
@@ -182,6 +183,8 @@ def download_gallery(extractor, output_dir: Path, emit, *, video_quality="best")
 
         def handle_directory(self, metadata):
             nonlocal title
+            if self.extractor.category == "pixiv":
+                metadata["author_folder"] = author_folder(metadata.get("user"))
             content = metadata.get("title") or metadata.get("content") or metadata.get("description")
             if content:
                 title = str(content).replace("\n", " ")[:180]

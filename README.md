@@ -16,7 +16,7 @@ A local video and image download manager with a browser interface. Paste URLs, q
 - **Quality control:** highest available video quality by default; optional 2160p–144p height limits. Merge streams without re-encoding.
 - **Optional JavaScript capture:** a temporary Chrome context can discover dynamic video/audio sources and hand them to the normal download queue. [Enable it](docs/DYNAMIC_CAPTURE.md).
 - **X account media:** scan accessible images/videos first, show file totals, verify existing files, and sync missing/new media using your connected X session.
-- **Pixiv author works:** OAuth setup, scan-first file totals, original illustrations/manga pages and animation frames, and file-verified incremental sync. [Setup and current acceptance status](docs/PIXIV.md).
+- **Pixiv author works:** OAuth setup, scan-first file totals, original illustrations/manga pages and animation frames, `pixiv/Author name(ID)/` folders, and file-verified incremental sync. [Setup and current acceptance status](docs/PIXIV.md).
 - **Queue control:** background serial downloads, 3–8 second delays, configurable hourly quota, per-platform/shared cooldowns, pause, stop and retry.
 - **A manageable library:** local thumbnails, file size/time, view/play/open-folder actions, filters, pagination and preserved history.
 - **Local operation:** English / Traditional Chinese UI, Windows-encrypted X / Pixiv session storage, environment checks and redacted diagnostic export.
@@ -132,6 +132,7 @@ smart-social-downloader/
 │   ├── pixiv_auth.py  Pixiv PKCE and encrypted session ownership
 │   ├── pixiv_auth_exchange.py  Isolated fixed-endpoint token exchange
 │   ├── pixiv_profiles.py  Scan original pages and sync verified missing files
+│   ├── pixiv_paths.py  Shared portable author display-name / ID directories
 │   ├── browser_media.py           Optional temporary Chrome discovery
 │   └── *.py                       API, scheduling, persistence and downloads
 ├── static/                        Browser UI, styles and locale keys

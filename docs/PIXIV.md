@@ -86,21 +86,37 @@ private, restricted or API-unlisted content may not be available to the session.
 ```text
 downloads/
 └── pixiv/
-    └── 35692440/
+    └── Author name(35692440)/
         ├── <artwork-id>_p0.jpg
         ├── <artwork-id>_p1.png
         └── ...
 ```
 
-Stable author ID / artwork ID / page number naming keeps unrelated authors and
-pages separate. The existing profiles SQLite database uses an independent
+Both single artwork downloads and author synchronization save new files under
+`pixiv/Author name(author-id)/`, using the author display name from Pixiv and the
+numeric author ID, with no space before the opening parenthesis. Artwork IDs /
+page numbers keep filenames stable. Invalid Windows path characters and control
+characters become underscores; long display names are shortened without removing
+the ID. An unavailable or empty display name uses `Pixiv(author-id)`. The same
+portable naming rules apply on Windows and Linux.
+
+Existing verified pages stay at their recorded paths, including older ID-only
+folders and folders using an earlier author display name. A naming update or a
+Pixiv display-name change does not re-download those pages. No existing directory
+is automatically renamed or moved. A partially downloaded work can therefore
+reference both old and new folders; missing pages use the current display name.
+Manually moving/renaming a file or folder invalidates its original recorded path
+and causes a fresh download, as before.
+
+The existing profiles SQLite database uses an independent
 `pixiv:<author-id>` namespace scoped to the exact output directory. No second
 Pixiv database, standalone downloader or additional Python package is introduced.
 
 Every author sync scans again. A completed author URL is never used as a permanent
-whole-account skip. Existing records must match the newly scanned names/counts,
-and each page must still have the recorded path, nonzero size and modification
-time. Missing, moved, renamed or changed pages are fetched again. Same-name files
+whole-account skip. Existing records must match the newly scanned artwork/page
+filenames and counts within the same author ID and download root. Each page must
+still have its original recorded path, nonzero size and modification time.
+Missing, moved, renamed or changed pages are fetched again. Same-name files
 without a trusted record are downloaded again.
 
 Successful pages are recorded independently while a work is downloading. A partial

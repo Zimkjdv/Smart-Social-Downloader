@@ -13,15 +13,15 @@ from urllib.parse import urlparse
 
 from . import gallery_adapter as gallery, media_engines as engines, request_policy
 from .diagnostics import redact_text
-from .media_manifest import verify_entries
 from .media_contracts import DownloadError
 from .profiles import normalize_pixiv_account
+from .pixiv_paths import author_folder
 from .x_profiles import ProfileArchive
 
 QUALITY = "Pixiv 原圖／動圖原始影格 · 保留原格式"
 
 
-def original_asset(url, data, account, artwork):
+def original_asset(url, data, account, artwork, author):
     parsed = urlparse(url)
     number, extension = data.get("num"), str(data.get("extension", "")).lower()
     if (parsed.scheme != "https" or not (parsed.hostname or "").endswith(".pximg.net")
@@ -29,8 +29,10 @@ def original_asset(url, data, account, artwork):
             or not parsed.path.startswith("/img-original/") or type(number) is not int or number < 0
             or extension not in {"jpg", "jpeg", "png", "gif", "webp"} or str(data.get("id")) != artwork):
         raise DownloadError("Pixiv 未提供完整原圖清單；不使用預覽圖代替原檔。", code="pixiv_invalid_media")
-    name = str(Path("pixiv") / account / f"{artwork}_p{number}.{extension}")
+    folder = author_folder(author)
+    name = str(Path("pixiv") / folder / f"{artwork}_p{number}.{extension}")
     metadata = {"id": artwork, "num": number, "extension": extension, "author_id": account,
+                "user": author, "author_folder": folder,
                 "_http_adjust_extension": False}
     return name, (url, metadata)
 
@@ -76,14 +78,26 @@ def download_pixiv_account(url, output_dir, emit, *, archive_file, refresh_token
 
     def verify(plan):
         nonlocal existing_files, saved_total
-        kept = archive.lookup(plan["id"], len(plan["names"]), plan["names"])
-        if kept is None:
-            kept = archive.reusable_files(plan["id"], plan["names"], ())
-        kept = [item for item in kept if verify_entries(root, [item], allow_legacy=True)]
+        targets = {Path(name).name: name for name in plan["targets"]}
+        pages = {}
+        # Keep trusted pages at their recorded paths, including legacy ID-only
+        # folders and the display name used by an earlier sync. Never discover
+        # moved/renamed files by scanning the filesystem or basename alone.
+        for item in archive.verified_files(post_id=plan["id"]):
+            path = Path(item["name"])
+            if (len(path.parts) != 3 or path.parts[0] != "pixiv" or path.name not in targets
+                    or not (path.parts[1] == account or path.parts[1].endswith(f"({account})"))):
+                continue
+            if path.name not in pages or os.path.normcase(item["name"]) == os.path.normcase(targets[path.name]):
+                pages[path.name] = item
+        kept = [pages[Path(name).name] for name in plan["targets"] if Path(name).name in pages]
+        old_names = plan["names"]
+        plan["names"] = [pages[Path(name).name]["name"] if Path(name).name in pages else name
+                         for name in plan["targets"]]
         existing_files += len(kept) - plan["existing"]
         plan["existing"] = len(kept)
         names = {os.path.normcase(item["name"]) for item in kept}
-        for name in plan["names"]:
+        for name in set(old_names) | set(plan["targets"]):
             if os.path.normcase(name) not in names:
                 saved_total -= saved.pop(name, 0)
         remember(kept)
@@ -92,7 +106,7 @@ def download_pixiv_account(url, output_dir, emit, *, archive_file, refresh_token
     class Snapshot(Extractor):
         category, subcategory = "pixiv", "account-artwork"
         cookies_domain = None
-        directory_fmt = ("pixiv", "{author_id}")
+        directory_fmt = ("pixiv", "{author_folder}")
         filename_fmt = "{id}_p{num}.{extension}"
 
         def __init__(self, assets):
@@ -121,7 +135,7 @@ def download_pixiv_account(url, output_dir, emit, *, archive_file, refresh_token
     try:
         with gallery.GALLERY_LOCK:
             gallery.configure_gallery(root, pixiv_refresh_token=refresh_token)
-            for key, value in {"skip": False, "directory": ["pixiv", "{author_id}"],
+            for key, value in {"skip": False, "directory": ["pixiv", "{author_folder}"],
                                "filename": "{id}_p{num}.{extension}"}.items():
                 engines.gallery_config.set(("extractor", "pixiv", "account-artwork"), key, value)
             extractor = engines.gallery_extractor.find(f"https://www.pixiv.net/users/{account}/artworks")
@@ -142,6 +156,7 @@ def download_pixiv_account(url, output_dir, emit, *, archive_file, refresh_token
             report(status_text="正在掃描 Pixiv 作者作品清單")
             seen = set()
             plan = None
+            author = None
             expected = 0
             for kind, asset_url, data in extractor.items():
                 checkpoint()
@@ -153,6 +168,9 @@ def download_pixiv_account(url, output_dir, emit, *, archive_file, refresh_token
                     if (not artwork.isdigit() or str((data.get("user") or {}).get("id")) != account
                             or type(expected) is not int or expected < 0 or expected > 100000):
                         raise DownloadError("Pixiv 作者或作品頁數不一致，已停止以避免保存錯誤內容。", code="pixiv_invalid_media")
+                    if author is None:
+                        # One display name per scan even if it changes during pagination.
+                        author = {"id": account, "name": data["user"].get("name", "")}
                     if expected == 0:
                         # The extractor reports zero pages for inaccessible/deleted
                         # works or unavailable original animation frames.
@@ -160,14 +178,16 @@ def download_pixiv_account(url, output_dir, emit, *, archive_file, refresh_token
                         continue
                     duplicate = artwork in seen
                     seen.add(artwork)
-                    plan = {"id": artwork, "assets": [], "names": [], "existing": 0, "duplicate": duplicate}
+                    plan = {"id": artwork, "assets": [], "names": [], "targets": [],
+                            "existing": 0, "duplicate": duplicate}
                 elif kind == Message.Url:
                     if plan is None:
                         raise DownloadError("Pixiv 原圖清單不完整。", code="pixiv_invalid_media")
-                    name, asset = original_asset(asset_url, data, account, plan["id"])
+                    name, asset = original_asset(asset_url, data, account, plan["id"], author)
                     if name in plan["names"]:
                         raise DownloadError("Pixiv 回傳了重複頁碼。", code="pixiv_invalid_media")
                     plan["names"].append(name)
+                    plan["targets"].append(name)
                     plan["assets"].append(asset)
                     if len(plan["assets"]) == expected:
                         if plan["duplicate"]:
