@@ -339,6 +339,22 @@ class ApiHandler(BaseHTTPRequestHandler):
         except (ValueError, UnicodeError, RecursionError):
             return self._json(400, {"error": "請求格式不正確"})
 
+        if path.startswith("/api/auth/pixiv/"):
+            if not self._local_request():
+                return self._json(403, {"error": "僅允許本機操作"})
+            try:
+                if path.endswith("/begin") and path == "/api/auth/pixiv/begin" and not data:
+                    return self._json(200, self.app.PIXIV_AUTH.begin())
+                if path == "/api/auth/pixiv/connect" and set(data) in ({"code"}, {"refresh_token"}):
+                    return self._json(200, {"pixiv_auth": self.app.PIXIV_AUTH.connect(**data)})
+                if path == "/api/auth/pixiv/disconnect" and not data:
+                    return self._json(200, {"pixiv_auth": self.app.PIXIV_AUTH.disconnect()})
+            except self.app.AuthError as exc:
+                return self._json(400, {"error": self.app.redact_text(str(exc))})
+            except OSError:
+                return self._json(400, {"error": "Pixiv 登入無法保存或清除，請檢查儲存權限。"})
+            return self._json(400, {"error": "Pixiv 登入操作參數不正確。"})
+
         if path == "/api/environment/refresh":
             return self._json(202, self.app.ENVIRONMENT.refresh())
 
@@ -429,14 +445,14 @@ class ApiHandler(BaseHTTPRequestHandler):
         if path == "/api/jobs":
             raw_urls = data.get("urls", [])
             mode = data.get("mode", "urls")
-            if not isinstance(mode, str) or mode not in {"urls", "x_profile"}:
+            if not isinstance(mode, str) or mode not in {"urls", "x_profile", "pixiv_profile"}:
                 return self._json(400, {"error": "下載模式不正確"})
             try:
                 requested_quality = self.app.validate_video_quality(data.get("video_quality", "best"))
             except ValueError as exc:
                 return self._json(400, {"error": str(exc)})
-            if mode == "x_profile" and requested_quality != "best":
-                return self._json(400, {"error": "X 帳號媒體目前使用最高畫質。"})
+            if mode in self.app.PROFILE_MODES and requested_quality != "best":
+                return self._json(400, {"error": "作者媒體模式使用原圖／最高畫質。"})
             if not isinstance(raw_urls, list) or not raw_urls:
                 return self._json(400, {"error": "請先貼上至少一個網址"})
             if len(raw_urls) > self.app.MAX_URLS_PER_REQUEST:
@@ -447,9 +463,10 @@ class ApiHandler(BaseHTTPRequestHandler):
                 if not isinstance(raw, str):
                     rejected.append({"url": "", "error": "網址格式不正確"})
                     continue
-                if mode == "x_profile":
+                if mode in self.app.PROFILE_MODES:
                     try:
-                        result, account = self.app.normalize_account(raw)
+                        normalizer = self.app.normalize_pixiv_account if mode == "pixiv_profile" else self.app.normalize_account
+                        result, account = normalizer(raw)
                     except ValueError as exc:
                         rejected.append({"url": raw[:120], "error": str(exc)})
                         continue
@@ -463,7 +480,7 @@ class ApiHandler(BaseHTTPRequestHandler):
                     if profile:
                         result = profile[0]
                 if account and requested_quality != "best":
-                    rejected.append({"url": result, "error": "X 帳號媒體目前使用最高畫質。"})
+                    rejected.append({"url": result, "error": "作者媒體模式使用原圖／最高畫質。"})
                     continue
                 identity = self.app.media.source_key(result)
                 if identity in seen:
@@ -471,13 +488,13 @@ class ApiHandler(BaseHTTPRequestHandler):
                 seen.add(identity)
                 accepted.append((result, account))
             with self._mutation():
-                pending_accounts = {job.get("account") for job in self.app.state.jobs.values()
-                    if job.get("mode") == "x_profile" and job["status"] in {"queued", "active"}}
+                pending_accounts = {(job.get("mode"), job.get("account")) for job in self.app.state.jobs.values()
+                    if job.get("mode") in self.app.PROFILE_MODES and job["status"] in {"queued", "active"}}
                 ready = []
                 already_pending = []
                 for url, account in accepted:
-                    if account and account in pending_accounts:
-                        rejected.append({"url": url, "error": "此 X 帳號已有等待中或下載中的工作。"})
+                    if account and (self.app.profile_mode(url), account) in pending_accounts:
+                        rejected.append({"url": url, "error": "此作者已有等待中或下載中的工作。"})
                         continue
                     identity = self.app.media.source_key(url)
                     preference = "best" if account or self.app.media.original_image_url(url) else requested_quality
@@ -498,7 +515,7 @@ class ApiHandler(BaseHTTPRequestHandler):
                 created, reused = [], []
                 for url, account, existing, preference in accepted:
                     if existing is not None:
-                        existing.update(url=url, mode="x_profile" if account else "urls", account=account, video_quality=preference)
+                        existing.update(url=url, mode=self.app.profile_mode(url) if account else "urls", account=account, video_quality=preference)
                         self.app._retry_locked(existing)
                         if not account:
                             existing["status_text"] = "等待檢查已下載檔案"
@@ -508,10 +525,10 @@ class ApiHandler(BaseHTTPRequestHandler):
                     job = {
                         "id": job_id,
                         "url": url,
-                        "mode": "x_profile" if account else "urls",
+                        "mode": self.app.profile_mode(url) if account else "urls",
                         "account": account,
                         "platform": self.app._platform(url),
-                        "title": f"@{account}" if account else "等待下載",
+                        "title": (("Pixiv · " + account) if self.app.profile_mode(url) == "pixiv_profile" else f"@{account}") if account else "等待下載",
                         "status": "queued",
                         "status_text": "等待中",
                         "progress": 0,
@@ -724,7 +741,7 @@ class ApiHandler(BaseHTTPRequestHandler):
                 if job["status"] not in {"failed", "completed"}:
                     return self._json(409, {"error": "此項目已在佇列或下載中，請等處理完成"})
                 if not self.app._retry_locked(job, force=True):
-                    return self._json(409, {"error": "此 X 帳號已有等待中或下載中的工作。"})
+                    return self._json(409, {"error": "此作者已有等待中或下載中的工作。"})
                 generation = self.app._save_locked()
                 self.app.condition.notify_all()
             self.app._wait_saved(generation)

@@ -24,6 +24,7 @@ _PLATFORM_DOMAINS = {
     "pinterest": ("pinterest.com", "pin.it", "pinimg.com"),
     "reddit": ("reddit.com", "redd.it", "redditmedia.com", "redditstatic.com"),
     "vimeo": ("vimeo.com", "vimeocdn.com"),
+    "pixiv": ("pixiv.net", "pximg.net"),
     "twitch": ("twitch.tv", "twitchcdn.net"),
     "bilibili": ("bilibili.com", "b23.tv", "bilivideo.com", "hdslb.com"),
 }

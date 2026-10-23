@@ -7,13 +7,14 @@ const jobsController = SSDLJobsController.create({ ...controllerDependencies, ro
   invalidateView: () => { viewRefreshPending = true; } });
 const settingsController = SSDLSettingsController.create({ ...controllerDependencies, renderOffline,
   loadEnvironment: (...args) => diagnosticsController.load(...args) });
+const pixivLogin = SSDLPixivLogin.create({ api, refresh, state, $, t, uiText });
 diagnosticsController.init(); jobsController.init(); settingsController.init();
 let dashboardDisposed = false;
 function disposeDashboard() {
   if (dashboardDisposed) return;
   dashboardDisposed = true;
   clearTimeout(refreshTimer);
-  settingsController.dispose(); jobsController.dispose(); diagnosticsController.dispose();
+  pixivLogin.dispose(); settingsController.dispose(); jobsController.dispose(); diagnosticsController.dispose();
 }
 window.addEventListener('pagehide', (event) => { if (!event.persisted) disposeDashboard(); });
 function openSettings(...args) { return settingsController.open(...args); }
@@ -94,6 +95,8 @@ function render(data) {
   state.paused = Boolean(data.paused);
   state.ready = Boolean(data.ready);
   state.xAuth = data.x_auth || {};
+  state.pixivAuth = data.pixiv_auth || {};
+  pixivLogin.render();
   state.fileActions = data.file_actions || 'desktop';
   state.cookieFile = data.x_cookie_file || '';
   state.downloadDir = data.download_dir || '';
@@ -149,7 +152,7 @@ function render(data) {
   $('#top-pause').setAttribute('aria-pressed', String(state.paused));
   $('#top-pause .pause-symbol').textContent = state.paused ? '▶' : 'Ⅱ';
   $('#top-pause .pause-label').textContent = t(state.paused ? 'ui.resume' : 'ui.pause');
-  const runningProfile = data.active_job?.mode === 'x_profile' || state.jobs.some((job) => job.status === 'active' && job.mode === 'x_profile');
+  const runningProfile = ['x_profile', 'pixiv_profile'].includes(data.active_job?.mode) || state.jobs.some((job) => job.status === 'active' && ['x_profile', 'pixiv_profile'].includes(job.mode));
   $('#top-pause').title = t(state.paused ? 'ui.resume_upcoming_jobs_using_safe_queue_rules' : runningProfile ? 'ui.pause_upcoming_posts_the_current_post_will' : 'ui.pause_upcoming_jobs_the_current_download_will');
 
   const policy = data.safe_queue || {};
@@ -176,7 +179,7 @@ function render(data) {
   const monitorCopy = $('#monitor-copy');
   const progressBlock = $('#monitor-progress');
   const profileCounts = $('#monitor-profile-counts');
-  profileCounts.classList.toggle('hidden', !(activeJob?.mode === 'x_profile' && Number.isFinite(activeJob.profile_scanned_files)));
+  profileCounts.classList.toggle('hidden', !(['x_profile', 'pixiv_profile'].includes(activeJob?.mode) && Number.isFinite(activeJob.profile_scanned_files)));
   if (activeJob) {
     monitorTitle.textContent = activeJob.title ? jobTitle(activeJob) : t('ui.downloading_2');
     monitorCopy.textContent = `${activeJob.platform} · ${uiMessage(activeJob.status_text || '下載中')}`;
@@ -184,7 +187,7 @@ function render(data) {
     const pct = activeJob.progress ?? 8;
     $('#monitor-progress-fill').style.width = `${pct}%`;
     $('#monitor-progress-text').textContent = activeJob.progress === null ? t('ui.downloading') : `${pct}%`;
-    if (activeJob.mode === 'x_profile') {
+    if (['x_profile', 'pixiv_profile'].includes(activeJob.mode)) {
       monitorCopy.textContent = `${uiMessage(activeJob.status_text || '正在讀取 X 帳號媒體')} · ${profileSummary(activeJob)}`;
       const scanned = activeJob.profile_scan_complete && Number.isFinite(activeJob.profile_total_files);
       const total = scanned ? activeJob.profile_total_files : activeJob.profile_scanned_files;
@@ -273,13 +276,21 @@ function renderOffline(error = lastStatusError) {
 }
 
 function parsedUrls() {
-  if (state.inputMode === 'x_profile') return $('#url-input').value.split(/[\s,，]+/).map((part) => part.trim()).filter(Boolean);
+  if (['x_profile', 'pixiv_profile'].includes(state.inputMode)) return $('#url-input').value.split(/[\s,，]+/).map((part) => part.trim()).filter(Boolean);
   return $('#url-input').value.split(/\s+|[,，](?=\s*https?:\/\/)/i).map((part) => part.trim()).filter(Boolean);
 }
 
-function updateUrlCount() { $('#url-count').textContent = t(state.inputMode === 'x_profile' ? 'ui.count_accounts' : 'ui.count_urls', { count: parsedUrls().length }); }
+function updateUrlCount() { $('#url-count').textContent = t(['x_profile', 'pixiv_profile'].includes(state.inputMode) ? 'ui.count_accounts' : 'ui.count_urls', { count: parsedUrls().length }); }
 
 function renderProfileLogin() {
+  if (state.inputMode === 'pixiv_profile') {
+    const connected = Boolean(state.pixivAuth.connected);
+    $('#profile-login-status').textContent = t(connected ? 'ui.pixiv_connected' : 'ui.pixiv_connect_required');
+    $('#profile-login-status').parentElement.classList.toggle('is-connected', connected);
+    $('#profile-connect-x').textContent = t('ui.pixiv_sign_in');
+    $('#profile-connect-x').disabled = Boolean(state.pixivAuth.busy);
+    return;
+  }
   const connected = Boolean(state.xAuth.connected || state.cookieFile);
   $('#profile-login-status').textContent = t(connected ? 'ui.x_session_connected' : 'ui.connect_an_x_session_to_continue');
   $('#profile-login-status').parentElement.classList.toggle('is-connected', connected);
@@ -287,9 +298,9 @@ function renderProfileLogin() {
   $('#profile-connect-x').disabled = Boolean(state.xAuth.busy || connectingXRequest);
 }
 
-const inputDrafts = { urls: '', x_profile: '' };
+const inputDrafts = { urls: '', x_profile: '', pixiv_profile: '' };
 function renderVideoQuality() {
-  const profile = state.inputMode === 'x_profile';
+  const profile = ['x_profile', 'pixiv_profile'].includes(state.inputMode);
   $('#video-quality-controls').classList.toggle('hidden', profile);
   $('#profile-quality-note').classList.toggle('hidden', !profile);
   $('#video-quality').disabled = profile;
@@ -301,11 +312,13 @@ $('#video-quality').addEventListener('change', () => {
   renderVideoQuality();
 });
 function renderInputMode() {
-  const profile = state.inputMode === 'x_profile';
-  $('#download-input-description').textContent = t(profile ? 'ui.paste_an_x_profile_url_or_username' : 'ui.paste_video_image_or_post_urls');
-  $('#download-input-label').textContent = t(profile ? 'ui.x_accounts_to_download_media_from' : 'ui.urls_to_download');
-  $('#url-input').placeholder = t(profile ? 'ui.paste_x_accounts_one_per_line_https' : 'ui.paste_media_urls_one_per_line_https');
+  const profile = ['x_profile', 'pixiv_profile'].includes(state.inputMode);
+  const pixiv = state.inputMode === 'pixiv_profile';
+  $('#download-input-description').textContent = t(pixiv ? 'ui.pixiv_paste_author' : profile ? 'ui.paste_an_x_profile_url_or_username' : 'ui.paste_video_image_or_post_urls');
+  $('#download-input-label').textContent = t(pixiv ? 'ui.pixiv_author_urls' : profile ? 'ui.x_accounts_to_download_media_from' : 'ui.urls_to_download');
+  $('#url-input').placeholder = t(pixiv ? 'ui.pixiv_placeholder' : profile ? 'ui.paste_x_accounts_one_per_line_https' : 'ui.paste_media_urls_one_per_line_https');
   $('#profile-options').classList.toggle('hidden', !profile);
+  $('#profile-description').textContent = t(pixiv ? 'ui.pixiv_profile_description' : 'ui.scan_the_media_list_first_to_show');
   $('#supported-platforms').classList.toggle('hidden', profile);
   renderVideoQuality();
   document.querySelectorAll('[data-download-mode]').forEach((button) => {
@@ -324,7 +337,7 @@ document.querySelectorAll('[data-download-mode]').forEach((button) => button.add
   renderInputMode();
   $('#url-input').focus();
 }));
-$('#profile-connect-x').addEventListener('click', () => connectX());
+$('#profile-connect-x').addEventListener('click', () => state.inputMode === 'pixiv_profile' ? openSettings('pixiv') : connectX());
 
 $('#url-input').addEventListener('input', updateUrlCount);
 $('#url-input').addEventListener('keydown', (event) => {
@@ -336,10 +349,10 @@ $('#add-jobs').addEventListener('click', async () => {
   const urls = parsedUrls();
   const submittedMode = state.inputMode;
   const submittedText = $('#url-input').value;
-  const submittedQuality = submittedMode === 'x_profile' ? 'best' : state.videoQuality;
+  const submittedQuality = ['x_profile', 'pixiv_profile'].includes(submittedMode) ? 'best' : state.videoQuality;
   const message = $('#form-message');
   message.classList.remove('error');
-  if (!urls.length) { uiText(message, submittedMode === 'x_profile' ? 'ui.paste_an_x_profile_url_or_username_2' : 'ui.paste_one_or_more_media_urls_first'); message.classList.add('error'); $('#url-input').focus(); return; }
+  if (!urls.length) { uiText(message, submittedMode === 'pixiv_profile' ? 'ui.pixiv_paste_author' : submittedMode === 'x_profile' ? 'ui.paste_an_x_profile_url_or_username_2' : 'ui.paste_one_or_more_media_urls_first'); message.classList.add('error'); $('#url-input').focus(); return; }
   const button = $('#add-jobs');
   button.disabled = true;
   button.querySelector('span').textContent = t('ui.adding');

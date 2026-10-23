@@ -1,10 +1,10 @@
 /* Job formatting and keyed table rendering; actions live in jobs_controller.js. */
 const safe = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
 const statusNames = { queued: '等待中', active: '下載中', completed: '已完成', failed: '失敗', selecting: '待選擇媒體' };
-const jobTitle = (job) => job.mode === 'x_profile' ? t('ui.x_account_media_account', { account: job.account || '' }) : !job.title || job.title === '等待下載' || job.title === '正在下載圖片來源檔' ? t(job.title || 'ui.waiting_to_download') : job.title;
+const jobTitle = (job) => job.mode === 'pixiv_profile' ? t('ui.pixiv_author_title', { account: job.account || '' }) : job.mode === 'x_profile' ? t('ui.x_account_media_account', { account: job.account || '' }) : !job.title || job.title === '等待下載' || job.title === '正在下載圖片來源檔' ? t(job.title || 'ui.waiting_to_download') : job.title;
 
 function wasSkipped(job) {
-  return job.status === 'completed' && job.mode !== 'x_profile' &&
+  return job.status === 'completed' && !['x_profile', 'pixiv_profile'].includes(job.mode) &&
     (job.skipped_download || job.status_text === '已略過，檔案已存在');
 }
 
@@ -189,7 +189,7 @@ function renderJobs({ resetScroll = false } = {}) {
     const busy = pendingJobActions.has(job.id);
     const progress = Number.isFinite(job.progress) ? Math.max(0, Math.min(100, job.progress)) : null;
     const isActive = job.status === 'active';
-    const isProfile = job.mode === 'x_profile';
+    const isProfile = ['x_profile', 'pixiv_profile'].includes(job.mode);
     const stopped = job.error_code === 'profile_stopped';
     const skipped = wasSkipped(job);
     const showSkipResult = skipped && recentSkippedJobs.get(job.id) === jobRun(job);

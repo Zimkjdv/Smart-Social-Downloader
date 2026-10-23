@@ -16,9 +16,10 @@
 - **畫質選擇**：預設最高可用畫質，可選 2160p～144p 高度上限；合併影音串流時不重新編碼。
 - **選配 JavaScript 捕捉**：使用臨時 Chrome 工作階段發現動態影音來源，再交給原有下載流程。[啟用方法](docs/DYNAMIC_CAPTURE.md)。
 - **X 帳號媒體**：先掃描可存取的圖片與影片並顯示總數，核對原位置檔案，再補抓新增或缺少的內容。
+- **Pixiv 作者作品**：OAuth 登入設定、先掃描總數、插畫／漫畫原圖與動圖原始影格，以及核對檔案後的增量補抓。[操作與目前驗收狀態](docs/PIXIV.md)。
 - **背景佇列**：單 worker、3～8 秒延時、可調每小時額度、獨立／共用平台冷卻，以及暫停、停止與重新下載。
 - **清單管理**：本機縮圖、SIZE／TIME、播放／查看／開啟資料夾、篩選、分頁及保存紀錄。
-- **本機操作**：繁中／英文介面、Windows 加密保存 X 登入、環境診斷與經遮蔽的診斷匯出。
+- **本機操作**：繁中／英文介面、Windows 加密保存 X／Pixiv 登入、環境診斷與經遮蔽的診斷匯出。
 
 ## 快速開始
 
@@ -32,6 +33,8 @@
 YouTube 等部分網站需要 **Node.js 22+ 或 Deno 2.3+**。環境診斷提示需要 runtime 時，安裝並重新啟動服務。詳見 [安裝與排錯](docs/TROUBLESHOOTING.md)。
 
 下載需要登入的 X 內容時，先在一般 Chrome 登入 X，再使用 **設定 → X 登入**。如需連接器，依 [首次安裝步驟](chrome-extension/README.md) 載入。工具連接既有登入狀態，不代為執行 Google／Apple 登入。
+
+Pixiv 請使用 **設定 → Pixiv 登入** 完成瀏覽器授權回呼，再選 **Pixiv 作者作品** 貼上作者網址或數字 ID。詳見 [Pixiv 說明](docs/PIXIV.md)；真實平台驗收仍待完成。
 
 ## 限制與支援範圍
 
@@ -73,7 +76,7 @@ smart-social-downloader/
 ├── setup.bat / start.bat           安裝及啟動
 ├── update.bat                     主動更新引擎
 ├── Dockerfile / compose.yaml      實驗性 Linux amd64 部署
-├── compose.login.yaml             選配：獨立金鑰加密保存 X 登入
+├── compose.login.yaml             選配：獨立金鑰加密保存 X／Pixiv 登入
 ├── .dockerignore / docker/        建置允許清單、快照、入口、健康及儲存工具
 ├── requirements*.txt              更新相容範圍／鎖定基準／選配捕捉
 ├── README.md / README_CN.md        英文／繁體中文首頁
@@ -98,6 +101,10 @@ smart-social-downloader/
 │   ├── gallery_adapter.py        gallery-dl 設定與媒體下載
 │   ├── image_adapter.py          圖片原始位元組與保存紀錄
 │   ├── x_account_media.py        X 帳號掃描／同步及公開貼文
+│   ├── profiles.py  作者網址、平台模式與標準化
+│   ├── pixiv_auth.py  Pixiv PKCE 授權及加密登入保存
+│   ├── pixiv_auth_exchange.py  隔離、固定端點的 Token 交換
+│   ├── pixiv_profiles.py  作者原圖掃描與核對後增量補抓
 │   ├── browser_media.py           選配臨時 Chrome 捕捉
 │   └── *.py                       API、排程、保存及下載模組
 ├── static/                        網頁介面、樣式及語系 key

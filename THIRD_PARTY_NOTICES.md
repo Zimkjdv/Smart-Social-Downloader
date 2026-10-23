@@ -39,3 +39,7 @@
 目前新增的是 Dockerfile／Compose 與[建置文件](docs/DOCKER.md)，未發布預建映像。來源 ZIP 仍不含第三方執行檔；使用者依設定建置的映像則會包含 Python、Node、Debian／FFmpeg 及 Python 依賴，保留各元件授權。Dockerfile 保留安裝套件的 metadata／licenses、Debian 版權檔及 Node LICENSE，並記錄實際套件版本。
 
 若日後散布映像，須依其實際內容完成授權、聲明及適用的對應原始碼義務審查；來源基礎設定完成不等於已完成映像散布審查。Python 與 Node 來源及授權可分別見 [Python](https://github.com/python/cpython/blob/3.12/LICENSE)、[Node](https://github.com/nodejs/node/blob/v22.23.3/LICENSE)，Debian 套件聲明位於映像的 `/usr/share/doc/`。
+
+## Pixiv 功能的設計參考
+
+2026-10-23 的 Pixiv 作者同步沿用 gallery-dl 既有 Pixiv／OAuth 實作及本專案的佇列／保存服務。設計參考 [PixivUtil2](https://github.com/Nandaka/PixivUtil2) 的作者、作品、漫畫頁碼分層與缺檔檢查，參考專案採 [BSD-2-Clause](https://github.com/Nandaka/PixivUtil2/blob/master/LICENSE)。本次沒有新增 PixivUtil2 套件依賴，gallery-dl 的原有 GPL 義務維持。功能與驗收範圍見 [Pixiv 文件](docs/PIXIV.md)。

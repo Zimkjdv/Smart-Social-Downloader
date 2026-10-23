@@ -72,7 +72,7 @@ class StateRepository:
         """Consolidate verified rows for the same source, folder and exact file set."""
         kept, duplicates = {}, []
         for job in sorted(self.app.state.jobs.values(), key=lambda item: item["created_at"], reverse=True):
-            if job["status"] != "completed" or job.get("mode") == "x_profile" or not job.get("output_dir"):
+            if job["status"] != "completed" or job.get("mode") in self.app.PROFILE_MODES or not job.get("output_dir"):
                 continue
             files = job.get("files", [])
             try:

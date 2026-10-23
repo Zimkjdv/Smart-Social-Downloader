@@ -15,7 +15,11 @@
 .settings-header .dialog-copy { margin: 10px 0 18px; color: #98a6bd; font-size: 12px; line-height: 1.6; }
 #settings-close { display: flex; align-items: center; justify-content: center; flex: none; width: 36px; height: 36px; padding: 0; line-height: 0; border-radius: 10px; }
 #settings-close svg { display: block; width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
-.settings-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; padding: 4px; background: #0a101c; border: 1px solid #29344a; border-radius: 10px; }
+.settings-tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; padding: 4px; background: #0a101c; border: 1px solid #29344a; border-radius: 10px; }
+#settings-panel-pixiv input { display: block; width: 100%; box-sizing: border-box; background: #090f1b; color: #e5eaf5; border: 1px solid #33415a; border-radius: 10px; padding: 12px 14px; margin: 9px 0 12px; font: inherit; }
+#settings-panel-pixiv input:focus { outline: 2px solid #9970f8; outline-offset: 2px; }
+#settings-panel-pixiv label { display: block; margin-top: 16px; }
+.platform-chip.pixiv, .platform-badge.pixiv { color: #71c9ff; border-color: #245478; background: #102a3c; }
 .settings-tab { min-height: 38px; padding: 8px 12px; border: 1px solid transparent; border-radius: 7px; background: transparent; color: #9baac1; font-size: 13px; font-weight: 600; cursor: pointer; }
 .settings-tab:hover { background: #1a2233; color: #e3e9f4; }
 .settings-tab[aria-selected="true"] { border-color: #966bf2; background: linear-gradient(110deg, #8150e2, #6940c9); color: #fff; box-shadow: 0 3px 12px #6e44ce30; }

@@ -64,6 +64,10 @@ smart-social-downloader/
 │   ├── gallery_adapter.py    # gallery-dl 設定、節流與檔案進度
 │   ├── image_adapter.py      # 原始圖片位元組及 ImageHistory
 │   ├── x_account_media.py    # X 帳號掃描計畫／同步及公開貼文
+│   ├── profiles.py  作者網址、平台模式與標準化
+│   ├── pixiv_auth.py  Pixiv PKCE 授權及加密登入保存
+│   ├── pixiv_auth_exchange.py  隔離、固定端點的 Token 交換
+│   ├── pixiv_profiles.py  作者原圖掃描與核對後增量補抓
 │   ├── video_quality.py       # 來源尺寸辨識及畫質顯示
 │   ├── web_media.py          # 通用 HTML／播放器媒體發現
 │   ├── browser_media.py      # 選配臨時 Chrome／受檢查傳輸

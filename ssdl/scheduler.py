@@ -26,7 +26,7 @@ class QueueScheduler:
         preference = job.get("video_quality", "best")
         selection = job.get("selected_media", "")
         candidates = (stored for stored in self.app.state.jobs.values()
-                      if stored["status"] == "completed" and stored.get("mode") != "x_profile")
+                      if stored["status"] == "completed" and stored.get("mode") not in self.app.PROFILE_MODES)
         result = []
         for stored in (*candidates, job.get("last_success")):
             if not isinstance(stored, dict) or not self.app.media._same_output_directory(stored, output_dir):
@@ -80,7 +80,7 @@ class QueueScheduler:
                 if not job:
                     return
                 title = data.get("title")
-                is_profile = job.get("mode") == "x_profile"
+                is_profile = job.get("mode") in self.app.PROFILE_MODES
                 if title and not is_profile:
                     job["title"] = title[:180]
                 filename = data.get("filename")
@@ -146,7 +146,7 @@ class QueueScheduler:
                     downloading = start_post or job.get("profile_scan_complete", False)
                     job["profile_stage"] = "downloading" if downloading else "scanning"
                     job["profile_wait_seconds"] = 0
-                    job["status_text"] = "下載帳號媒體中" if downloading else "正在掃描 X 帳號媒體清單"
+                    job["status_text"] = "下載帳號媒體中" if downloading else ("正在掃描 Pixiv 作者作品清單" if job.get("mode") == "pixiv_profile" else "正在掃描 X 帳號媒體清單")
                     if start_post:
                         self.app.state.job_starts.append(time.time())
                         generation = self.app._save_locked()
@@ -230,6 +230,7 @@ class QueueScheduler:
                     continue
                 self.app.state.active_id = job_id
                 job["status"] = "active"
+                job["platform"] = self.app._platform(job["url"])
                 job["status_text"] = "正在連線"
                 job["updated_at"] = time.time()
                 job["attempts"] = job.get("attempts", 0) + 1
@@ -249,7 +250,7 @@ class QueueScheduler:
                 job["output_dir"] = str(output_dir)
                 job["skipped_download"] = False
                 if profile:
-                    job.update(mode="x_profile", account=profile[1], stop_requested=False,
+                    job.update(mode=self.app.profile_mode(job["url"]), account=profile[1], stop_requested=False,
                                profile_stage="scanning", profile_posts=0, profile_skipped=0,
                                profile_downloaded_posts=0, profile_wait_seconds=0, progress=None)
                     job.update(self.app._PROFILE_COUNT_DEFAULTS)
@@ -257,13 +258,15 @@ class QueueScheduler:
                     self.app.state.job_starts.append(job["started_at"])
                 generation = self.app._save_locked()
 
+            pixiv_token = ""
             try:
                 self.app._wait_saved(generation)
                 if self.app._job_cancelled(job_id):
                     raise self.app.media.DownloadError("下載已停止；已保存檔案保留。", code="download_cancelled")
                 x_cookies = self.app.X_AUTH.cookies() if job["platform"] == "X" else {}
+                pixiv_token = self.app.PIXIV_AUTH.token() if job["platform"] == "Pixiv" else ""
                 result = self.app.run_job({"url": job["url"], "output_dir": str(output_dir), "cookie_file": cookie_file,
-                    "x_cookies": x_cookies, "profile": bool(profile), "force": force,
+                    "x_cookies": x_cookies, "pixiv_refresh_token": pixiv_token, "mode": job.get("mode", "urls"), "profile": bool(profile), "force": force,
                     "archive_file": str(self.app.DATABASES.path_for("profiles")),
                     "image_history_file": str(self.app.DATABASES.path_for("images")),
                     "manifest_file": str(self.app.DATABASES.path_for("media")),
@@ -308,6 +311,8 @@ class QueueScheduler:
                                        updated_at=time.time())
             except Exception as exc:
                 failure = self.app.media.error_info(exc)
+                if failure["error_code"] == "pixiv_login_required":
+                    self.app.PIXIV_AUTH.invalidate(pixiv_token)
                 if failure["error_code"] == "rate_limited":
                     self.app.POLICY.ensure_cooldown(platform=self.app.platform_key(job["url"]))
                 with self.app.lock:

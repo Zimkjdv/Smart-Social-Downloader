@@ -86,17 +86,19 @@ def download_web_media(url: str, output_dir: Path, emit, *, force=False, video_q
 
 def _download_source(url: str, output_dir: Path, emit, *, force=False, x_cookie_file="", x_cookies=None,
              image_history_file: Path | None = None, known_jobs=(), video_quality="best", selected_media="",
-             dynamic_capture=False, browser=None) -> dict:
+             dynamic_capture=False, browser=None, pixiv_refresh_token="") -> dict:
     output_dir.mkdir(parents=True, exist_ok=True)
     if original_image_url(url):
         return images.download_image(url, output_dir, emit, force=force, history_file=image_history_file, known_jobs=known_jobs)
+    if (urlparse(url).hostname or "").lower() in {"pixiv.net", "www.pixiv.net"} and not pixiv_refresh_token:
+        raise DownloadError("請先在設定完成 Pixiv 授權。", code="pixiv_login_required")
     if engines.gallery_extractor:
         # gallery-dl holds process-wide configuration; this app serializes downloads.
         with gallery.GALLERY_LOCK:
             # Only load a selected X credential file when this job is for X.
             is_x = (urlparse(url).hostname or "").lower().removeprefix("www.").removeprefix("mobile.") in {"x.com", "twitter.com"}
             gallery.configure_gallery(output_dir, force=force, x_cookie_file=x_cookie_file if is_x else "", x_cookies=x_cookies if is_x else None,
-                              video_quality=video_quality)
+                              video_quality=video_quality, pixiv_refresh_token=pixiv_refresh_token if (urlparse(url).hostname or "").lower() in {"pixiv.net", "www.pixiv.net"} else "")
             post_id = x_post_id(url)
             if post_id and not (x_cookie_file or x_cookies):
                 return x_media.download_x_public(url, post_id, output_dir, emit, video_quality=video_quality)
@@ -120,7 +122,7 @@ def _download_source(url: str, output_dir: Path, emit, *, force=False, x_cookie_
 
 def download(url: str, output_dir: Path, emit, *, force=False, x_cookie_file="", x_cookies=None,
              image_history_file: Path | None = None, known_jobs=(), manifest_file: Path | None = None, video_quality="best", selected_media="",
-             dynamic_capture=False, browser=None) -> dict:
+             dynamic_capture=False, browser=None, pixiv_refresh_token="") -> dict:
     """Skip only a complete verified source manifest; keep expected paths fixed."""
     video_quality = validate_video_quality(video_quality)
     if original_image_url(url):
@@ -170,7 +172,7 @@ def download(url: str, output_dir: Path, emit, *, force=False, x_cookie_file="",
         result = _download_source(url, output_dir, emit, force=actual_force,
             x_cookie_file=x_cookie_file, x_cookies=x_cookies,
             image_history_file=image_history_file, known_jobs=known_jobs, video_quality=video_quality, selected_media=selected_media,
-            dynamic_capture=dynamic_capture, browser=browser)
+            dynamic_capture=dynamic_capture, browser=browser, pixiv_refresh_token=pixiv_refresh_token)
         result["video_quality"] = video_quality
         result["selected_media"] = selected_media
         from .media_manifest import file_entries

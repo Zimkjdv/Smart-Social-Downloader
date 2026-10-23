@@ -33,7 +33,8 @@ from .thumbnails import ThumbnailCache
 from .version import __version__
 from .video_quality import validate_video_quality
 from .x_auth import XAuthManager, AuthError, EXTENSION_ID, EXTENSION_ORIGIN
-from .x_profiles import normalize_account, account_from_url
+from .profiles import normalize_account, normalize_pixiv_account, account_from_url, profile_mode, PROFILE_MODES
+from .pixiv_auth import PixivAuthManager
 from .session_storage import host_browser_required
 
 
@@ -77,7 +78,10 @@ class AppContext:
     media, random = media, random
     run_job = staticmethod(run_job)
     platform_key = staticmethod(platform_key)
+    PROFILE_MODES = PROFILE_MODES
     account_from_url = staticmethod(account_from_url)
+    normalize_pixiv_account = staticmethod(normalize_pixiv_account)
+    profile_mode = staticmethod(profile_mode)
     normalize_account = staticmethod(normalize_account)
     browser_capture_available = staticmethod(browser_capture_available)
     file_page, job_summary = staticmethod(file_page), staticmethod(job_summary)
@@ -104,6 +108,7 @@ class AppContext:
         self.STATE_STORE: StateStore = state_store if state_store is not None else StateStore(self.ROOT / "data" / "state.json")
         self.STATE_FILE = self.STATE_STORE.filename
         self.X_AUTH: XAuthManager = auth if auth is not None else XAuthManager(self.ROOT / "data", port=self.PORT, restore=False)
+        self.PIXIV_AUTH = PixivAuthManager(self.ROOT / "data")
         self.ENVIRONMENT: EnvironmentDiagnostics = environment if environment is not None else EnvironmentDiagnostics(self.ROOT, self.PORT)
         self.THUMBNAILS: ThumbnailCache = thumbnails if thumbnails is not None else ThumbnailCache(self.CACHE_DIRECTORY / "thumbnails", media.ffmpeg_path)
         self.STORAGE: DownloadStats = storage if storage is not None else DownloadStats()
@@ -134,6 +139,7 @@ class AppContext:
         self._merge_completed_duplicates_locked = self._REPOSITORY.merge_completed_duplicates_locked
         self._load_saved_state = self._REPOSITORY.load_saved_state
         self.X_AUTH.on_connected = self._retry_failed_x
+        self.PIXIV_AUTH.on_connected = lambda: self._retry_failed_platform("Pixiv")
         self.Handler = type("Handler", (ApiHandler,), {"app": self})
 
     def start(self) -> None:
@@ -145,6 +151,7 @@ class AppContext:
                 return
             self._load_saved_state()
             self.X_AUTH.restore()
+            self.PIXIV_AUTH.restore()
             self.ENVIRONMENT.refresh()
             self.STATE_WRITER.start()
             self.state.worker_thread = threading.Thread(target=self._worker, name="download-queue", daemon=True)
@@ -166,6 +173,7 @@ class AppContext:
                 self.condition.notify_all()
             try:
                 self.X_AUTH.shutdown()
+                self.PIXIV_AUTH.shutdown()
                 self.DATABASES.shutdown()
                 worker = self.state.worker_thread
                 if worker and worker.is_alive() and worker is not threading.current_thread():
@@ -216,12 +224,12 @@ class AppContext:
 
 
     def _retry_locked(self, job: dict, *, force=False) -> bool:
-        if job.get("mode") == "x_profile" and any(
-                other["id"] != job["id"] and other.get("mode") == "x_profile"
+        if job.get("mode") in self.PROFILE_MODES and any(
+                other["id"] != job["id"] and other.get("mode") == job.get("mode")
                 and other.get("account") == job.get("account") and other["status"] in {"queued", "active"}
                 for other in self.state.jobs.values()):
             return False
-        if job["status"] == "completed" and job.get("mode") != "x_profile":
+        if job["status"] == "completed" and job.get("mode") not in self.PROFILE_MODES:
             job["last_success"] = {key: job.get(key) for key in
                 ("url", "output_dir", "size_bytes", "title", "quality", "video_quality", "selected_media")}
             job["last_success"]["files"] = list(job.get("files") or [])
@@ -230,7 +238,7 @@ class AppContext:
                    retry_count=job.get("retry_count", 0) + 1, force_download=force)
         job.update(started_at=None, finished_at=None, elapsed_seconds=None,
                    size_bytes=None, total_bytes=None, downloaded_bytes=0)
-        if job.get("mode") == "x_profile":
+        if job.get("mode") in self.PROFILE_MODES:
             # Account retries synchronize; they never overwrite the entire account archive.
             job.update(force_download=False, stop_requested=False, profile_stage="queued",
                        profile_posts=0, profile_skipped=0, profile_downloaded_posts=0,
@@ -243,10 +251,13 @@ class AppContext:
 
 
     def _retry_failed_x(self) -> None:
+        self._retry_failed_platform("X")
+
+    def _retry_failed_platform(self, platform) -> None:
         with self.condition:
             if self.state.shutdown.is_set():
                 return
-            failed = [job for job in self.state.jobs.values() if job["status"] == "failed" and job["platform"] == "X"
+            failed = [job for job in self.state.jobs.values() if job["status"] == "failed" and job["platform"] == platform
                       and job.get("error_code") not in {"profile_stopped", "download_cancelled"}
                       and not job.get("stop_requested")]
             for job in sorted(failed, key=lambda item: item["created_at"]):
@@ -267,7 +278,7 @@ class AppContext:
             "tiktok.com": "TikTok", "douyin.com": "抖音",
             "instagram.com": "Instagram", "threads.net": "Threads",
             "facebook.com": "Facebook", "fb.watch": "Facebook",
-            "x.com": "X", "twitter.com": "X", "pinterest.com": "Pinterest",
+            "x.com": "X", "twitter.com": "X", "pixiv.net": "Pixiv", "pinterest.com": "Pinterest",
             "pin.it": "Pinterest", "reddit.com": "Reddit", "vimeo.com": "Vimeo",
             "twitch.tv": "Twitch", "bilibili.com": "Bilibili", "b23.tv": "Bilibili",
         }
@@ -332,7 +343,7 @@ class AppContext:
             pacing["cooldown_seconds"] = relevant_cooling
             pacing["cooldown_until"] = time.time() + relevant_cooling if relevant_cooling else 0
             wait_seconds = max(0, math.ceil(self.state.next_job_at - time.time()), queue_cooling, quota["wait_seconds"])
-            profile_phase = active.get("profile_stage") if active.get("mode") == "x_profile" else None
+            profile_phase = active.get("profile_stage") if active.get("mode") in self.PROFILE_MODES else None
             phase = (profile_phase if profile_phase in {"paused", "waiting", "quota", "cooldown"} else
                      "active" if self.state.active_id else "paused" if self.state.paused else
                      "cooldown" if counts["queued"] and queue_cooling else
@@ -352,6 +363,7 @@ class AppContext:
                 "download_dir": str(self.state.download_dir),
                 "x_cookie_file": self.state.x_cookie_file,
                 "x_auth": self.X_AUTH.status(),
+                "pixiv_auth": self.PIXIV_AUTH.status(),
                 "file_actions": "browser" if host_browser_required() else "desktop",
                 "ready": all(engines[key] for key in ("video", "images", "ffmpeg")),
                 "app_version": __version__,

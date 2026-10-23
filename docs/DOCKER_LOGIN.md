@@ -103,3 +103,13 @@ The [15-stage interaction gate](DOCKER_INTERACTION_ACCEPTANCE.md) covers default
 The interaction gate substitutes a private owned key volume; `--host-storage` adds actual host binds/file secrets, private ACL/UID checks and encrypted-login backup/restore. The optional [host Chrome gate](DOCKER_BROWSER_ACCEPTANCE.md) exercises the actual file UI, PNG decoding and H.264 playback/seek. Human Chrome installation/default/custom-port pairing/expiry, sound/other codecs, Windows default-app/Explorer interaction and another host's configuration still require acceptance. These remain explicit in [ROADMAP](../ROADMAP.md#docker-化部署).
 
 References: [Compose secrets](https://docs.docker.com/compose/how-tos/use-secrets/), [PyCryptodome AES-GCM](https://www.pycryptodome.org/), [HTTP Range](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Range), [Chrome cookies API](https://developer.chrome.com/docs/extensions/reference/api/cookies).
+
+## Pixiv author sessions
+
+The [Pixiv workflow](PIXIV.md) uses a separate Settings tab and user-completed
+OAuth handoff in ordinary host Chrome. A container does not launch a browser.
+Memory storage is the default. The existing optional `compose.login.yaml`
+external-key mount also encrypts `data/pixiv-session.bin`; retain the same key
+for restore/restart, separately from the data backup. The encrypted payload is
+bound to the Pixiv service. No new connector permission or package is needed.
+Real Pixiv/Docker credential restoration remains pending in ROADMAP.

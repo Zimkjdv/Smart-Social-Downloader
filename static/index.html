@@ -57,12 +57,13 @@
           <div class="download-mode-switch" role="group" aria-label="下載模式" data-i18n-aria-label="ui.download_mode">
             <button type="button" class="selected" data-download-mode="urls" aria-pressed="true" data-i18n-key="ui.media_urls">媒體網址</button>
             <button type="button" data-download-mode="x_profile" aria-pressed="false" data-i18n-key="ui.x_account_media">X 帳號媒體</button>
+            <button type="button" data-download-mode="pixiv_profile" aria-pressed="false" data-i18n-key="ui.pixiv_author_media">Pixiv 作者作品</button>
           </div>
           <div class="supported-row" id="supported-platforms"><span class="muted-label" data-i18n-key="ui.platforms">常見平台</span>
-            <span class="platform-chip threads">Twitter / X</span><span class="platform-chip youtube">YouTube</span><span class="platform-chip tiktok">TikTok</span><span class="platform-chip instagram">Instagram</span><span class="platform-chip threads">Threads</span><span class="platform-chip facebook">Facebook</span><span class="platform-chip more" data-i18n-key="ui.more">+ 更多</span>
+            <span class="platform-chip threads">Twitter / X</span><span class="platform-chip youtube">YouTube</span><span class="platform-chip tiktok">TikTok</span><span class="platform-chip instagram">Instagram</span><span class="platform-chip threads">Threads</span><span class="platform-chip facebook">Facebook</span><span class="platform-chip pixiv">Pixiv</span><span class="platform-chip more" data-i18n-key="ui.more">+ 更多</span>
           </div>
           <div class="profile-options hidden" id="profile-options">
-            <p data-i18n-key="ui.scan_the_media_list_first_to_show">先掃描媒體清單，顯示總檔案數、需要下載與已存在數量，再依序下載。包含此帳號發布的圖片、影片及回覆媒體，不含轉發或引述；再次執行會補抓新增及未完成的內容。</p>
+            <p id="profile-description" data-i18n-key="ui.scan_the_media_list_first_to_show">先掃描媒體清單，顯示總檔案數、需要下載與已存在數量，再依序下載。包含此帳號發布的圖片、影片及回覆媒體，不含轉發或引述；再次執行會補抓新增及未完成的內容。</p>
             <div class="profile-login-row"><span id="profile-login-status" data-i18n-key="ui.connect_an_x_session_to_continue">需要連接 X 登入</span><button type="button" class="subtle-button" id="profile-connect-x" data-i18n-key="ui.connect_chrome">連接 Chrome 登入</button></div>
           </div>
           <div class="download-quality" id="video-quality-controls">
@@ -150,6 +151,7 @@
         <p class="dialog-copy" data-i18n-key="ui.manage_downloads_sign_in_and_your_local">管理下載、登入與本機環境。</p>
         <div class="settings-tabs" role="tablist" aria-label="設定分頁" data-i18n-aria-label="ui.settings_sections">
           <button type="button" class="settings-tab" id="settings-tab-general" role="tab" aria-selected="true" aria-controls="settings-panel-general" data-settings-tab="general"><span data-i18n-key="ui.general">一般設定</span></button>
+          <button type="button" class="settings-tab" id="settings-tab-pixiv" role="tab" aria-selected="false" aria-controls="settings-panel-pixiv" tabindex="-1" data-settings-tab="pixiv"><span data-i18n-key="ui.pixiv_sign_in">Pixiv 登入</span></button>
           <button type="button" class="settings-tab" id="settings-tab-x" role="tab" aria-selected="false" aria-controls="settings-panel-x" tabindex="-1" data-settings-tab="x"><span data-i18n-key="ui.x_sign_in">X 登入</span></button>
           <button type="button" class="settings-tab" id="settings-tab-diagnostics" role="tab" aria-selected="false" aria-controls="settings-panel-diagnostics" tabindex="-1" data-settings-tab="diagnostics"><span data-i18n-key="ui.diagnostics">診斷</span></button>
         </div>
@@ -179,6 +181,24 @@
         <p class="field-hint" id="browser-capture-status" role="status"></p>
         <p class="field-hint"><span data-i18n-key="ui.dynamic_capture_install">安裝選配套件：</span> <code>python tools/manage.py browser-setup</code></p>
       </section>
+        </div>
+        <div class="settings-panel" id="settings-panel-pixiv" role="tabpanel" aria-labelledby="settings-tab-pixiv" tabindex="0" hidden>
+          <section class="cookie-setting" aria-labelledby="pixiv-auth-heading">
+            <h3 id="pixiv-auth-heading" data-i18n-key="ui.pixiv_sign_in">Pixiv 登入</h3>
+            <p class="field-hint" id="pixiv-auth-status" role="status"></p>
+            <p class="field-hint" data-i18n-key="ui.pixiv_auth_help">在一般瀏覽器完成 Pixiv 登入。登入前按 F12 開啟 Network，完成後複製 callback 請求的完整網址或 code，立即貼回這裡。code 約 30 秒有效；本工具不讀取帳號密碼。</p>
+            <div class="auth-buttons"><button type="button" class="primary-button" id="pixiv-begin" data-i18n-key="ui.pixiv_begin">開啟 Pixiv 授權頁</button><button type="button" class="subtle-button" id="pixiv-disconnect" data-i18n-key="ui.pixiv_disconnect">取消授權／清除登入</button></div>
+            <a class="text-button hidden" id="pixiv-auth-link" target="_blank" rel="noopener noreferrer" data-i18n-key="ui.pixiv_reopen">重新開啟授權頁 ↗</a>
+            <label for="pixiv-code" data-i18n-key="ui.pixiv_callback_label">授權回呼網址或 code</label>
+            <input id="pixiv-code" type="password" autocomplete="off" spellcheck="false" autocapitalize="none" maxlength="4096" aria-describedby="pixiv-auth-message">
+            <div class="auth-buttons"><button type="button" class="subtle-button" id="pixiv-connect" data-i18n-key="ui.pixiv_complete">完成連接</button></div>
+            <p class="field-hint" id="pixiv-storage-description"></p>
+            <p class="dialog-message" id="pixiv-auth-message" role="status" aria-live="polite"></p>
+            <details class="advanced-cookie"><summary data-i18n-key="ui.pixiv_advanced">進階：使用既有 Refresh Token</summary>
+              <label for="pixiv-token">Refresh Token</label><input id="pixiv-token" type="password" autocomplete="off" spellcheck="false" autocapitalize="none" maxlength="4096">
+              <button type="button" class="subtle-button" id="pixiv-token-connect" data-i18n-key="ui.pixiv_validate_token">驗證並連接</button>
+            </details>
+          </section>
         </div>
         <div class="settings-panel" id="settings-panel-x" role="tabpanel" aria-labelledby="settings-tab-x" tabindex="0" hidden>
       <section class="cookie-setting" aria-labelledby="x-auth-heading">
@@ -286,6 +306,7 @@
   <script src="/static/diagnostics_controller.js" defer></script>
   <script src="/static/jobs_controller.js" defer></script>
   <script src="/static/settings_controller.js" defer></script>
+  <script src="/static/pixiv_login.js" defer></script>
   <script src="/static/app.js" defer></script>
 </body>
 </html>

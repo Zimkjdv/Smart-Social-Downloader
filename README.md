@@ -16,9 +16,10 @@ A local video and image download manager with a browser interface. Paste URLs, q
 - **Quality control:** highest available video quality by default; optional 2160p–144p height limits. Merge streams without re-encoding.
 - **Optional JavaScript capture:** a temporary Chrome context can discover dynamic video/audio sources and hand them to the normal download queue. [Enable it](docs/DYNAMIC_CAPTURE.md).
 - **X account media:** scan accessible images/videos first, show file totals, verify existing files, and sync missing/new media using your connected X session.
+- **Pixiv author works:** OAuth setup, scan-first file totals, original illustrations/manga pages and animation frames, and file-verified incremental sync. [Setup and current acceptance status](docs/PIXIV.md).
 - **Queue control:** background serial downloads, 3–8 second delays, configurable hourly quota, per-platform/shared cooldowns, pause, stop and retry.
 - **A manageable library:** local thumbnails, file size/time, view/play/open-folder actions, filters, pagination and preserved history.
-- **Local operation:** English / Traditional Chinese UI, Windows-encrypted X session storage, environment checks and redacted diagnostic export.
+- **Local operation:** English / Traditional Chinese UI, Windows-encrypted X / Pixiv session storage, environment checks and redacted diagnostic export.
 
 ## Quick start
 
@@ -32,6 +33,8 @@ A local video and image download manager with a browser interface. Paste URLs, q
 Some sites, including YouTube, need **Node.js 22+ or Deno 2.3+**. Install a runtime if diagnostics requests it, then restart the service. See [installation and troubleshooting](docs/TROUBLESHOOTING.md).
 
 For X login, sign into X in ordinary Chrome, then use **Settings → X sign-in**. If the connector is needed, follow its [one-time installation guide](chrome-extension/README.md). The tool connects an existing session; it does not perform Google/Apple sign-in.
+
+For Pixiv, use **Settings → Pixiv sign-in**, complete the browser authorization handoff, then select **Pixiv author works** and paste an author URL or numeric ID. See the [Pixiv guide](docs/PIXIV.md). Real platform acceptance is pending.
 
 ## Limits and support
 
@@ -73,7 +76,7 @@ smart-social-downloader/
 ├── setup.bat / start.bat           Install and launch
 ├── update.bat                     Explicit engine updates
 ├── Dockerfile / compose.yaml      Experimental Linux amd64 deployment
-├── compose.login.yaml             Optional external-key encrypted X sessions
+├── compose.login.yaml             Optional external-key encrypted X / Pixiv sessions
 ├── .dockerignore / docker/        Build context, snapshot, entry, health and storage tools
 ├── requirements*.txt              Update ranges / pinned baseline / optional capture
 ├── README.md / README_CN.md        English / Traditional Chinese homepages
@@ -98,6 +101,10 @@ smart-social-downloader/
 │   ├── gallery_adapter.py        gallery-dl configuration and transfers
 │   ├── image_adapter.py          Original image bytes and verified history
 │   ├── x_account_media.py        X account scan/sync and public-post media
+│   ├── profiles.py  Account URL/provider normalization
+│   ├── pixiv_auth.py  Pixiv PKCE and encrypted session ownership
+│   ├── pixiv_auth_exchange.py  Isolated fixed-endpoint token exchange
+│   ├── pixiv_profiles.py  Scan original pages and sync verified missing files
 │   ├── browser_media.py           Optional temporary Chrome discovery
 │   └── *.py                       API, scheduling, persistence and downloads
 ├── static/                        Browser UI, styles and locale keys

@@ -1,4 +1,4 @@
-"""X account URL normalization and a local, file-verified download history."""
+"""X URL normalization and a shared, file-verified per-author archive."""
 from __future__ import annotations
 
 import json
@@ -149,3 +149,28 @@ class ProfileArchive:
 
     def close(self):
         self.connection.close()
+
+    def verified_files(self, names):
+        """Retain only recorded, still-valid pages while a new account scan runs."""
+        wanted = {os.path.normcase(name) for name in names if isinstance(name, str)}
+        result, seen = [], set()
+        if not wanted:
+            return result
+        rows = self.connection.execute("SELECT files FROM posts WHERE directory=? AND account=?",
+                                       (self.scope, self.account))
+        for (raw,) in rows:
+            try:
+                entries = json.loads(raw)
+                if not isinstance(entries, list):
+                    continue
+                for entry in entries:
+                    name = entry.get("name") if isinstance(entry, dict) else None
+                    if not isinstance(name, str):
+                        continue
+                    key = os.path.normcase(name)
+                    if key in wanted and key not in seen and verify_entries(self.root, [entry], allow_legacy=True):
+                        result.append(entry)
+                        seen.add(key)
+            except (ValueError, TypeError, OSError):
+                continue
+        return result

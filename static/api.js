@@ -64,6 +64,10 @@
       optional(value, 'app_version', (item) => typeof item === 'string' && item.length <= 64) &&
       optional(value, 'dynamic_capture', (item) => typeof item === 'boolean') &&
       optional(value, 'browser_capture_available', (item) => typeof item === 'boolean') &&
+      optional(value, 'pixiv_auth', (item) => object(item) && typeof item.connected === 'boolean' &&
+        typeof item.busy === 'boolean' && typeof item.phase === 'string' &&
+        ['dpapi', 'memory', 'aes-gcm'].includes(item.storage_mode) &&
+        !('refresh_token' in item) && !('access_token' in item)) &&
       typeof value.download_dir === 'string' && typeof value.x_cookie_file === 'string' &&
       object(value.x_auth) && typeof value.x_auth.connected === 'boolean' && typeof value.x_auth.busy === 'boolean' &&
       optional(value.x_auth, 'host_browser', (item) => typeof item === 'boolean') &&
@@ -96,6 +100,14 @@
     if (path === '/api/diagnostics') return (value) => object(value) && value.format_version === 1 &&
       optional(value, 'app_version', (item) => typeof item === 'string' && item.length <= 64) &&
       number(value.created_at) && environment(value.environment) && Array.isArray(value.jobs) && object(value.counts);
+    if (path === '/api/auth/pixiv/begin') return (value) => object(value) &&
+      typeof value.authorization_url === 'string' && value.authorization_url.length <= 1024 &&
+      value.authorization_url.startsWith('https://app-api.pixiv.net/web/v1/login?') && count(value.expires_in);
+    if (['/api/auth/pixiv/connect', '/api/auth/pixiv/disconnect'].includes(path)) return (value) =>
+      object(value) && object(value.pixiv_auth) && typeof value.pixiv_auth.connected === 'boolean' &&
+      typeof value.pixiv_auth.busy === 'boolean' && typeof value.pixiv_auth.phase === 'string' &&
+      ['dpapi', 'memory', 'aes-gcm'].includes(value.pixiv_auth.storage_mode) &&
+      !('refresh_token' in value.pixiv_auth) && !('access_token' in value.pixiv_auth);
     if (path === '/api/auth/x/setup') return (value) => object(value) &&
       typeof value.extension_dir === 'string' && typeof value.extension_id === 'string' &&
       optional(value, 'port', (item) => Number.isInteger(item) && item >= 1 && item <= 65535);

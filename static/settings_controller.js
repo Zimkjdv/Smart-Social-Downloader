@@ -65,6 +65,7 @@
       if (!scope.active) return;
       if (modal.classList.contains('hidden')) return;
       modal.classList.add('hidden');
+      $('#pixiv-code').value = $('#pixiv-token').value = '';
       if (settingsReturnFocus?.isConnected && !settingsReturnFocus.disabled) settingsReturnFocus.focus();
       settingsReturnFocus = null;
     }

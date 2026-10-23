@@ -18,7 +18,7 @@ from .media_engines import STREAM_INTEGRITY_OPTIONS
 # gallery-dl configuration is process-wide; orchestration holds this lock.
 GALLERY_LOCK = threading.Lock()
 
-def configure_gallery(output_dir: Path, *, force=False, x_cookie_file="", x_cookies=None, video_quality="best") -> None:
+def configure_gallery(output_dir: Path, *, force=False, x_cookie_file="", x_cookies=None, video_quality="best", pixiv_refresh_token="") -> None:
     # Use the app's own settings, without loading external configs or postprocessors.
     engines.gallery_config.clear()
     for key, value in {"base-directory": str(output_dir), "fallback": False, "postprocessors": [], "timeout": 25, "retries": 3, "skip": not force,
@@ -26,6 +26,13 @@ def configure_gallery(output_dir: Path, *, force=False, x_cookie_file="", x_cook
         engines.gallery_config.set(("extractor",), key, value)
     for key, value in {"size": ["orig"], "videos": True, "previews": False, "conversations": False, "quoted": False, "ratelimit": "abort", "retries-api": 3}.items():
         engines.gallery_config.set(("extractor", "twitter"), key, value)
+    if pixiv_refresh_token:
+        # Each download has its own child process. Never persist OAuth cache bytes.
+        engines.gallery_config.set(("cache",), "file", ":memory:")
+        for key, value in {"refresh-token": pixiv_refresh_token, "include": "artworks", "ugoira": "original",
+                           "sanity": False, "max-posts": 0, "directory": ["pixiv", "{user[id]}"],
+                           "filename": "{id}_p{num}.{extension}"}.items():
+            engines.gallery_config.set(("extractor", "pixiv"), key, value)
     if x_cookies or x_cookie_file:
         engines.gallery_config.set(("extractor", "twitter"), "cookies", dict(x_cookies) if x_cookies else x_cookie_values(x_cookie_file))
         engines.gallery_config.set(("extractor", "twitter"), "cookies-update", False)
@@ -67,18 +74,29 @@ def _pace_gallery(extr, emit, video_quality="best"):
             return extract_media(tweet, limited, files)
 
         extr._extract_media = limited_media
+    def secure_session():
+        request_policy.POLICY.wrap_session(extr.session, emit)
+        if extr.category == "pixiv" and not getattr(extr.session, "_ssdl_pixiv_scope", False):
+            send = extr.session.send
+            def scoped_send(request, *args, **kwargs):
+                if (urlparse(request.url).hostname or "").lower() not in {"app-api.pixiv.net", "oauth.secure.pixiv.net"}:
+                    request.headers.pop("Authorization", None)
+                return send(request, *args, **kwargs)
+            extr.session.send = scoped_send
+            extr.session._ssdl_pixiv_scope = True
+
     original_init_session = extr._init_session
 
     def init_session():
         original_init_session()
-        request_policy.POLICY.wrap_session(extr.session, emit)
+        secure_session()
 
     extr._init_session = init_session
     original_initialize = extr.initialize
 
     def initialize():
         if extr.session is not None:
-            request_policy.POLICY.wrap_session(extr.session, emit)
+            secure_session()
         return original_initialize()
 
     extr.initialize = initialize
@@ -189,7 +207,10 @@ def download_gallery(extractor, output_dir: Path, emit, *, video_quality="best")
     if status:
         detail = next((message for message in reversed(messages) if re.search(r"\b429\b|rate[ _-]?limit", message, re.I)),
                       messages[-1] if messages else "平台無法提供可下載媒體；可能需要登入或內容已失效。")
-        raise DownloadError(detail, files)
+        pixiv_login = extractor.category == "pixiv" and any(part in detail.lower() for part in
+            ("authentication", "refresh token", "refresh-token"))
+        raise DownloadError("Pixiv 登入已失效，請重新授權。" if pixiv_login else detail, files,
+                            code="pixiv_login_required" if pixiv_login else "download_failed")
     if not files:
         raise DownloadError("貼文內沒有可取得的媒體檔案，或平台要求登入。")
     is_twitter = extractor.category == "twitter"
