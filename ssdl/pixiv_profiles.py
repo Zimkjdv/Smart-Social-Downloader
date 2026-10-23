@@ -98,6 +98,9 @@ def download_pixiv_account(url, output_dir, emit, *, archive_file, refresh_token
         def __init__(self, assets):
             super().__init__(re.match(".*", url))
             self.assets = assets
+
+        def _init(self):
+            # gallery-dl creates the session lazily in initialize(), before _init.
             self.session.headers["Referer"] = "https://www.pixiv.net/"
 
         def items(self):

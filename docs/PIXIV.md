@@ -156,6 +156,20 @@ actions, a storage note and an advanced manual fallback. Duplicate success text
 and consumed pairing links are removed. Pending/expired states retain their
 messages; X errors and cookie-file sign-in remain visible in the shared layout.
 
+## First-transfer initialization repair (2026-10-24)
+
+A reported author sync scanned 45 works / 68 files, then failed with
+`'NoneType' object has no attribute 'headers'` before processing the first work.
+The local snapshot extractor assigned its Pixiv Referer in the constructor, before
+gallery-dl had created its HTTP session. The assignment now runs in `_init`, after
+session creation and the existing pacing/Authorization-scope wrappers.
+
+The same failed job was retried through the normal queue. At the recorded
+observation it had saved 16 originals across five works, with no error, and was
+continuing in the background. This confirms passage through the original failure
+boundary; remaining transfers and recovery paths still require their own results.
+New job workers load this source change; retry the failed author item to use it.
+
 ## Validation remaining
 
 On 2026-10-24, a live dashboard reproduction found that the Pixiv controller's
