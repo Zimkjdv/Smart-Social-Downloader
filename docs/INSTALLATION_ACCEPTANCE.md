@@ -60,6 +60,11 @@ diagnosis and prints its location; remove that owned copy after inspection.
    exit, durable closure, worker/helper cleanup and exact queue/quota recovery
    after restart. These assertions run before fallback Job Object cleanup. See
    [console acceptance](CONSOLE_ACCEPTANCE.md) for admission, signal and scope.
+9. Run the native [background lifecycle acceptance](DESKTOP_ACCEPTANCE.md) in the
+   same disposable installation: custom/repeated/concurrent batch starts, browser
+   URL dispatch, separate-project controls, active-download stop/restart, log
+   rotation, foreground port conflicts and preserved durable state. Its closure
+   assertions precede fallback Job Object cleanup.
 
 Baseline restoration reinstalls exact required versions; it does not remove every
 extra package left by an update. That distinction is also in [Maintenance](MAINTENANCE.md#dependency-updates-and-action-pins).

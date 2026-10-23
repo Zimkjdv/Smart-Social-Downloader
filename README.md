@@ -43,7 +43,7 @@ For Pixiv, use **Settings → Pixiv sign-in**, click **Connect Pixiv** and finis
 - Startup errors: see **`data/background.log`**. An older foreground instance must be stopped with **Ctrl+C** in its console before switching to background mode.
 - For a visible foreground console, use **`.venv\Scripts\python.exe -X utf8 tools\manage.py start`** and stop with Ctrl+C. Docker startup is unchanged.
 
-See [desktop background service](docs/DESKTOP_SERVICE.md) for custom ports, shutdown timeouts and process ownership.
+See [desktop background service](docs/DESKTOP_SERVICE.md) for custom ports, shutdown timeouts and process ownership, and [native acceptance](docs/DESKTOP_ACCEPTANCE.md) for lifecycle checks and their scope.
 
 ### Chrome connector: first-time setup
 
@@ -148,6 +148,7 @@ smart-social-downloader/
 │   ├── check_source_archive.py     Full regression from the extracted ZIP
 │   ├── check_workflows.py          Reviewed Action identity / full SHA check
 │   ├── check_installation.py       Fresh Windows source/venv acceptance
+│   ├── check_desktop.py            Native Windows background lifecycle acceptance
 │   ├── check_dependency_faults.py  Versioned warning / transport regression gate
 │   ├── check_docker.py             Isolated Docker image/context acceptance
 │   ├── docker_runtime_probe.py     Synthetic FFmpeg/Node probe streamed into the image
@@ -187,7 +188,7 @@ The [first dependency review](docs/DEPENDENCY_ACCEPTANCE.md) adopts pycryptodome
 
 Maintainers can run `python tools/check_dependency_faults.py --report data/dependency-faults.json` after engine/browser updates. CI and extracted-source acceptance also run this [fault-tracking gate](docs/DEPENDENCY_FAULTS.md), recording versions and safe fault categories; new warnings, socket resource leaks or failed transport checks fail acceptance.
 
-Windows CI also checks installation, offline startup/restart and package update/restore in a fresh extracted source and venv. Maintainers can run `python tools/check_installation.py --browser`; it downloads dependencies into disposable storage. See [acceptance scope](docs/INSTALLATION_ACCEPTANCE.md) for the distinction between batch cleanup, graceful app close and remaining real desktop/X checks.
+Windows CI also checks installation, offline startup/restart, native background start/stop and package update/restore in a fresh extracted source and venv. Maintainers can run `python tools/check_installation.py --browser`; it downloads dependencies into disposable storage. See [acceptance scope](docs/INSTALLATION_ACCEPTANCE.md) for the distinction between batch cleanup, graceful app close and remaining real desktop/X checks.
 
 State saves use an owned background writer with immutable snapshots. Critical changes wait for durable writes without holding the queue lock; failed saves remain visible and can be retried in Diagnostics. Maintainers can reproduce synthetic capture/save/API latency measurements with `python tools/measure_persistence.py`. See [persistence performance](docs/PERSISTENCE_PERFORMANCE.md) for results and limits; the command uses disposable history and does not download media or restore login.
 

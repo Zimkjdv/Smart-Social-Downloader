@@ -374,13 +374,15 @@ def accept(workspace, *, browser=False):
         if fingerprint(root / "data/state.json") != saved_hash:
             raise AcceptanceError("Failed launch changed saved state")
         phases.append("invalid-port-noninteractive-rejection")
+        from tools.check_desktop import accept as accept_desktop
+        desktop = accept_desktop(root, token, workspace, offline)
         return {"passed": True, "python": installed_python, "bootstrap_python": sys.version.split()[0], "source_files": len(files),
                 "phases": phases, "baseline": baseline,
                 "updated_core": {key: updated.get(key) for key in baseline},
                 "restore_probe": {"package": "idna", "temporary": "3.10", "restored": baseline["idna"]},
                 "browser_installed": browser, "scope": "fresh-source-and-venv-on-existing-windows",
                 "batch_stop": "owned-forced-cleanup", "app_close": "receipt-gated-graceful-fixture",
-                "console_close": "real-ctrl-c-in-owned-hidden-console"}
+                "console_close": "real-ctrl-c-in-owned-hidden-console", "desktop": desktop}
     except Exception:
         if log.exists():
             tail = log.read_text(encoding="utf-8", errors="replace")[-4000:]

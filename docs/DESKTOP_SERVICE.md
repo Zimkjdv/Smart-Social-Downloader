@@ -52,9 +52,13 @@ binding and application startup. Stop removes readiness, exits HTTP admission an
 calls the existing application shutdown path. The done event is published after
 cleanup. No new HTTP shutdown endpoint or browser-facing stop token is introduced.
 
-The installation acceptance tool's existing readiness checks now allow a successful
-background launcher exit; its owned Job Object still scopes fixture cleanup.
-`stop.bat` is included in the source allowlist. No tests were added or run for this
-change. Syntax/static checks do not replace real Windows double-click, duplicate
-start, occupied-port, active-download stop/restart and source-install acceptance;
-these remain in [ROADMAP](../ROADMAP.md).
+Simultaneous launchers serialize their startup phase through a second, bounded
+project mutex, so both can reopen the same ready service without treating a losing
+child's exit as startup failure. A waiting launcher times out after 60 seconds;
+it does not release an unowned mutex or kill another process.
+
+`stop.bat` and the opt-in native Windows [background acceptance tool](DESKTOP_ACCEPTANCE.md)
+are included in source packages. The installation CI also exercises background
+start/stop, concurrent starts, occupied ports, project isolation and active worker
+recovery. The test records browser URL dispatch; default-browser windows and
+human double-click behavior remain in [ROADMAP](../ROADMAP.md).

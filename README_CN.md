@@ -43,7 +43,7 @@ Pixiv 請使用 **設定 → Pixiv 登入** 按「一鍵連接 Pixiv」，在一
 - 啟動失敗請查看 **`data/background.log`**。若原本有前景服務，請先在原控制台按 **Ctrl+C**，再改用背景模式。
 - 如需顯示控制台，執行 **`.venv\Scripts\python.exe -X utf8 tools\manage.py start`**，並用 Ctrl+C 停止。Docker 啟動方式不變。
 
-自訂連接埠、停止逾時與程序管理詳見 [桌面背景服務](docs/DESKTOP_SERVICE.md)。
+自訂連接埠、停止逾時與程序管理詳見 [桌面背景服務](docs/DESKTOP_SERVICE.md)，測試情境與限制見 [原生背景啟停驗收](docs/DESKTOP_ACCEPTANCE.md)。
 
 ### Chrome 連接器：首次安裝
 
@@ -148,6 +148,7 @@ smart-social-downloader/
 │   ├── check_source_archive.py     解壓來源包後執行完整回歸
 │   ├── check_workflows.py          已審查 Action 來源／完整 SHA 檢查
 │   ├── check_installation.py       Windows 新來源／venv 安裝驗收
+│   ├── check_desktop.py            Windows 原生背景啟停驗收
 │   ├── check_dependency_faults.py  版本、警告與傳輸故障回歸門檻
 │   ├── check_docker.py             隔離 Docker 映像及建置內容驗收
 │   ├── docker_runtime_probe.py     經標準輸入執行的合成 FFmpeg／Node 檢查
@@ -187,7 +188,7 @@ CI Actions 已固定完整 commit SHA。Dependabot 每週提出 Actions／Python
 
 維護者可在引擎／瀏覽器更新後執行 `python tools/check_dependency_faults.py --report data/dependency-faults.json`。CI 與來源包也會執行[依賴故障追蹤](docs/DEPENDENCY_FAULTS.md)，記錄版本與安全分類；新警告、socket 資源未關閉或傳輸驗收失敗會阻擋通過。
 
-Windows CI 另以全新來源與 venv 驗證安裝、離線啟動／重啟及更新／恢復。維護者可執行 `python tools/check_installation.py --browser`，它會下載依賴到隔離暫存位置。批次程序清理、正常關閉與真實桌面／X 驗收的分工見 [安裝驗收](docs/INSTALLATION_ACCEPTANCE.md)。
+Windows CI 另以全新來源與 venv 驗證安裝、離線啟動／重啟、原生背景啟停及更新／恢復。維護者可執行 `python tools/check_installation.py --browser`，它會下載依賴到隔離暫存位置。批次程序清理、正常關閉與真實桌面／X 驗收的分工見 [安裝驗收](docs/INSTALLATION_ACCEPTANCE.md)。
 
 保存採用獨立背景 writer 與不可變快照；關鍵變更等待落盤時不持有佇列鎖，失敗仍有提示並可在診斷中重新保存。維護者可用 `python tools/measure_persistence.py` 重現快照／保存／API 延遲量測，結果及限制見 [保存效能文件](docs/PERSISTENCE_PERFORMANCE.md)。指令使用暫存資料，不下載媒體或恢復登入。
 

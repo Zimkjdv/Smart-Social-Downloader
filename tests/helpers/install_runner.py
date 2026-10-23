@@ -59,7 +59,7 @@ def lifecycle(root):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("action", choices=("setup", "start", "update", "lifecycle", "service", "browser", "restore-probe", "inventory", "console"))
+    parser.add_argument("action", choices=("setup", "start", "stop", "foreground", "update", "lifecycle", "service", "browser", "restore-probe", "inventory", "console"))
     parser.add_argument("--token", required=True)
     args = parser.parse_args(argv)
     root = Path(__file__).resolve().parents[2]
@@ -87,6 +87,8 @@ def main(argv=None):
         elif args.action == "restore-probe":
             command = [str(root / ".venv/Scripts/python.exe"), "-m", "pip", "install",
                        "--disable-pip-version-check", "--no-deps", "idna==3.10"]
+        elif args.action == "foreground":
+            command = [str(root / ".venv/Scripts/python.exe"), "-X", "utf8", "tools/manage.py", "start"]
         elif args.action == "browser":
             command = [str(root / ".venv/Scripts/python.exe"), "-X", "utf8", "tools/manage.py", "browser-setup"]
         else:

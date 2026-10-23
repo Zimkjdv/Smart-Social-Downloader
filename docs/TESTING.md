@@ -619,3 +619,52 @@ An initial Windows WebSocket `close()` route callback hung; the implementation n
 - Live platform-specific JavaScript players, authenticated/interactive pages and newly changed extractors; support varies and no universal playback capture is claimed.
 
 Existing upstream SSL option deprecation and occasional closed-socket ResourceWarnings remain dependency-maintenance observations; they did not fail the successful suite. Rerun these tests when changing the engine, Playwright or Chrome baseline.
+
+
+## Windows background lifecycle — 2026-10-24
+
+Native Windows / Python 3.12.10: `tools/check_desktop.py` passed all **7 phases**
+using a freshly verified source ZIP and installed venv under spaces/Unicode paths.
+The tool used fresh loopback ports and synthetic media; no ordinary session,
+history, output file or production service was changed. Success evidence is
+stored locally in ignored `data/desktop-acceptance.json` (path-free summary).
+
+- Real background batch launch exited while HTTP remained ready; the service
+  had no console window and dispatched the exact custom-port URL.
+- Repeated start with a changed/invalid port and output environment reopened the
+  original URL/PID. Separate-project stop/start left the first service reachable.
+- Active synthetic worker plus helper exited during real `stop.bat`, before
+  fallback cleanup. The writer closed durably, owned threads joined, partial
+  bytes remained and the service record disappeared; the port could be rebound.
+- Repeated stop preserved saved-state bytes. Two concurrent cold launchers both
+  succeeded, rotated the oversized log once, and recovered exact job IDs,
+  attempts, paused queue, Rate usage and partial bytes before another normal stop.
+- A real owned foreground entry retained HTTP service after background bind
+  rejection and `stop.bat`; the bind error reached the background log and saved
+  state stayed unchanged. Its eventual cleanup used only its admitted Job Object.
+
+The full installation tool also passed all **13 installation/console phases**
+plus the nested **7 desktop phases**, including optional browser dependency
+installation, an actual package update, locked baseline restoration and real
+owned-console Ctrl+C. Its path-free local report is
+`data/desktop-installation-acceptance.json`. Production dependencies were unchanged.
+
+Final extracted-source regression: **220 verified source files, 354 Python tests
+and 24 Node tests passed**; the extracted dependency fault tracker also passed
+116 cases with no errors/failures/skips, and the complete source acceptance exited
+successfully. The new desktop/installation unit subset passed
+21 tests. The standalone native tool passed again with the final fresh-shutdown
+evidence check. The usual upstream SSL-options deprecation remains an observation,
+not a failed assertion. The deferred `DOWNVID_COMPARISON.md` was not included in
+the reviewed export, source ZIP, staging or commit.
+
+The first development run found the fixture hook could be evaluated twice by
+Python's venv site initialization, causing a fixture-only nested factory error.
+Make hook installation idempotent and fail closed instead of allowing site.py
+exception handling to fall back to ordinary media transport. Retain that regression.
+No acceptance assertion was removed to obtain the successful run.
+
+Browser verification records `webbrowser.open` dispatch and does not open a
+personal browser. It is not evidence of Windows default-browser association,
+visible pages, human double-clicks or every upstream engine's cancellation.
+See [complete scope](DESKTOP_ACCEPTANCE.md); those manual checks remain in ROADMAP.

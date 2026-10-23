@@ -92,7 +92,16 @@ def open_page():
 
 def start(check_environment):
     controls = Controls()
+    launch = None
+    owned = False
     try:
+        # Serialize launchers as well as service ownership: a losing child can
+        # exit before the winner publishes readiness during simultaneous starts.
+        launch = controls.keep(controls.api.CreateMutexW(None, False, controls.prefix + "launch"))
+        result = controls.api.WaitForSingleObject(launch, 60_000)
+        if result not in (0, 0x80):
+            raise RuntimeError("Another startup is still in progress. Retry start.bat shortly.")
+        owned = True
         ready = controls.open_event("ready")
         if ready and controls.signalled(ready):
             open_page()
@@ -120,6 +129,8 @@ def start(check_environment):
             time.sleep(0.2)
         raise RuntimeError("Startup is still pending. See data/background.log; use stop.bat before retrying if necessary.")
     finally:
+        if owned:
+            controls.api.ReleaseMutex(launch)
         controls.close()
 
 

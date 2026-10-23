@@ -1,6 +1,6 @@
 # Roadmap
 
-更新：2026-10-23。此檔是**未完成工作與最新審查發現的唯一總清單**；完成紀錄移至 [CHANGELOG](CHANGELOG.md)。目前基準為 Windows／Python 3.12，沒有 Python 3.10 驗收工作。下列核取方塊均尚未完成，不代表已修正或已發布。N01～N08 已完成並移到 [CHANGELOG](CHANGELOG.md#unreleased)，回歸結果見 [TESTING](docs/TESTING.md)。N07 的索引評估已記錄，實際索引／游標儲存列為後續選配，尚未實作。
+更新：2026-10-24。此檔是**未完成工作與最新審查發現的唯一總清單**；完成紀錄移至 [CHANGELOG](CHANGELOG.md)。目前基準為 Windows／Python 3.12，沒有 Python 3.10 驗收工作。下列核取方塊均尚未完成，不代表已修正或已發布。N01～N08 已完成並移到 [CHANGELOG](CHANGELOG.md#unreleased)，回歸結果見 [TESTING](docs/TESTING.md)。N07 的索引評估已記錄，實際索引／游標儲存列為後續選配，尚未實作。
 
 ## 本輪整體審查
 
@@ -18,9 +18,9 @@ N01～N08 已移至 [CHANGELOG](CHANGELOG.md#unreleased)。本輪列出的修正
 
 ## 安裝、真實使用與 GitHub 發布驗收
 
-- [ ] **Windows 背景啟停驗收（2026-10-24）**：start.bat 背景啟動／自動開網頁、stop.bat 正常關閉、重複啟動、自訂 port／環境改變後重開既有 port、前景服務佔用 port、啟動失敗日誌、下載中停止／佇列保存／重啟、不同專案程序隔離與來源包安裝需實機驗收。來源與既有安裝驗收工具已調整；未新增或執行測試。操作見 [桌面背景服務](docs/DESKTOP_SERVICE.md)。
+Windows 背景啟停的 7 項原生隔離驗收已於 2026-10-24 通過並移至 [CHANGELOG](CHANGELOG.md#unreleased)：自訂／重複／同時啟動、瀏覽器網址分派、不同專案隔離、下載中停止與待辦／Rate 恢復、日誌輪替及前景服務佔用拒絕。範圍與指令見 [背景驗收](docs/DESKTOP_ACCEPTANCE.md)；瀏覽器視窗及人手操作保留如下。
 
-- [ ] **一般桌面 Windows／互動驗收**：全新一般 Windows 的 Python／Node／Chrome 安裝、實際鍵盤／終端批次提示及授權 X 登入仍待驗收。新來源／新 venv 安裝、離線重啟、自動修復、更新／基準恢復，以及獨立控制台真正 Ctrl+C 的閒置／下載中關閉、程序清理及待辦恢復已自動化並移至 [CHANGELOG](CHANGELOG.md#unreleased)，見 [安裝驗收](docs/INSTALLATION_ACCEPTANCE.md) 與 [控制台驗收](docs/CONSOLE_ACCEPTANCE.md)。這些隔離副本／程式產生的事件不等於出廠桌面或人手按鍵；沒有 Python 3.10 工作。
+- [ ] **一般桌面 Windows／互動驗收**：全新一般 Windows 的 Python／Node／Chrome 安裝、實際雙擊 start.bat／stop.bat、預設瀏覽器視窗／作業系統關聯、鍵盤／終端批次提示及授權 X 登入仍待驗收。新來源／新 venv 安裝、離線重啟、自動修復、更新／基準恢復，以及獨立控制台真正 Ctrl+C 的閒置／下載中關閉、程序清理及待辦恢復已自動化並移至 [CHANGELOG](CHANGELOG.md#unreleased)，見 [安裝驗收](docs/INSTALLATION_ACCEPTANCE.md) 與 [控制台驗收](docs/CONSOLE_ACCEPTANCE.md)。這些隔離副本／程式產生的事件不等於出廠桌面或人手按鍵；沒有 Python 3.10 工作。
 - [ ] **一般 Chrome 真實配對**：重新載入 connector 1.2.0（含新增 Pixiv 網站／webRequest 權限）、自訂 port、取消／過期／失敗後重配及重啟恢復。先前預設 port 曾成功配對，不代表新版自訂 port 已驗收。正常 Windows 使用者環境的 DPAPI 是前提，不能以受限工具環境的失敗宣稱 DPAPI 普遍失效。
 - [ ] **線上平台抽樣**：實際 Best／指定畫質、登入失效、限流與恢復、帳號媒體掃描、缺檔補抓；先取得適合的測試素材。104＋10 合成測試不代表所有平台即時相容。
 - [ ] **GitHub 設定與發布**：啟用並確認私人漏洞回報入口，核對 tag、版本、來源 ZIP、release notes 後發布 preview。repo 已公開、Windows／Python 3.12 CI 已通過，目前沒有 tag／Release。
