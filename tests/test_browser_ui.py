@@ -148,6 +148,8 @@ class BrowserUITests(unittest.TestCase):
         page.locator("#download-dir").fill("fixture-draft")
         page.locator("#dynamic-capture").check()
         page.locator("#settings-tab-general").focus(); page.keyboard.press("ArrowRight")
+        self.assertEqual(page.locator("#settings-tab-pixiv").get_attribute("aria-selected"), "true")
+        page.keyboard.press("ArrowRight")
         self.assertEqual(page.locator("#settings-tab-x").get_attribute("aria-selected"), "true")
         page.keyboard.press("ArrowRight")
         self.assertEqual(page.locator("#settings-tab-diagnostics").get_attribute("aria-selected"), "true")
@@ -204,7 +206,7 @@ class BrowserUITests(unittest.TestCase):
         self.load(); page = self.page
         page.locator("#settings-open").click()
         page.locator("#settings-tab-x").click()
-        summary = page.locator("#settings-panel-x summary")
+        summary = page.locator("#settings-panel-x .advanced-cookies > summary")
         summary.focus(); page.keyboard.press("Enter"); page.keyboard.press("Tab")
         self.assertEqual(page.evaluate("document.activeElement.id"), "x-cookie-file")
         page.keyboard.press("Shift+Tab")

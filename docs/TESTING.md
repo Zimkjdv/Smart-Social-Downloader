@@ -1,5 +1,31 @@
 # Regression and acceptance tests
 
+## Settings UI CI contract repair — 2026-10-24
+
+The five pushes from `8c84267` through `5c16a46` failed the Windows Python
+regression step. Their Docker and fresh Windows installation jobs passed.
+The [latest failing run](https://github.com/Zimkjdv/Smart-Social-Downloader/actions/runs/40017372470)
+executed **344 Python tests in 107.026 seconds**, with **one failure and one
+error** in `tests/test_browser_ui.py`:
+
+- `test_settings_draft_language_tabs_keyboard_and_focus_return` expected the
+  X tab after one ArrowRight from General. The current visible order is
+  General → Pixiv → X → Diagnostics; the controller follows that DOM order.
+- `test_advanced_cookie_field_is_reachable_from_summary_with_keyboard` used
+  `#settings-panel-x summary`, which now matches both login help and advanced
+  Cookies. Playwright rejected the ambiguous focus operation in strict mode.
+
+The existing cases now assert the four-tab sequence and target
+`#settings-panel-x .advanced-cookies > summary`. Enter/Tab must still reach the
+Cookie field and Shift+Tab must return to its summary. Tests remain enabled,
+strict mode remains active, and the suite size and production UI are unchanged.
+This is a stale test-contract repair, not evidence of a failed download engine.
+
+Local checks cover Python syntax and diff whitespace only; no local test suite
+or real platform download was run for this repair. Full execution is performed
+by the existing push-triggered workflow. Results must be associated with that
+exact commit/run; a completed older run does not verify these changes.
+
 ## Host Chrome UI and actual playback — 2026-10-22
 
 Local `--browser` acceptance passes **9 + 14 + 15 + 8 + 7 = 53** stages,
