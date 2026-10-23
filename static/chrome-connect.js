@@ -14,7 +14,7 @@ function showExtension() {
   uiText($('#extension-badge'), 'ui.chrome_connector_ready');
   $('#extension-badge').classList.add('ready');
   $('#connect-x').disabled = connecting;
-  if (document.documentElement.dataset.ssdlExtensionVersion !== '1.1.0') {
+  if (document.documentElement.dataset.ssdlExtensionVersion !== '1.2.0') {
     uiText($('#setup-message'), 'ui.the_connector_has_an_update_reload_it');
   } else $('#install-panel').classList.add('hidden');
 }

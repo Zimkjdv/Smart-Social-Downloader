@@ -1,5 +1,25 @@
 /* Stable message keys: edit copy here without renaming keys. */
 window.SSDLMessages = {
+  "ui.pixiv_automatic_begin": {"zh-Hant": "一鍵連接 Pixiv", "en": "Connect Pixiv"},
+  "ui.pixiv_automatic_help": {"zh-Hant": "按下方按鈕，在一般 Chrome 完成 Pixiv 登入後，連接器會自動接回授權，不用開 F12 或複製 code。首次使用請載入連接器；已安裝者請更新至 1.2.0 並重新載入。", "en": "Click below and sign into Pixiv in ordinary Chrome. The connector returns authorization automatically, without F12 or copying a code. First install the connector, or update and reload it to version 1.2.0."},
+  "ui.pixiv_automatic_waiting": {"zh-Hant": "等待瀏覽器完成 Pixiv 授權…", "en": "Waiting for Pixiv authorization in the browser…"},
+  "ui.pixiv_automatic_opened": {"zh-Hant": "已開啟 Chrome 連接頁，完成 Pixiv 登入後會自動連接。若未開啟，請按下方連結。", "en": "Opened the Chrome connection page. Sign into Pixiv to connect automatically. If no page opened, use the link below."},
+  "ui.pixiv_automatic_failed": {"zh-Hant": "Pixiv 自動連接未完成。請確認已更新連接器、連接埠一致，再回下載工具重新按一鍵連接。既有登入不受影響。", "en": "Pixiv connection did not complete. Update the connector, check that ports match, and start again from the downloader. An existing session is preserved."},
+  "ui.pixiv_automatic_expired": {"zh-Hant": "Pixiv 連接已過期，請回下載工具重新按一鍵連接。", "en": "Pixiv connection expired. Start a new connection from the downloader."},
+  "ui.pixiv_manual_fallback": {"zh-Hant": "進階：手動授權／Refresh Token", "en": "Advanced: manual authorization / refresh token"},
+  "ui.pixiv_bridge_intro": {"zh-Hant": "連接器會開啟 Pixiv，並在你完成登入後自動回到這裡。無需 F12，不用複製授權碼。", "en": "The connector opens Pixiv and returns here automatically after sign-in. No F12 or copying authorization codes."},
+  "ui.pixiv_bridge_continue": {"zh-Hant": "繼續 Pixiv 登入", "en": "Continue Pixiv sign-in"},
+  "ui.pixiv_back_to_tool": {"zh-Hant": "返回下載工具", "en": "Back to downloader"},
+  "ui.pixiv_bridge_privacy": {"zh-Hant": "只接收這次授權分頁的 Pixiv 回呼碼並傳給本機工具，不讀取 Pixiv Cookie、帳號密碼或 Google／Apple 登入資料。", "en": "Only the Pixiv callback code from this authorization tab is sent to the local tool. No Pixiv cookies, passwords or Google/Apple sign-in data are read."},
+  "ui.pixiv_bridge_install": {"zh-Hant": "首次安裝／更新 Chrome 連接器", "en": "Install / update the Chrome connector"},
+  "ui.pixiv_bridge_install_help": {"zh-Hant": "下載並解壓連接器，在 chrome://extensions 開啟開發人員模式，按「載入未封裝項目」選擇 chrome-extension 資料夾。已有連接器請更新檔案並按重新載入，再重新整理此頁。", "en": "Download and extract the connector. Enable Developer mode at chrome://extensions, choose Load unpacked and select the chrome-extension folder. For an existing connector, update its files, reload it, then refresh this page."},
+  "ui.pixiv_bridge_permissions": {"zh-Hant": "1.2.0 新增 Pixiv 網站與 webRequest 權限，僅接收你啟動的授權分頁回呼；擴充功能 ID 維持不變。自訂連接埠請先在擴充功能的本機連接設定選擇相同數字。", "en": "Version 1.2.0 adds Pixiv site and webRequest permissions for the authorization tab you initiate. The extension ID stays the same. For custom ports, select the matching port in the extension popup first."},
+  "ui.pixiv_bridge_start_from_tool": {"zh-Hant": "請從下載工具的「設定 → Pixiv 登入」按一鍵連接。", "en": "Start from Settings → Pixiv sign-in in the downloader."},
+  "ui.pixiv_bridge_service_unavailable": {"zh-Hant": "無法連線到本機工具，請確認服務仍在運行。", "en": "Cannot reach the local tool. Check that it is still running."},
+  "ui.pixiv_bridge_update_required": {"zh-Hant": "請載入／重新載入 1.2.0 Chrome 連接器", "en": "Load / reload the version 1.2.0 Chrome connector"},
+  "ui.pixiv_bridge_expired": {"zh-Hant": "Pixiv 連接已過期，請從下載工具重新按一鍵連接。", "en": "Pixiv connection expired. Start again from the downloader."},
+  "ui.pixiv_bridge_started": {"zh-Hant": "Pixiv 連接已啟動，請勿重複使用連接頁。", "en": "Pixiv connection already started. Do not reuse the connection page."},
+  "ui.pixiv_bridge_not_started": {"zh-Hant": "Pixiv 連接尚未啟動，請重新連接。", "en": "Pixiv connection has not started. Connect again."},
   "ui.pixiv_engine_missing": {"zh-Hant": "缺少 Pixiv 下載引擎，請恢復基準依賴。", "en": "The Pixiv download engine is missing. Restore the baseline dependencies."},
   "ui.pixiv_engine_unsupported": {"zh-Hant": "目前的 Pixiv 引擎不支援作者作品，請更新引擎。", "en": "The current Pixiv engine does not support author works. Update the engine."},
   "ui.pixiv_pages_incomplete": {"zh-Hant": "Pixiv 作品頁數不完整，請稍後同步重試。", "en": "The Pixiv work has an incomplete page list. Sync again later."},
@@ -2015,8 +2035,8 @@ window.SSDLMessages = {
     "en": "Copy path"
   },
   "ui.select_the_entire_folder_containing_manifest_json": {
-    "zh-Hant": "選擇包含 manifest.json 的整個資料夾。連接器名稱為「Smart Social Downloader · X 連接器」。",
-    "en": "Select the entire folder containing manifest.json. The connector is named “Smart Social Downloader · X 連接器”."
+    "zh-Hant": "選擇包含 manifest.json 的整個資料夾。連接器名稱為「Smart Social Downloader · X / Pixiv 連接器」。",
+    "en": "Select the entire folder containing manifest.json. The connector is named “Smart Social Downloader · X / Pixiv 連接器”."
   },
   "ui.return_to_this_page_and_refresh": {
     "zh-Hant": "回到此頁並重新整理",

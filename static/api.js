@@ -101,9 +101,12 @@
       optional(value, 'app_version', (item) => typeof item === 'string' && item.length <= 64) &&
       number(value.created_at) && environment(value.environment) && Array.isArray(value.jobs) && object(value.counts);
     if (path === '/api/auth/pixiv/begin') return (value) => object(value) &&
-      typeof value.authorization_url === 'string' && value.authorization_url.length <= 1024 &&
-      value.authorization_url.startsWith('https://app-api.pixiv.net/web/v1/login?') && count(value.expires_in);
-    if (['/api/auth/pixiv/connect', '/api/auth/pixiv/disconnect'].includes(path)) return (value) =>
+      (typeof value.authorization_url === 'string' && value.authorization_url.length <= 1024 &&
+        value.authorization_url.startsWith('https://app-api.pixiv.net/web/v1/login?') ||
+       typeof value.pairing_url === 'string' && value.pairing_url.length <= 256 &&
+        /^http:\/\/127\.0\.0\.1:[0-9]{1,5}\/pixiv-connect#ticket=[A-Za-z0-9_-]{43}$/.test(value.pairing_url)) &&
+      typeof value.opened === 'boolean' && count(value.expires_in);
+    if (['/api/auth/pixiv/connect', '/api/auth/pixiv/disconnect', '/api/auth/pixiv/status'].includes(path)) return (value) =>
       object(value) && object(value.pixiv_auth) && typeof value.pixiv_auth.connected === 'boolean' &&
       typeof value.pixiv_auth.busy === 'boolean' && typeof value.pixiv_auth.phase === 'string' &&
       ['dpapi', 'memory', 'aes-gcm'].includes(value.pixiv_auth.storage_mode) &&

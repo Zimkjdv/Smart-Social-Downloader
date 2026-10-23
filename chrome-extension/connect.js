@@ -21,3 +21,22 @@ if (location.protocol === 'http:' && location.hostname === '127.0.0.1' && locati
   const pending = new URLSearchParams(location.hash.slice(1));
   if (pending.get('connect') === '1' && /^[A-Za-z0-9_-]{43}$/.test(pending.get('token') || '')) connect();
 }
+
+if (location.protocol === 'http:' && location.hostname === '127.0.0.1' && location.pathname === '/pixiv-connect') {
+  let busy = false;
+  async function connectPixiv() {
+    if (busy) return;
+    const ticket = new URLSearchParams(location.hash.slice(1)).get('ticket') || '';
+    if (!/^[A-Za-z0-9_-]{43}$/.test(ticket)) return;
+    busy = true;
+    const report = (result) => document.dispatchEvent(new CustomEvent('ssdl-pixiv-result', { detail: JSON.stringify(result) }));
+    try {
+      const result = await chrome.runtime.sendMessage({ type: 'SSDL_CONNECT_PIXIV', ticket });
+      report(result || { ok: false });
+    } catch { report({ ok: false }); }
+    finally { busy = false; }
+  }
+  document.addEventListener('ssdl-pixiv-connect', connectPixiv);
+  document.documentElement.dataset.ssdlPixivExtension = 'ready';
+  document.dispatchEvent(new CustomEvent('ssdl-pixiv-ready'));
+}

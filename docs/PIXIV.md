@@ -4,24 +4,53 @@ Source implementation added on 2026-10-23. The UI and worker integration are
 implemented; real Pixiv authorization/download acceptance is still pending.
 No real Pixiv credential or author collection was accessed during implementation.
 
-## Sign in
+## Sign in with Chrome (default)
 
-1. Open **Settings → Pixiv sign-in**.
-2. Click **Open Pixiv authorization**. Native Windows opens ordinary installed
-   Chrome when available. Docker/Linux returns a link for the host browser;
-   open the downloader itself in ordinary host Chrome for this workflow.
-3. In the authorization tab, open **F12 → Network** before completing sign-in.
-4. After signing in, locate the `callback` request and copy its URL or `code`.
-   Paste it into **Authorization callback URL or code**, then click
-   **Complete connection**. The Pixiv code typically expires in about 30 seconds;
-   reopen authorization if needed. The local PKCE attempt expires after ten minutes.
-5. Existing Refresh Tokens can be entered under **Advanced**. They are validated
-   with Pixiv before replacing the connected session.
+1. Restart the downloader after updating its source.
+2. Install the Chrome connector once, or update its files and reload it at
+   `chrome://extensions`. Version **1.2.0** keeps the same extension ID; Chrome
+   may ask you to approve the added Pixiv site and `webRequest` permissions.
+   The pairing page provides a connector ZIP and setup instructions.
+3. Open **Settings → Pixiv sign-in → Connect Pixiv**. Ordinary Windows opens
+   Chrome; Docker/Linux provides a loopback pairing link for host Chrome.
+4. Complete Pixiv sign-in or verification in that browser tab if prompted.
+   The connector captures the callback, the tool exchanges it and saves the
+   session, and the browser returns to the connection status page automatically.
+   No F12, code copying, or cookie export is required in this default flow.
 
-The user completes sign-in in the browser. The tool does not collect a password
-or automate Google/Apple sign-in. A new attempt, cancellation or shutdown
-invalidates the old PKCE verifier; a consumed code cannot be submitted again.
-Successful connection retries failed Pixiv jobs, excluding stopped/cancelled jobs.
+If Pixiv is already signed in, it may finish without credentials being entered
+again. This does not bypass Pixiv's consent, CAPTCHA or other account checks.
+The connector's popup must use the same local port as the downloader. Existing
+X connection behavior remains available; Pixiv does not use its cookie reader.
+
+The connector observes only the fixed HTTPS Pixiv callback request, only in the
+main frame of the tab paired for this attempt. Host access covers `app-api`,
+`accounts` and `www.pixiv.net` so Chrome exposes both callback and initiator.
+It does not read Pixiv cookies, passwords or Google/Apple sign-in data. A short-
+lived pairing ticket is kept in extension **session** storage, bound to the tab
+and local origin, and removed on callback/tab close. It is not a refresh token.
+The backend alone owns the verifier and refresh token. Claiming and submitting
+require the known extension identity and an unexpired ticket; another attempt,
+cancellation or service shutdown invalidates the old attempt. An unpaired tab,
+subframe or other local port cannot submit it. Codes are never put in local URLs.
+
+The default continues using gallery-dl's PKCE/token protocol; the connector
+simplifies the browser handoff. PixivUtil2's documented Cookie configuration also
+needs initial setup, so changing the download engine would not remove that step.
+
+### Advanced fallback
+
+Under **Advanced: manual authorization / refresh token**, the previous manual
+flow is still available: open authorization, use F12 → Network to copy the
+callback URL/code, and complete the connection. Codes typically expire in about
+30 seconds; the local attempt expires after ten minutes. Existing refresh tokens
+can be validated here too. Manual fallback does not require the connector.
+
+Successful connection retries failed Pixiv jobs, excluding stopped/cancelled
+jobs. A failed replacement preserves any previously connected/saved session.
+The dashboard polls every two seconds while authorization is pending. The status
+page exposes no code, ticket, verifier or refresh token. A browser/connector update
+can require reloading the extension and starting a fresh connection.
 
 ## Download an author
 
@@ -96,8 +125,9 @@ Files that are no longer listed by Pixiv are not automatically deleted.
 - gallery-dl's token cache is in memory for Pixiv. The download adapter removes
   Authorization headers from requests outside Pixiv's API/authentication hosts;
   original-image snapshots use a fresh session and a Pixiv Referer.
-- API source checks apply to sign-in/cancel operations. The X Chrome connector
-  retains its existing permissions and behavior.
+- API source checks apply to sign-in/cancel operations. Only the known Chrome
+  extension can claim/submit the Pixiv ticket. Its X behavior and identity are
+  retained; version 1.2.0 adds explicit Pixiv host / `webRequest` permissions.
 
 ## Design references
 

@@ -25,7 +25,7 @@
 
 1. 在 Windows 安裝 **Python 3.12**，下載並解壓專案原始碼。
 2. 執行 **`setup.bat`**，建立 `.venv` 並安裝鎖定版本的基準套件。
-3. 執行 **`start.bat`**。
+3. 執行 **`start.bat`**，服務會在背景運行，就緒後自動開啟網頁。
 4. 在瀏覽器開啟 [http://127.0.0.1:8765](http://127.0.0.1:8765)，貼上媒體網址並按 **加入下載佇列**。
 
 尚未完成安裝時，`start.bat` 會先安裝；後續啟動只檢查本機環境，不安裝或更新套件。保持後端執行，重新整理或關閉網頁不會停止下載。
@@ -34,7 +34,32 @@ YouTube 等部分網站需要 **Node.js 22+ 或 Deno 2.3+**。環境診斷提示
 
 下載需要登入的 X 內容時，先在一般 Chrome 登入 X，再使用 **設定 → X 登入**。如需連接器，依 [首次安裝步驟](chrome-extension/README.md) 載入。工具連接既有登入狀態，不代為執行 Google／Apple 登入。
 
-Pixiv 請使用 **設定 → Pixiv 登入** 完成瀏覽器授權回呼，再選 **Pixiv 作者作品** 貼上作者網址或數字 ID。詳見 [Pixiv 說明](docs/PIXIV.md)；真實平台驗收仍待完成。
+Pixiv 請使用 **設定 → Pixiv 登入** 按「一鍵連接 Pixiv」，在一般 Chrome 完成登入後自動連接。首次需載入／更新並重新載入 1.2.0 連接器；再選 **Pixiv 作者作品** 貼上作者網址或數字 ID。詳見 [Pixiv 說明](docs/PIXIV.md)；真實平台驗收仍待完成。
+
+### Windows 背景啟動與停止
+
+- **`start.bat`**：檢查／安裝環境後，在背景啟動並自動開啟網頁。重複執行會開啟既有服務，不重複啟動。
+- **`stop.bat`**：正常停止背景服務，保存佇列並清理下載子程序。關閉瀏覽器不會停止背景服務。
+- 啟動失敗請查看 **`data/background.log`**。若原本有前景服務，請先在原控制台按 **Ctrl+C**，再改用背景模式。
+- 如需顯示控制台，執行 **`.venv\Scripts\python.exe -X utf8 tools\manage.py start`**，並用 Ctrl+C 停止。Docker 啟動方式不變。
+
+自訂連接埠、停止逾時與程序管理詳見 [桌面背景服務](docs/DESKTOP_SERVICE.md)。
+
+### Chrome 連接器：首次安裝
+
+請使用你平常登入 X 或 Pixiv 的一般 Chrome 個人檔案，安裝時保持下載工具運行。
+
+1. 在已解壓的專案中找到 **`chrome-extension`** 資料夾；也可在工具的連接頁按 **下載 Chrome 連接器**，下載後先解壓 ZIP。
+2. 在 Chrome 網址列輸入 **`chrome://extensions`**。
+3. 開啟右上角的 **開發人員模式**。
+4. 按 **載入未封裝項目**，選擇 **內含 `manifest.json` 的 `chrome-extension` 資料夾**。不要選 ZIP、`manifest.json` 檔案本身或整個專案根目錄。
+5. 確認 **Smart Social Downloader · X / Pixiv 連接器** 已啟用；Chrome 若要求批准網站存取權限，請依提示確認。
+6. 回到本機連接頁並重新整理，讓頁面偵測已載入的連接器。
+7. 在工具使用 **設定 → X 登入** 連接既有 X 登入狀態，或按 **設定 → Pixiv 登入 → 一鍵連接 Pixiv**。在 Chrome 完成 Pixiv 登入／驗證後會自動接回，不用 F12 或複製 code。
+
+**已安裝者更新：** 更新原本載入資料夾內的檔案，到 `chrome://extensions` 按連接器的 **重新載入**，再重新整理連接頁。**1.2.0** 新增 Pixiv 網站／`webRequest` 權限，若 Chrome 要求請重新批准。擴充功能 ID 維持不變，不需要移除既有安裝。
+
+**自訂連接埠／Docker：** 工具使用非 `8765` 連接埠時，請先在擴充功能視窗的 **本機連接設定** 選擇相同數字。Docker 使用者需在 **主機 Chrome** 安裝，選擇主機已解壓的連接器資料夾。權限與排錯詳見 [連接器說明](chrome-extension/README.md)及 [Pixiv 說明](docs/PIXIV.md)。
 
 ## 限制與支援範圍
 
@@ -73,6 +98,7 @@ Pixiv 請使用 **設定 → Pixiv 登入** 完成瀏覽器授權回呼，再選
 ```text
 smart-social-downloader/
 ├── app.py                         服務啟動入口
+├── stop.bat                       正常停止這個專案的背景服務
 ├── setup.bat / start.bat           安裝及啟動
 ├── update.bat                     主動更新引擎
 ├── Dockerfile / compose.yaml      實驗性 Linux amd64 部署
@@ -87,6 +113,7 @@ smart-social-downloader/
 ├── ssdl/                          Python 後端套件
 │   ├── version.py                 唯一應用程式版本來源
 │   ├── app.py                     組裝入口
+│   ├── desktop_service.py  Windows background ownership / graceful stop
 │   ├── app_context.py             具型別的狀態、服務與生命週期
 │   ├── session_storage.py         DPAPI／獨立金鑰／記憶體登入保存
 │   ├── local_media.py             限定工作檔案的有界網頁媒體讀取

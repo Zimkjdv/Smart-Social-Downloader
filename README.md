@@ -25,7 +25,7 @@ A local video and image download manager with a browser interface. Paste URLs, q
 
 1. Install **Python 3.12** on Windows, then download and extract the project source.
 2. Run **`setup.bat`** to create `.venv` and install the pinned dependency baseline.
-3. Run **`start.bat`**.
+3. Run **`start.bat`**. It starts the service in the background and opens the web interface when ready.
 4. Open [http://127.0.0.1:8765](http://127.0.0.1:8765), paste media URLs and click **Add to Download Queue**.
 
 `start.bat` also sets up an unfinished installation. Later starts check the local environment without installing or updating packages. Keep the backend running; refreshing or closing the browser does not stop downloads.
@@ -34,7 +34,32 @@ Some sites, including YouTube, need **Node.js 22+ or Deno 2.3+**. Install a runt
 
 For X login, sign into X in ordinary Chrome, then use **Settings → X sign-in**. If the connector is needed, follow its [one-time installation guide](chrome-extension/README.md). The tool connects an existing session; it does not perform Google/Apple sign-in.
 
-For Pixiv, use **Settings → Pixiv sign-in**, complete the browser authorization handoff, then select **Pixiv author works** and paste an author URL or numeric ID. See the [Pixiv guide](docs/PIXIV.md). Real platform acceptance is pending.
+For Pixiv, use **Settings → Pixiv sign-in**, click **Connect Pixiv** and finish sign-in in ordinary Chrome. Connector 1.2.0 returns authorization automatically (install/reload it once); then select **Pixiv author works** and paste an author URL or numeric ID. See the [Pixiv guide](docs/PIXIV.md). Real platform acceptance is pending.
+
+### Background start and stop (Windows)
+
+- **`start.bat`**: check/install the environment, launch the hidden background service, and open its page. Running it again opens the existing service instead of starting another instance.
+- **`stop.bat`**: request a graceful stop, preserve queue state and let download workers shut down. Closing the browser does not stop the background service.
+- Startup errors: see **`data/background.log`**. An older foreground instance must be stopped with **Ctrl+C** in its console before switching to background mode.
+- For a visible foreground console, use **`.venv\Scripts\python.exe -X utf8 tools\manage.py start`** and stop with Ctrl+C. Docker startup is unchanged.
+
+See [desktop background service](docs/DESKTOP_SERVICE.md) for custom ports, shutdown timeouts and process ownership.
+
+### Chrome connector: first-time setup
+
+Use the ordinary Chrome profile where you sign into X or Pixiv. Keep the downloader running during setup.
+
+1. Obtain the **`chrome-extension`** folder from the extracted project source. Alternatively, click **Download Chrome connector** on the tool's connection page and extract the ZIP first.
+2. In Chrome's address bar, enter **`chrome://extensions`**.
+3. Enable **Developer mode** in the upper-right corner.
+4. Click **Load unpacked** and select the **`chrome-extension` folder containing `manifest.json`**. Select the folder, not the ZIP, `manifest.json` itself or the project root.
+5. Confirm that **Smart Social Downloader · X / Pixiv 連接器** is enabled. Approve the requested site permissions if Chrome prompts you.
+6. Return to the local connection page and refresh it so it detects the connector.
+7. In the downloader, use **Settings → X sign-in** to connect your existing X session, or **Settings → Pixiv sign-in → Connect Pixiv**. Complete any Pixiv sign-in/verification in Chrome; authorization returns automatically without F12 or copying a code.
+
+**Updating an existing installation:** update the files in the originally loaded folder, then click the connector's **Reload** button at `chrome://extensions` and refresh the connection page. Version **1.2.0** adds Pixiv site / `webRequest` permissions; approve them if requested. The extension ID stays the same, so an existing installation does not need to be removed.
+
+**Custom port / Docker:** if the tool uses a port other than `8765`, select that same port under **Local connection settings** in the extension popup before connecting. For Docker, install the connector in **host Chrome** using an extracted host folder. See the [connector guide](chrome-extension/README.md) and [Pixiv guide](docs/PIXIV.md) for permissions and troubleshooting.
 
 ## Limits and support
 
@@ -73,7 +98,8 @@ The homepage and usage guides are bilingual. Several technical guides are curren
 ```text
 smart-social-downloader/
 ├── app.py                         Service entry point
-├── setup.bat / start.bat           Install and launch
+├── setup.bat / start.bat           Install / background start and open browser
+├── stop.bat                       Gracefully stop this project’s background service
 ├── update.bat                     Explicit engine updates
 ├── Dockerfile / compose.yaml      Experimental Linux amd64 deployment
 ├── compose.login.yaml             Optional external-key encrypted X / Pixiv sessions
@@ -87,6 +113,7 @@ smart-social-downloader/
 ├── ssdl/                          Python backend
 │   ├── version.py                 Single application version
 │   ├── app.py                     Composition root
+│   ├── desktop_service.py  Windows background ownership / graceful stop
 │   ├── app_context.py             Typed state, owned services and lifecycle
 │   ├── session_storage.py         DPAPI / external-key / memory session storage
 │   ├── local_media.py             Job-scoped, bounded browser media streaming

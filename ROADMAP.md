@@ -18,8 +18,10 @@ N01～N08 已移至 [CHANGELOG](CHANGELOG.md#unreleased)。本輪列出的修正
 
 ## 安裝、真實使用與 GitHub 發布驗收
 
+- [ ] **Windows 背景啟停驗收（2026-10-24）**：start.bat 背景啟動／自動開網頁、stop.bat 正常關閉、重複啟動、自訂 port／環境改變後重開既有 port、前景服務佔用 port、啟動失敗日誌、下載中停止／佇列保存／重啟、不同專案程序隔離與來源包安裝需實機驗收。來源與既有安裝驗收工具已調整；未新增或執行測試。操作見 [桌面背景服務](docs/DESKTOP_SERVICE.md)。
+
 - [ ] **一般桌面 Windows／互動驗收**：全新一般 Windows 的 Python／Node／Chrome 安裝、實際鍵盤／終端批次提示及授權 X 登入仍待驗收。新來源／新 venv 安裝、離線重啟、自動修復、更新／基準恢復，以及獨立控制台真正 Ctrl+C 的閒置／下載中關閉、程序清理及待辦恢復已自動化並移至 [CHANGELOG](CHANGELOG.md#unreleased)，見 [安裝驗收](docs/INSTALLATION_ACCEPTANCE.md) 與 [控制台驗收](docs/CONSOLE_ACCEPTANCE.md)。這些隔離副本／程式產生的事件不等於出廠桌面或人手按鍵；沒有 Python 3.10 工作。
-- [ ] **一般 Chrome 真實配對**：重新載入 connector 1.1.0、自訂 port、取消／過期／失敗後重配及重啟恢復。先前預設 port 曾成功配對，不代表新版自訂 port 已驗收。正常 Windows 使用者環境的 DPAPI 是前提，不能以受限工具環境的失敗宣稱 DPAPI 普遍失效。
+- [ ] **一般 Chrome 真實配對**：重新載入 connector 1.2.0（含新增 Pixiv 網站／webRequest 權限）、自訂 port、取消／過期／失敗後重配及重啟恢復。先前預設 port 曾成功配對，不代表新版自訂 port 已驗收。正常 Windows 使用者環境的 DPAPI 是前提，不能以受限工具環境的失敗宣稱 DPAPI 普遍失效。
 - [ ] **線上平台抽樣**：實際 Best／指定畫質、登入失效、限流與恢復、帳號媒體掃描、缺檔補抓；先取得適合的測試素材。104＋10 合成測試不代表所有平台即時相容。
 - [ ] **GitHub 設定與發布**：啟用並確認私人漏洞回報入口，核對 tag、版本、來源 ZIP、release notes 後發布 preview。repo 已公開、Windows／Python 3.12 CI 已通過，目前沒有 tag／Release。
 - [ ] **後續依賴更新提案驗收**：首輪 Python 提案審查與 pycryptodomex 3.24.1 修補驗收已完成，移至 [CHANGELOG](CHANGELOG.md#unreleased)；[審查紀錄](docs/DEPENDENCY_ACCEPTANCE.md)記錄 PR #1／#2 的版本、相容性及恢復驗證。目前尚未收到 Actions 更新提案；收到後仍須核對官方版本／完整 SHA 與兩個 Windows CI 工作。pyee 14 與目前 Playwright 1.63.0 的 `pyee>=13,<14` 要求不相容，延後至相容的 Playwright／瀏覽器更新一起驗收；不能因 Python 3.12 支援就單獨強裝。後續提案不自動合併，也未宣稱完成 CVE 掃描。
@@ -28,7 +30,7 @@ N01～N08 已移至 [CHANGELOG](CHANGELOG.md#unreleased)。本輪列出的修正
 
 ## Pixiv 作者作品驗收
 
-- [ ] **Pixiv 真人授權與原圖同步**：作者模式、登入設定、PKCE 回呼交換、加密保存、原圖／多頁／動圖影格掃描及增量補抓已有來源實作，見 [Pixiv 文件](docs/PIXIV.md)。仍需一般 Chrome 真實登入、code 過期／取消、失效憑證、可授權作者的原圖與完整頁數、增加作品後再次同步、搬移／改名／修改檔案、暫停／停止／重啟、限流及 Windows／Docker 保存恢復驗收。本次沒有新增或執行測試，也沒有使用真實 Pixiv 憑證；語法與靜態檢查不代表平台功能已驗收。實作紀錄移至 CHANGELOG。
+- [ ] **Pixiv 真人授權與原圖同步**：作者模式、登入設定、PKCE 回呼交換、加密保存、原圖／多頁／動圖影格掃描及增量補抓已有來源實作，見 [Pixiv 文件](docs/PIXIV.md)。自動回接已於 2026-10-24 加入（首次需載入／更新 1.2.0 連接器，手動授權保留進階備援）。仍需一般 Chrome 真實回接、舊版升級／權限批准、未配對分頁／子框架／錯誤 port 拒絕、分頁關閉與 service worker 休眠恢復、code 過期／取消、失效憑證、可授權作者的原圖與完整頁數、增加作品後再次同步、搬移／改名／修改檔案、暫停／停止／重啟、限流及 Windows／Docker 保存恢復驗收。本次沒有新增或執行測試，也沒有使用真實 Pixiv 憑證；語法與靜態檢查不代表平台功能已驗收。實作紀錄移至 CHANGELOG。
 
 ## 後續功能
 

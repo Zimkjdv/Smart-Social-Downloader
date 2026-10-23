@@ -111,5 +111,7 @@ OAuth handoff in ordinary host Chrome. A container does not launch a browser.
 Memory storage is the default. The existing optional `compose.login.yaml`
 external-key mount also encrypts `data/pixiv-session.bin`; retain the same key
 for restore/restart, separately from the data backup. The encrypted payload is
-bound to the Pixiv service. No new connector permission or package is needed.
+bound to the Pixiv service. Connector 1.2.0 adds Pixiv host / `webRequest`
+permissions for automatic return; install/reload it in host Chrome. No new Python
+package is needed, and manual token setup remains an advanced fallback.
 Real Pixiv/Docker credential restoration remains pending in ROADMAP.

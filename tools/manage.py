@@ -64,11 +64,14 @@ def install(*, update=False) -> int:
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--version", action="version", version=f"{APP_NAME} {__version__}")
-    parser.add_argument("action", choices=("setup", "update", "check", "start", "browser-setup"))
+    parser.add_argument("action", choices=("setup", "update", "check", "start", "start-background", "stop", "browser-setup"))
     action = parser.parse_args(argv).action
     try:
         if action in {"setup", "update"}:
             return install(update=action == "update")
+        if action in {"start-background", "stop"}:
+            from ssdl.desktop_service import start, stop
+            return start(check_environment) if action == "start-background" else stop()
         if action == "browser-setup":
             if not ENV_PYTHON.is_file():
                 raise RuntimeError("Run setup.bat first to create the project environment.")

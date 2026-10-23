@@ -16,7 +16,7 @@ from ssdl.version import __version__
 
 ROOT_FILES = (".gitignore", "LICENSE", "THIRD_PARTY_NOTICES.md", "README.md", "README_CN.md",
               "CHANGELOG.md", "SECURITY.md", "CONTRIBUTING.md", "ROADMAP.md", "requirements.txt",
-              "requirements.lock.txt", "requirements-browser.txt", "start.bat", "setup.bat", "update.bat",
+              "requirements.lock.txt", "requirements-browser.txt", "start.bat", "stop.bat", "setup.bat", "update.bat",
               "app.py", "Dockerfile", "compose.yaml", "compose.login.yaml", ".dockerignore")
 SOURCE_GLOBS = {"static": ("*.js", "*.css", "*.html"),
                 "docker": ("entrypoint.py", "runtime.py", "storage.py", "healthcheck.py", "session_key.py", "debian.sources"),

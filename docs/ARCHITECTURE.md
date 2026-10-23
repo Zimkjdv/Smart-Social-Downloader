@@ -10,7 +10,8 @@
 smart-social-downloader/
 ├── app.py                    # 啟動入口
 ├── setup.bat                 # 首次安裝／恢復基準依賴
-├── start.bat                 # 本機檢查與啟動
+├── start.bat                 # 背景啟動並開啟網頁
+├── stop.bat                  # 正常停止專屬背景服務
 ├── update.bat                # 主動更新下載引擎
 ├── Dockerfile / compose.yaml # 實驗性 Linux amd64 部署來源
 ├── compose.login.yaml        # 選配的獨立登入金鑰 secret 掛載
@@ -36,6 +37,7 @@ smart-social-downloader/
 ├── ssdl/                     # Python 後端套件
 │   ├── version.py            # 唯一應用程式版本來源
 │   ├── app.py                # create_app factory、組裝與啟動入口
+│   ├── desktop_service.py  Windows background ownership / graceful stop
 │   ├── app_context.py        # AppState、實例擁有的服務及 start／close
 │   ├── http_api.py           # HTTP 路由與本機來源檢查
 │   ├── http_server.py        # HTTP 連線上限、讀取期限與 socket 清理

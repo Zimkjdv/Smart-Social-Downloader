@@ -186,15 +186,17 @@
           <section class="cookie-setting" aria-labelledby="pixiv-auth-heading">
             <h3 id="pixiv-auth-heading" data-i18n-key="ui.pixiv_sign_in">Pixiv 登入</h3>
             <p class="field-hint" id="pixiv-auth-status" role="status"></p>
-            <p class="field-hint" data-i18n-key="ui.pixiv_auth_help">在一般瀏覽器完成 Pixiv 登入。登入前按 F12 開啟 Network，完成後複製 callback 請求的完整網址或 code，立即貼回這裡。code 約 30 秒有效；本工具不讀取帳號密碼。</p>
-            <div class="auth-buttons"><button type="button" class="primary-button" id="pixiv-begin" data-i18n-key="ui.pixiv_begin">開啟 Pixiv 授權頁</button><button type="button" class="subtle-button" id="pixiv-disconnect" data-i18n-key="ui.pixiv_disconnect">取消授權／清除登入</button></div>
+            <p class="field-hint" data-i18n-key="ui.pixiv_automatic_help">按下方按鈕，在一般 Chrome 完成 Pixiv 登入後，連接器會自動接回授權，不用開 F12 或複製 code。首次使用請載入連接器；已安裝者請更新至 1.2.0 並重新載入。</p>
+            <div class="auth-buttons"><button type="button" class="primary-button" id="pixiv-begin" data-i18n-key="ui.pixiv_automatic_begin">一鍵連接 Pixiv</button><button type="button" class="subtle-button" id="pixiv-disconnect" data-i18n-key="ui.pixiv_disconnect">取消授權／清除登入</button></div>
             <a class="text-button hidden" id="pixiv-auth-link" target="_blank" rel="noopener noreferrer" data-i18n-key="ui.pixiv_reopen">重新開啟授權頁 ↗</a>
+            <p class="field-hint" id="pixiv-storage-description"></p>
+            <p class="dialog-message" id="pixiv-auth-message" role="status" aria-live="polite"></p>
+            <details class="advanced-cookies"><summary data-i18n-key="ui.pixiv_manual_fallback">進階：手動授權／Refresh Token</summary>
+            <p class="field-hint" data-i18n-key="ui.pixiv_auth_help">在一般瀏覽器完成 Pixiv 登入。登入前按 F12 開啟 Network，完成後複製 callback 請求的完整網址或 code，立即貼回這裡。code 約 30 秒有效；本工具不讀取帳號密碼。</p>
+            <button type="button" class="subtle-button" id="pixiv-manual-begin" data-i18n-key="ui.pixiv_begin">開啟 Pixiv 授權頁</button>
             <label for="pixiv-code" data-i18n-key="ui.pixiv_callback_label">授權回呼網址或 code</label>
             <input id="pixiv-code" type="password" autocomplete="off" spellcheck="false" autocapitalize="none" maxlength="4096" aria-describedby="pixiv-auth-message">
             <div class="auth-buttons"><button type="button" class="subtle-button" id="pixiv-connect" data-i18n-key="ui.pixiv_complete">完成連接</button></div>
-            <p class="field-hint" id="pixiv-storage-description"></p>
-            <p class="dialog-message" id="pixiv-auth-message" role="status" aria-live="polite"></p>
-            <details class="advanced-cookie"><summary data-i18n-key="ui.pixiv_advanced">進階：使用既有 Refresh Token</summary>
               <label for="pixiv-token">Refresh Token</label><input id="pixiv-token" type="password" autocomplete="off" spellcheck="false" autocapitalize="none" maxlength="4096">
               <button type="button" class="subtle-button" id="pixiv-token-connect" data-i18n-key="ui.pixiv_validate_token">驗證並連接</button>
             </details>

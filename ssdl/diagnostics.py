@@ -6,7 +6,7 @@ from urllib.parse import urlsplit, urlunsplit
 
 REDACTED = "[REDACTED]"
 _URL = re.compile(r"https?://[^\s<>\"']+", re.I)
-_SECRET = r"(?:auth_token|ct0|twid|authorization|cookie|set-cookie|password|passwd|access[_-]?token|refresh[_-]?token|authorization[_-]?code|code[_-]?verifier|csrf[_-]?token|token|secret|api[_-]?key|signature|sig)"
+_SECRET = r"(?:auth_token|ct0|twid|authorization|cookie|set-cookie|password|passwd|access[_-]?token|refresh[_-]?token|authorization[_-]?code|code[_-]?verifier|csrf[_-]?token|token|ticket|secret|api[_-]?key|signature|sig)"
 
 
 def redact_url(value: str) -> str:

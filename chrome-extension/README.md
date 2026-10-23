@@ -1,8 +1,14 @@
-# X 本機連接器
+# X / Pixiv 本機連接器
 
 第一次：在一般 Chrome 開啟 chrome://extensions → 開啟開發人員模式 → 載入未封裝項目 → 選擇此資料夾。
 
 在日常使用的 Chrome 確認 X 已登入，從下載工具按「連接 Chrome 登入」，或打開此擴充功能並按「連接已登入的 X」。連接器只讀取 X 登入 Cookie，傳到這台電腦上的 `http://127.0.0.1:8765`（預設）；Windows 原生模式以 DPAPI 加密保存，Linux／Docker 預設僅保留記憶體，可選配獨立金鑰加密保存。不使用受控登入瀏覽器，不讀取 Google、Apple 或其他網站登入資料。
+
+## Pixiv 一鍵授權回接
+
+在工具「設定 → Pixiv 登入」按「一鍵連接 Pixiv」。連接頁確認新版連接器後自動開啟 Pixiv；由使用者完成登入／驗證，再自動接回並保存登入。無需 F12 或複製 code。只觀察這次配對分頁的頂層 Pixiv callback，不讀取 Pixiv Cookie、密碼或其他網站登入；code 只傳到配對的 `127.0.0.1` 工具，Refresh Token 與 PKCE verifier 只由後端保存。
+
+分頁關閉、十分鐘過期、重啟瀏覽器／服務或新連接都可能需要從工具重開一次。自訂 port 不符會在開啟授權前拒絕。完整設定、進階手動備援及未驗收項目見 [Pixiv](../docs/PIXIV.md)。
 
 ## 自訂連接埠
 
@@ -12,13 +18,13 @@
 
 ## 更新現有連接器
 
-目前版本 **1.1.0**。檔案更新後，在 `chrome://extensions` 按此連接器的重新載入按鈕，再重新整理本機連接頁。公開 manifest key 與 extension ID 保持不變。
+目前版本 **1.2.0**。檔案更新後，在 `chrome://extensions` 按此連接器的重新載入按鈕，再重新整理本機連接頁。公開 manifest key 與 extension ID 保持不變。
 
-本版增加 `storage` 權限，僅用於保存選定的本機連接埠；擴充功能不保存 X Cookie 副本。Cookie 仍只在使用者連接時傳送到本機，由工具依目前模式保存。首次安裝則直接載入新版資料夾即可。
+1.1.0 增加 `storage` 權限以保存選定的本機連接埠；1.2.0 使用不落磁碟的 `storage.session` 保留短期 Pixiv 配對票證，並新增 `webRequest` 與 Pixiv 網站權限，只接收使用者啟動的授權分頁回呼。更新後 Chrome 可能要求重新批准網站權限；請重新載入擴充功能及配對頁。擴充功能不保存 X Cookie 副本或 Pixiv Refresh Token。Cookie 仍只在使用者連接時傳送到本機，由工具依目前模式保存。首次安裝則直接載入新版資料夾即可。
 
 ## Docker 主機配對
 
-在主機的一般 Chrome 開啟工具網址；容器不會啟動主機 Chrome 或讀取其個人檔案。配對頁可下載連接器 ZIP，解壓後在主機 Chrome 載入 `chrome-extension` 資料夾，不能使用容器內 `/app/` 路徑。協定、extension ID 及權限維持 1.1.0；自訂 port 仍須在擴充功能視窗明確設定。預設記憶體模式在服務重啟後需重新連接，獨立金鑰選配見 [Docker 登入](../docs/DOCKER_LOGIN.md)。真實容器配對／保存／重啟仍待驗收。
+在主機的一般 Chrome 開啟工具網址；容器不會啟動主機 Chrome 或讀取其個人檔案。配對頁可下載連接器 ZIP，解壓後在主機 Chrome 載入 `chrome-extension` 資料夾，不能使用容器內 `/app/` 路徑。X 配對協定與 extension ID 維持相容；1.2.0 的 Pixiv 權限如上；自訂 port 仍須在擴充功能視窗明確設定。預設記憶體模式在服務重啟後需重新連接，獨立金鑰選配見 [Docker 登入](../docs/DOCKER_LOGIN.md)。真實容器配對／保存／重啟仍待驗收。
 
 ## 權限與排錯
 
@@ -33,5 +39,6 @@ Chrome 要求擴充功能具有 cookies 與相應網站權限，才能透過正�
 - [Chrome cookies API](https://developer.chrome.com/docs/extensions/reference/api/cookies)
 - [載入未封裝擴充功能](https://developer.chrome.com/docs/extensions/get-started/tutorial/hello-world#load-unpacked)
 - [Chrome storage API](https://developer.chrome.com/docs/extensions/reference/api/storage)
+- [Chrome webRequest API](https://developer.chrome.com/docs/extensions/reference/api/webRequest)
 
 完整排錯：[安裝、狀態更新與 X 登入](../docs/TROUBLESHOOTING.md)。本輪新版的自訂連接埠配對尚未實際驗證。

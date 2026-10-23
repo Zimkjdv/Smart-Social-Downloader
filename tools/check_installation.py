@@ -140,10 +140,10 @@ def verify_scope(state, media):
         raise AcceptanceError("Refusing an HTTP service outside the owned installation scope")
 
 
-def ready(process, port, media, *, seconds=90):
+def ready(process, port, media, *, seconds=90, background=False):
     until = time.monotonic() + seconds
     while time.monotonic() < until:
-        if process.poll() is not None:
+        if process.poll() is not None and (not background or process.returncode != 0):
             raise AcceptanceError("Installed service exited before readiness")
         try:
             state = request(port, "/api/summary")
@@ -234,7 +234,7 @@ def accept(workspace, *, browser=False):
         marker_hash = fingerprint(marker)
         print("Installation acceptance: offline start.bat", flush=True)
         with command(root, token, "start", offline, log) as process:
-            first = ready(process, port, media)
+            first = ready(process, port, media, background=True)
             installed_python = next(item["version"] for item in first["environment"]["checks"] if item["id"] == "python")
             request(port, "/api/pause", {"paused": True})
             state = request(port, "/api/settings", {"download_dir": str(media), "hourly_job_limit": 73})
@@ -263,7 +263,7 @@ def accept(workspace, *, browser=False):
         print("Installation acceptance: missing-marker auto setup", flush=True)
         marker.unlink()  # Only this fresh fixture's marker, never an existing installation.
         with command(root, token, "start", env, log) as process:
-            verify_saved(ready(process, port, media), media)
+            verify_saved(ready(process, port, media, background=True), media)
         assert_port_closed(port)
         if json.loads(marker.read_text(encoding="utf-8"))["mode"] != "locked":
             raise AcceptanceError("Automatic setup did not restore the missing marker")

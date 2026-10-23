@@ -226,7 +226,7 @@ function scheduleStatusRefresh() {
   if (dashboardDisposed) return;
   clearTimeout(refreshTimer);
   const processing = diagnosticsController.report?.busy || lastResponse?.storage?.refreshing || lastResponse?.thumbnail_cache?.clearing ||
-    state.xAuth.busy || state.xAuth.phase === 'waiting' ||
+    state.xAuth.busy || state.xAuth.phase === 'waiting' || state.pixivAuth.pending || state.pixivAuth.busy ||
     (lastResponse?.counts?.queued || lastResponse?.counts?.active);
   refreshTimer = setTimeout(refresh, !connectionOffline && processing ? 2000 : 30000);
 }

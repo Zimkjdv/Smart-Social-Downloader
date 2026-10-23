@@ -186,7 +186,8 @@ class ApiHandler(BaseHTTPRequestHandler):
                 and (self.headers.get("Origin") == self.app.EXTENSION_ORIGIN if self.command == "OPTIONS"
                      else self.headers.get("Origin") in {None, self.app.EXTENSION_ORIGIN})
                 and (self.command == "OPTIONS" or self.headers.get("X-SSDL-Extension") == self.app.EXTENSION_ID)
-                and urlparse(self.path).path in {"/api/auth/x/extension", "/api/auth/x/prepare"})
+                and urlparse(self.path).path in {"/api/auth/x/extension", "/api/auth/x/prepare",
+                                                 "/api/auth/pixiv/claim", "/api/auth/pixiv/callback"})
 
     def do_OPTIONS(self) -> None:
         if self._extension_request():
@@ -253,6 +254,8 @@ class ApiHandler(BaseHTTPRequestHandler):
             return self._json(200, self.app.ENVIRONMENT.snapshot())
         if path == "/api/diagnostics":
             return self._json(200, self.app._diagnostics())
+        if path == "/api/auth/pixiv/status":
+            return self._json(200, {"pixiv_auth": self.app.PIXIV_AUTH.status()})
         if path == "/api/auth/x/setup":
             auth = self.app.X_AUTH.status()
             return self._json(200, {"extension_dir": "" if host_browser_required() else str(self.app.X_AUTH.extension_directory),
@@ -291,6 +294,8 @@ class ApiHandler(BaseHTTPRequestHandler):
             target = self.app.STATIC / "index.html"
         elif path == "/chrome-connect":
             target = self.app.STATIC / "chrome-connect.html"
+        elif path == "/pixiv-connect":
+            target = self.app.STATIC / "pixiv-connect.html"
         elif path.startswith("/static/"):
             relative = unquote(path.removeprefix("/static/"))
             target = (self.app.STATIC / relative).resolve()
@@ -340,11 +345,22 @@ class ApiHandler(BaseHTTPRequestHandler):
             return self._json(400, {"error": "請求格式不正確"})
 
         if path.startswith("/api/auth/pixiv/"):
+            if path in {"/api/auth/pixiv/claim", "/api/auth/pixiv/callback"}:
+                if not self._extension_request():
+                    return self._json(403, {"error": "僅允許 Chrome 連接器操作"})
+                try:
+                    if path.endswith("/claim") and set(data) == {"ticket"}:
+                        return self._json(200, self.app.PIXIV_AUTH.claim(data["ticket"]))
+                    if path.endswith("/callback") and set(data) == {"ticket", "code"}:
+                        return self._json(200, {"pixiv_auth": self.app.PIXIV_AUTH.connect(**data)})
+                except self.app.AuthError as exc:
+                    return self._json(400, {"error": self.app.redact_text(str(exc)).replace("X 登入", "Pixiv 登入")})
+                return self._json(400, {"error": "請求格式不正確"})
             if not self._local_request():
                 return self._json(403, {"error": "僅允許本機操作"})
             try:
-                if path.endswith("/begin") and path == "/api/auth/pixiv/begin" and not data:
-                    return self._json(200, self.app.PIXIV_AUTH.begin())
+                if path == "/api/auth/pixiv/begin" and (not data or data == {"manual": True}):
+                    return self._json(200, self.app.PIXIV_AUTH.begin(manual=bool(data.get("manual"))))
                 if path == "/api/auth/pixiv/connect" and set(data) in ({"code"}, {"refresh_token"}):
                     return self._json(200, {"pixiv_auth": self.app.PIXIV_AUTH.connect(**data)})
                 if path == "/api/auth/pixiv/disconnect" and not data:

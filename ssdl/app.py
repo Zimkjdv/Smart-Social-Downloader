@@ -12,7 +12,7 @@ def create_app(root: Path = ROOT, **services) -> AppContext:
     return AppContext(root, **services)
 
 
-def main(*, bind_host: str = "127.0.0.1") -> int:
+def main(*, bind_host: str = "127.0.0.1", stop_requested=None, on_ready=None) -> int:
     with create_app() as app:
         try:
             with Server((bind_host, app.PORT), app.Handler) as server:
@@ -21,7 +21,14 @@ def main(*, bind_host: str = "127.0.0.1") -> int:
                 print(f"儲存位置: {app.state.download_dir}")
                 if not app._state()["ready"]:
                     print("尚未安裝完整下載引擎；請執行 setup.bat。")
-                server.serve_forever()
+                if on_ready:
+                    on_ready(app.PORT)
+                if stop_requested is None:
+                    server.serve_forever()
+                else:
+                    server.timeout = 0.3
+                    while not stop_requested():
+                        server.handle_request()
         except KeyboardInterrupt:
             print("\n下載工具已停止。")
         except OSError as exc:

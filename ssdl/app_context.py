@@ -108,7 +108,7 @@ class AppContext:
         self.STATE_STORE: StateStore = state_store if state_store is not None else StateStore(self.ROOT / "data" / "state.json")
         self.STATE_FILE = self.STATE_STORE.filename
         self.X_AUTH: XAuthManager = auth if auth is not None else XAuthManager(self.ROOT / "data", port=self.PORT, restore=False)
-        self.PIXIV_AUTH = PixivAuthManager(self.ROOT / "data")
+        self.PIXIV_AUTH = PixivAuthManager(self.ROOT / "data", port=self.PORT)
         self.ENVIRONMENT: EnvironmentDiagnostics = environment if environment is not None else EnvironmentDiagnostics(self.ROOT, self.PORT)
         self.THUMBNAILS: ThumbnailCache = thumbnails if thumbnails is not None else ThumbnailCache(self.CACHE_DIRECTORY / "thumbnails", media.ffmpeg_path)
         self.STORAGE: DownloadStats = storage if storage is not None else DownloadStats()
