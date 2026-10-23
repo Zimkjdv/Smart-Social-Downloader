@@ -7,6 +7,7 @@
       let busy = false;
       let attemptPhase = 'idle';
       function message(key, error = false) {
+        if (['ui.pixiv_connected', 'ui.pixiv_disconnected'].includes(key)) key = '';
         uiText($('#pixiv-auth-message'), key);
         $('#pixiv-auth-message').classList.toggle('error', error);
       }
@@ -14,11 +15,20 @@
         if (!scope.active) return;
         const auth = state.pixivAuth || {};
         const phase = auth.attempt_phase || 'idle';
+        const pending = Boolean(auth.pending || auth.busy);
+        const cardState = pending ? 'pending' : auth.connected ? 'connected' : auth.phase === 'expired' ? 'expired' : 'disconnected';
+        $('#pixiv-session-card').dataset.state = cardState;
         $('#pixiv-auth-status').textContent = t(auth.pending || auth.busy ? 'ui.pixiv_automatic_waiting' : auth.connected ? 'ui.pixiv_connected' :
           auth.phase === 'expired' ? 'ui.pixiv_expired' : 'ui.pixiv_connect_required');
+        $('#pixiv-session-summary').textContent = t(pending ? 'ui.pixiv_session_pending' : auth.connected ?
+          'ui.pixiv_session_ready' : 'ui.pixiv_session_connect_help');
+        $('#pixiv-automatic-help').classList.toggle('hidden', Boolean(auth.connected) && !pending);
+        $('#pixiv-begin').textContent = t(auth.connected ? 'ui.pixiv_reconnect' : 'ui.pixiv_automatic_begin');
+        $('#pixiv-disconnect').textContent = t(pending ? 'ui.pixiv_cancel_connection' : 'ui.pixiv_clear_session');
+        $('#pixiv-disconnect').disabled = busy || Boolean(auth.busy) || (!auth.connected && !pending && auth.phase !== 'expired');
         $('#pixiv-storage-description').textContent = t(auth.storage_mode === 'dpapi' ? 'ui.pixiv_dpapi' :
           auth.storage_mode === 'aes-gcm' ? 'ui.pixiv_aes' : 'ui.pixiv_memory');
-        for (const id of ['pixiv-begin', 'pixiv-manual-begin', 'pixiv-connect', 'pixiv-token-connect', 'pixiv-disconnect']) {
+        for (const id of ['pixiv-begin', 'pixiv-manual-begin', 'pixiv-connect', 'pixiv-token-connect']) {
           $('#' + id).disabled = busy || Boolean(auth.busy);
         }
         if (phase !== attemptPhase) {
@@ -26,6 +36,10 @@
           const key = { connected: 'ui.pixiv_connected', failed: 'ui.pixiv_automatic_failed',
             expired: 'ui.pixiv_automatic_expired', cancelled: 'ui.pixiv_disconnected' }[phase];
           if (key) message(key, ['failed', 'expired'].includes(phase));
+        }
+        if (['connected', 'failed', 'expired', 'cancelled'].includes(phase)) {
+          $('#pixiv-auth-link').classList.add('hidden');
+          $('#pixiv-auth-link').removeAttribute('href');
         }
       }
       async function perform(action, values = {}) {
@@ -96,7 +110,7 @@
           if (event.key === 'Enter') { event.preventDefault(); $('#' + button).click(); }
         });
       }
-      return { render, dispose() {
+      return { init: scope.init, render, dispose() {
         $('#pixiv-code').value = $('#pixiv-token').value = '';
         scope.dispose();
       } };

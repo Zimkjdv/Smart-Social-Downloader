@@ -1,0 +1,42 @@
+.connection-topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.connection-topbar .brand { font-weight: 600; letter-spacing: 1px; }
+main { max-width: 840px; padding-top: 30px; }
+h1 { font-size: 29px; margin-top: 44px; letter-spacing: -.5px; }
+.intro { max-width: 660px; font-size: 14px; margin-bottom: 28px; }
+.connection-card { padding: 30px; transition: border-color .2s; }
+.connection-layout { display: flex; align-items: flex-start; gap: 22px; }
+.connection-icon { flex: 0 0 64px; width: 64px; height: 64px; display: grid; place-items: center; border-radius: 20px; color: #b8a0f7; background: #29213f; border: 1px solid #59447e; }
+.connection-icon svg { width: 32px; height: 32px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.connection-icon .connection-check, .connection-icon .connection-error { display: none; }
+.connection-spinner { animation: connection-spin 1.6s linear infinite; }
+.connection-spinner circle { opacity: .2; }
+.connection-copy { min-width: 0; flex: 1; }
+.connection-copy h2 { margin: 4px 0 8px; font-size: 24px; color: #edf4ff; letter-spacing: -.3px; }
+.connection-copy .badge { display: inline-block; margin-bottom: 12px; }
+.connection-copy .message { margin: 0; min-height: 0; font-size: 13px; line-height: 1.8; color: #9eafc5; }
+.connection-copy .actions { margin-top: 23px; gap: 10px; }
+.connection-copy .actions a, .connection-copy .actions button { min-height: 42px; font-size: 13px; font-weight: 600; }
+#return-to-tool { gap: 12px; }
+#return-to-tool svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+#return-to-tool.is-primary { background: #7b4ce0; border-color: #a17aef; color: #fff; box-shadow: 0 4px 16px #7045d924; }
+#return-to-tool.is-primary:hover { background: #895bea; }
+.connection-card .privacy { margin: 26px 0 0; padding-top: 18px; border-top: 1px solid #273248; color: #8294ae; line-height: 1.8; }
+.connection-card[data-state="connected"] { border-color: #285347; background: linear-gradient(115deg, #11241f 0%, #111a2b 60%); }
+.connection-card[data-state="connected"] .connection-icon { color: #85e0bc; border-color: #386b58; background: #173b2e; box-shadow: 0 0 0 7px #73dcb408; }
+.connection-card[data-state="connected"] .connection-check { display: block; }
+.connection-card[data-state="connected"] .connection-spinner, .connection-card[data-state="error"] .connection-spinner { display: none; }
+.connection-card[data-state="error"] .connection-icon { background: #39242a; border-color: #7a434d; color: #efa6b1; }
+.connection-card[data-state="error"] .connection-error { display: block; }
+@keyframes connection-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .connection-spinner { animation: none; } .connection-card { transition: none; } }
+@media (max-width: 540px) {
+  main { padding-top: 22px; }
+  .connection-topbar .brand { max-width: 220px; font-size: 10px; line-height: 1.7; }
+  h1 { font-size: 25px; margin-top: 30px; }
+  .connection-card { padding: 23px 20px; }
+  .connection-layout { gap: 15px; }
+  .connection-icon { flex-basis: 46px; width: 46px; height: 46px; border-radius: 15px; }
+  .connection-icon svg { width: 25px; height: 25px; }
+  .connection-copy h2 { font-size: 21px; }
+  .connection-copy .actions { margin-left: -61px; }
+}

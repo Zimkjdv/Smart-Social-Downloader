@@ -185,11 +185,14 @@
         <div class="settings-panel" id="settings-panel-pixiv" role="tabpanel" aria-labelledby="settings-tab-pixiv" tabindex="0" hidden>
           <section class="cookie-setting" aria-labelledby="pixiv-auth-heading">
             <h3 id="pixiv-auth-heading" data-i18n-key="ui.pixiv_sign_in">Pixiv 登入</h3>
-            <p class="field-hint" id="pixiv-auth-status" role="status"></p>
-            <p class="field-hint" data-i18n-key="ui.pixiv_automatic_help">按下方按鈕，在一般 Chrome 完成 Pixiv 登入後，連接器會自動接回授權，不用開 F12 或複製 code。首次使用請載入連接器；已安裝者請更新至 1.2.0 並重新載入。</p>
+            <div class="login-session-card" id="pixiv-session-card" data-state="disconnected">
+              <div class="login-session-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="3"/><path class="session-lock" d="M8 10V7a4 4 0 0 1 8 0v3"/><path class="session-check" d="m8 15 3 3 5-5"/></svg></div>
+              <div class="login-session-copy"><p id="pixiv-auth-status" role="status" aria-live="polite"></p><p id="pixiv-session-summary"></p></div>
+            </div>
+            <p class="field-hint" id="pixiv-automatic-help" data-i18n-key="ui.pixiv_automatic_help">按下方按鈕，在一般 Chrome 完成 Pixiv 登入後，連接器會自動接回授權，不用開 F12 或複製 code。首次使用請載入連接器；已安裝者請更新至 1.2.0 並重新載入。</p>
             <div class="auth-buttons"><button type="button" class="primary-button" id="pixiv-begin" data-i18n-key="ui.pixiv_automatic_begin">一鍵連接 Pixiv</button><button type="button" class="subtle-button" id="pixiv-disconnect" data-i18n-key="ui.pixiv_disconnect">取消授權／清除登入</button></div>
             <a class="text-button hidden" id="pixiv-auth-link" target="_blank" rel="noopener noreferrer" data-i18n-key="ui.pixiv_reopen">重新開啟授權頁 ↗</a>
-            <p class="field-hint" id="pixiv-storage-description"></p>
+            <p class="field-hint login-storage-note"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 8 3v6c0 4-4 7-8 9-4-2-8-5-8-9V6Z"/><path d="m8 12 3 3 5-5"/></svg><span id="pixiv-storage-description"></span></p>
             <p class="dialog-message" id="pixiv-auth-message" role="status" aria-live="polite"></p>
             <details class="advanced-cookies"><summary data-i18n-key="ui.pixiv_manual_fallback">進階：手動授權／Refresh Token</summary>
             <p class="field-hint" data-i18n-key="ui.pixiv_auth_help">在一般瀏覽器完成 Pixiv 登入。登入前按 F12 開啟 Network，完成後複製 callback 請求的完整網址或 code，立即貼回這裡。code 約 30 秒有效；本工具不讀取帳號密碼。</p>
@@ -205,14 +208,21 @@
         <div class="settings-panel" id="settings-panel-x" role="tabpanel" aria-labelledby="settings-tab-x" tabindex="0" hidden>
       <section class="cookie-setting" aria-labelledby="x-auth-heading">
         <h3 class="auth-heading" id="x-auth-heading" data-i18n-key="ui.x_session_connection">X 登入連接</h3>
+        <div class="login-session-card" id="x-session-card" data-state="disconnected">
+          <div class="login-session-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="3"/><path class="session-lock" d="M8 10V7a4 4 0 0 1 8 0v3"/><path class="session-check" d="m8 15 3 3 5-5"/></svg></div>
+          <div class="login-session-copy"><p id="x-session-status"></p><p class="auth-status" id="x-auth-message" role="status" aria-live="polite" data-i18n-key="ui.x_session_not_connected">尚未連接 X 登入</p></div>
+        </div>
         <p class="field-hint auth-description" id="x-auth-description" data-i18n-key="ui.use_your_existing_x_session_in_chrome">使用平常 Chrome 中已登入的 X。無法直接讀取時，會開啟一般 Chrome 的本機連接頁；第一次載入連接器後，便可一鍵同步並自動重試失敗的 X 項目。</p>
         <div class="auth-buttons"><button type="button" class="primary-button" id="x-connect" data-i18n-key="ui.connect_chrome_2">一鍵連接 Chrome</button><button type="button" class="subtle-button" id="x-disconnect" disabled data-i18n-key="ui.disconnect">停用連接</button></div>
-        <p class="auth-status" id="x-auth-message" role="status" aria-live="polite" data-i18n-key="ui.x_session_not_connected">尚未連接 X 登入</p>
+        <div class="login-support-links">
         <a class="detail-link" id="x-pairing-link" target="_blank" rel="noopener" hidden data-i18n-key="ui.x_open_pairing">開啟 Chrome 配對頁</a>
         <button type="button" class="detail-link" id="x-login-browser" data-i18n-key="ui.open_x_in_regular_chrome">在一般 Chrome 開啟 X</button>
         <a class="detail-link" href="/chrome-connect" target="_blank" rel="noopener" data-i18n-key="ui.chrome_connector_setup">Chrome 連接器安裝步驟</a>
-        <p class="field-hint cookie-privacy" id="x-storage-copy" data-i18n-key="ui.x_storage_pending">X 登入僅傳送至這台電腦的工具，保存方式會依目前設定顯示。不讀取 Google 或 Apple 的登入資料。</p>
+        </div>
+        <p class="field-hint login-storage-note"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 8 3v6c0 4-4 7-8 9-4-2-8-5-8-9V6Z"/><path d="m8 12 3 3 5-5"/></svg><span id="x-storage-copy" data-i18n-key="ui.x_storage_pending">X 登入僅傳送至這台電腦的工具，保存方式會依目前設定顯示。不讀取 Google 或 Apple 的登入資料。</span></p>
+        <details class="login-help"><summary data-i18n-key="ui.x_login_help">登入遇到限制？</summary>
         <p class="field-hint auth-limit-hint" data-i18n-key="ui.if_x_temporarily_restricts_sign_in_stop">X 顯示暫時限制登入時，請停止反覆嘗試，待限制解除後在一般 Chrome 登入。連接器不能解除帳號限制。</p>
+        </details>
       </section>
       <details class="advanced-cookies"><summary data-i18n-key="ui.advanced_use_a_cookie_file">進階：使用 Cookie 檔案</summary><label class="field-label" for="x-cookie-file" data-i18n-key="ui.x_cookie_file_path_optional">X Cookie 檔案路徑（選填）</label><div class="path-input"><span>◈</span><input id="x-cookie-file" type="text" autocomplete="off" spellcheck="false" placeholder="例如 D:\Cookies\cookies.txt" data-i18n-placeholder="ui.e_g_d_cookies_cookies_txt"></div><p class="field-hint" data-i18n-key="ui.supports_netscape_format_cookies_txt_to_use">支援 Netscape 格式 cookies.txt。如需改用檔案，請先停用 Chrome 連接，再填入完整路徑並儲存。兩者皆未設定時使用公開貼文資料。</p></details>
         </div>

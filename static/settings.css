@@ -19,6 +19,30 @@
 #settings-panel-pixiv input { display: block; width: 100%; box-sizing: border-box; background: #090f1b; color: #e5eaf5; border: 1px solid #33415a; border-radius: 10px; padding: 12px 14px; margin: 9px 0 12px; font: inherit; }
 #settings-panel-pixiv input:focus { outline: 2px solid #9970f8; outline-offset: 2px; }
 #settings-panel-pixiv label { display: block; margin-top: 16px; }
+.login-session-card { display: flex; align-items: center; gap: 15px; padding: 17px; margin: 16px 0 19px; border: 1px solid #33405a; border-radius: 12px; background: #0d1523; }
+.login-session-icon { display: grid; place-items: center; flex: 0 0 43px; width: 43px; height: 43px; border-radius: 12px; background: #252039; color: #b7a1e8; }
+.login-session-icon svg { width: 25px; height: 25px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.login-session-icon .session-check { display: none; }
+.login-session-copy p { margin: 0; }
+#pixiv-auth-status, #x-session-status { color: #e2eafa; font-size: 14px; font-weight: 600; line-height: 1.55; }
+#pixiv-session-summary, #x-auth-message.auth-status { color: #91a3bb; font-size: 11px; line-height: 1.7; margin-top: 5px; }
+.login-session-card[data-state="connected"] { border-color: #2b5548; background: linear-gradient(110deg, #11271f, #101a29); }
+.login-session-card[data-state="connected"] .login-session-icon { background: #1b3e30; color: #86ddbb; }
+.login-session-card[data-state="connected"] .session-lock { display: none; }
+.login-session-card[data-state="connected"] .session-check { display: block; }
+.login-session-card[data-state="expired"] { border-color: #67513c; }
+.login-session-card[data-state="expired"] .login-session-icon { background: #362b21; color: #e5be85; }
+.settings-panel .login-storage-note { display: flex; gap: 9px; align-items: flex-start; margin-top: 18px; padding-top: 16px; border-top: 1px solid #26334a; }
+.login-storage-note svg { flex: 0 0 15px; width: 15px; height: 15px; margin-top: 2px; fill: none; stroke: #8d9db6; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+#pixiv-auth-message:empty { display: none; }
+#settings-panel-pixiv .auth-buttons { gap: 10px; flex-wrap: wrap; }
+#x-auth-message.error { color: #ef9eab; }
+.login-support-links { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.settings-panel .login-support-links .detail-link { display: inline-flex; align-items: center; min-height: 30px; padding: 6px 9px; margin: 0; border: 1px solid #2e3a51; border-radius: 7px; background: #131d2f; color: #b5c4dc; text-decoration: none; font-size: 11px; line-height: 1.4; }
+.settings-panel .login-support-links .detail-link:hover { border-color: #796294; color: #d5c8f3; }
+.settings-panel .login-support-links [hidden] { display: none; }
+.login-help { margin-top: 16px; color: #8c9eb6; font-size: 11px; }
+.login-help summary { cursor: pointer; width: fit-content; }
 .platform-chip.pixiv, .platform-badge.pixiv { color: #71c9ff; border-color: #245478; background: #102a3c; }
 .settings-tab { min-height: 38px; padding: 8px 12px; border: 1px solid transparent; border-radius: 7px; background: transparent; color: #9baac1; font-size: 13px; font-weight: 600; cursor: pointer; }
 .settings-tab:hover { background: #1a2233; color: #e3e9f4; }

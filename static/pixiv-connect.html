@@ -1,15 +1,26 @@
 <!doctype html>
 <html lang="zh-Hant">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="referrer" content="no-referrer"><title>Pixiv · Smart Social Downloader</title><link rel="stylesheet" href="/static/chrome-connect.css"><link rel="stylesheet" href="/static/i18n.css"></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="referrer" content="no-referrer"><title>Pixiv · Smart Social Downloader</title><link rel="stylesheet" href="/static/chrome-connect.css"><link rel="stylesheet" href="/static/i18n.css"><link rel="stylesheet" href="/static/pixiv-connect.css"></head>
 <body><main>
+  <header class="connection-topbar">
   <a class="brand" href="/">↓ SMART SOCIAL DOWNLOADER</a>
   <button type="button" class="language-toggle" id="language-toggle" title="切換為英文" aria-label="切換為英文"><span class="language-label">EN</span></button>
-  <h1 data-i18n-key="ui.pixiv_automatic_begin">一鍵連接 Pixiv</h1>
-  <p class="intro" data-i18n-key="ui.pixiv_bridge_intro">連接器會開啟 Pixiv，並在你完成登入後自動回到這裡。無需 F12，不用複製授權碼。</p>
-  <section class="panel">
+  </header>
+  <h1 data-i18n-key="ui.pixiv_sign_in">Pixiv 登入</h1>
+  <p class="intro" id="connection-intro" data-i18n-key="ui.pixiv_bridge_intro">連接器會開啟 Pixiv，並在你完成登入後自動回到這裡。無需 F12，不用複製授權碼。</p>
+  <section class="panel connection-card" id="connection-card" data-state="pending" aria-labelledby="connection-title">
+    <div class="connection-layout">
+    <div class="connection-icon" aria-hidden="true">
+      <svg class="connection-check" viewBox="0 0 24 24"><path d="m6 12 4 4 8-8"/></svg>
+      <svg class="connection-spinner" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 9 9"/></svg>
+      <svg class="connection-error" viewBox="0 0 24 24"><path d="M12 7v6m0 4h.01"/><circle cx="12" cy="12" r="9"/></svg>
+    </div>
+    <div class="connection-copy">
     <span class="badge" id="extension-badge" data-i18n-key="ui.detecting_the_chrome_connector">正在偵測 Chrome 連接器…</span>
+    <h2 id="connection-title" data-i18n-key="ui.pixiv_connection_preparing">正在準備連接</h2>
     <p id="connection-message" class="message" role="status" aria-live="polite"></p>
-    <div class="actions"><button type="button" id="connect-pixiv" disabled data-i18n-key="ui.pixiv_bridge_continue">繼續 Pixiv 登入</button><a class="secondary" href="/" data-i18n-key="ui.pixiv_back_to_tool">返回下載工具</a></div>
+    <div class="actions"><button type="button" id="connect-pixiv" disabled data-i18n-key="ui.pixiv_bridge_continue">繼續 Pixiv 登入</button><a class="secondary" id="return-to-tool" href="/"><span data-i18n-key="ui.pixiv_back_to_tool">返回下載工具</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-5-5 5 5-5 5"/></svg></a></div>
+    </div></div>
     <p class="privacy" data-i18n-key="ui.pixiv_bridge_privacy">只接收這次授權分頁的 Pixiv 回呼碼並傳給本機工具，不讀取 Pixiv Cookie、帳號密碼或 Google／Apple 登入資料。</p>
   </section>
   <section class="panel" id="install-panel">

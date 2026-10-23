@@ -8,7 +8,7 @@ const jobsController = SSDLJobsController.create({ ...controllerDependencies, ro
 const settingsController = SSDLSettingsController.create({ ...controllerDependencies, renderOffline,
   loadEnvironment: (...args) => diagnosticsController.load(...args) });
 const pixivLogin = SSDLPixivLogin.create({ api, refresh, state, $, t, uiText });
-diagnosticsController.init(); jobsController.init(); settingsController.init();
+diagnosticsController.init(); jobsController.init(); settingsController.init(); pixivLogin.init();
 let dashboardDisposed = false;
 function disposeDashboard() {
   if (dashboardDisposed) return;
@@ -105,6 +105,13 @@ function render(data) {
   const authBusy = Boolean(state.xAuth.busy || connectingXRequest);
   const authConnected = Boolean(state.xAuth.connected);
   const authPending = authBusy || state.xAuth.phase === 'waiting';
+  const fileLogin = Boolean(state.cookieFile);
+  const authFailed = ['failed', 'expired'].includes(state.xAuth.phase);
+  $('#x-session-card').dataset.state = authPending ? 'pending' : authConnected || fileLogin ? 'connected' :
+    ['expired', 'failed'].includes(state.xAuth.phase) ? 'expired' : 'disconnected';
+  $('#x-session-status').textContent = t(authPending ? 'ui.waiting_for_x' : authConnected ? 'ui.x_session_connected' :
+    fileLogin ? 'ui.x_cookie_session' : 'ui.x_session_not_connected');
+  $('#x-auth-description').classList.toggle('hidden', (authConnected || fileLogin) && !authPending);
   $('#x-login-label').textContent = t(authBusy ? 'ui.waiting_for_x' : authConnected ? 'ui.x_connected' : 'ui.connect_chrome');
   $('#x-login-open').disabled = authBusy;
   $('#x-login-open').classList.toggle('connected', authConnected);
@@ -114,9 +121,10 @@ function render(data) {
   $('#x-login-browser').disabled = authBusy;
   $('#x-disconnect').disabled = !authPending && !authConnected && !state.cookieFile;
   $('#x-disconnect').textContent = t(authPending ? 'ui.cancel_connection' : 'ui.disconnect');
-  $('#x-auth-message').textContent = uiMessage(state.xAuth.message || '尚未連接 X 登入');
+  $('#x-auth-message').textContent = authFailed ? uiMessage(state.xAuth.message || 'ui.x_connection_failed') : authConnected && !authPending ? t('ui.x_session_ready') : fileLogin && !authPending ?
+    t('ui.x_cookie_session_ready') : uiMessage(state.xAuth.message || '尚未連接 X 登入');
   $('#x-auth-message').classList.toggle('connected', authConnected);
-  $('#x-auth-message').classList.toggle('error', state.xAuth.phase === 'failed');
+  $('#x-auth-message').classList.toggle('error', authFailed);
   uiText($('#x-storage-copy'), state.xAuth.storage_mode === 'memory' ? 'ui.x_memory_storage' : state.xAuth.storage_mode === 'aes-gcm' ? 'ui.x_key_storage' : 'ui.only_x_session_cookies_are_saved_encrypted');
   uiText($('#x-auth-description'), state.xAuth.host_browser ? 'ui.x_host_pairing' : 'ui.use_your_existing_x_session_in_chrome');
   if (state.xAuth.phase !== 'waiting') { $('#x-pairing-link').hidden = true; $('#x-pairing-link').removeAttribute('href'); }

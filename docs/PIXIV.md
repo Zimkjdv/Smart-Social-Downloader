@@ -1,8 +1,10 @@
 # Pixiv author works
 
 Source implementation added on 2026-10-23. The UI and worker integration are
-implemented; real Pixiv authorization/download acceptance is still pending.
-No real Pixiv credential or author collection was accessed during implementation.
+implemented. A native Windows / ordinary Chrome authorization completed on
+2026-10-24 after fixing dashboard controller initialization. Other authorization
+paths and real media download acceptance remain pending. No author collection
+was downloaded during implementation.
 
 ## Sign in with Chrome (default)
 
@@ -145,11 +147,32 @@ through this project's existing `ProfileArchive` and scheduler. PixivUtil2 is
 [BSD-2-Clause](https://github.com/Nandaka/PixivUtil2/blob/master/LICENSE); no package
 dependency was added for it.
 
+## Connected status UI
+
+The automatic return page presents a success card and a primary **Back to
+downloader** action. The completed sign-in button is hidden. Settings uses the
+same compact session-card style as X, with **Reconnect** / **Clear session**
+actions, a storage note and an advanced manual fallback. Duplicate success text
+and consumed pairing links are removed. Pending/expired states retain their
+messages; X errors and cookie-file sign-in remain visible in the shared layout.
+
 ## Validation remaining
 
-No tests were added or run for this change. Python/JavaScript syntax and source
+On 2026-10-24, a live dashboard reproduction found that the Pixiv controller's
+lifecycle had not been initialized: status text stayed empty and clicking Connect
+sent no request. Dashboard composition now initializes it explicitly. Repeating
+the same UI action after reloading displayed pending authorization/a pairing link
+and the local service returned HTTP 200 for `/api/auth/pixiv/begin`, `/claim` and
+`/callback`. The dashboard then showed the Pixiv session connected. This confirms
+one native Windows / ordinary Chrome happy path, including automatic return and
+session save. It does not confirm other login/restore paths or media downloads.
+
+If an already open page still has an unresponsive button after updating, refresh
+that page to load the corrected dashboard scripts, then start the connection again.
+
+No automated tests were added or run for this change. Python/JavaScript syntax and source
 consistency checks are separate from functional acceptance. Still required:
-real ordinary-Chrome authorization, expired/revoked credentials, an authorized
+other Chrome/Docker authorization paths, expired/revoked credentials, an authorized
 author's original multi-page/animation frames, re-sync after additions, page
 removal/rename, interruption/restart, rate limits and Windows/Docker credential
 restoration. Keep these limitations visible in [ROADMAP](../ROADMAP.md).
