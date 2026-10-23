@@ -105,7 +105,7 @@ function appHarness() {
   vm.runInContext(source('static/api.js'), context);
   const request = context.SSDLApi.request;
   context.SSDLApi.request = (url, options) => request(url, {...options, timeoutMs:20});
-  for (const name of ['ui_state.js', 'job_presentation.js', 'x_login.js', 'media_selection.js', 'controller_lifecycle.js', 'database_controller.js', 'diagnostics_controller.js', 'jobs_controller.js', 'settings_controller.js', 'app.js']) {
+  for (const name of ['ui_state.js', 'job_presentation.js', 'x_login.js', 'media_selection.js', 'controller_lifecycle.js', 'database_controller.js', 'diagnostics_controller.js', 'jobs_controller.js', 'settings_controller.js', 'pixiv_login.js', 'app.js']) {
     vm.runInContext(source('static/' + name), context);
   }
   return {context, elements, calls, scheduled, get:key => document.querySelector(key), document,
@@ -442,12 +442,17 @@ test('DOM settings draft, page and scroll survive polling and English language s
 });
 
 function extensionHarness(port = 8765, failPreflight = false) {
-  let listener, cookieReads = 0; const requests = [];
+  let cookieReads = 0; const requests = [], listeners = [], session = {};
   const id = 'fixture-extension', popup = 'chrome-extension://' + id + '/popup.html';
   const chrome = {
-    runtime:{id, getURL:file => 'chrome-extension://' + id + '/' + file, onMessage:{addListener:fn => {listener = fn;}}},
-    storage:{local:{get:async () => ({toolPort:port}), set:async data => {port = data.toolPort;}}},
+    runtime:{id, getURL:file => 'chrome-extension://' + id + '/' + file, onMessage:{addListener:fn => {listeners.push(fn);}}},
+    storage:{local:{get:async () => ({toolPort:port}), set:async data => {port = data.toolPort;}},
+      session:{get:async key => key === null ? {...session} : {[key]:session[key]},
+        set:async values => {Object.assign(session, values);},
+        remove:async keys => {for (const key of Array.isArray(keys) ? keys : [keys]) delete session[key];}}},
     cookies:{getAll:async ({domain}) => {cookieReads++; return [{domain, name:'auth_token', value:'SYNTHETIC_COOKIE'}];}},
+    webRequest:{onBeforeRequest:{addListener:() => {}}},
+    tabs:{update:async () => ({}), onRemoved:{addListener:() => {}}},
   };
   const context = vm.createContext({chrome, URL, AbortSignal, Date,
     fetch:async (url, options) => {
@@ -457,7 +462,10 @@ function extensionHarness(port = 8765, failPreflight = false) {
     }});
   vm.runInContext(source('chrome-extension/background.js'), context);
   return {requests, cookieReads:() => cookieReads,
-    send:(message, sender) => new Promise(resolve => { if (listener(message, {id, ...sender}, resolve) !== true) resolve(undefined); }),
+    send:(message, sender) => new Promise(resolve => {
+      const pending = listeners.map(listener => listener(message, {id, ...sender}, resolve));
+      if (!pending.includes(true)) resolve(undefined);
+    }),
     popup, id};
 }
 test('Chrome connector rejects mismatched or foreign sources before reading any Cookie', async () => {

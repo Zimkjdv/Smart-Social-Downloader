@@ -4,7 +4,7 @@
 
 The five pushes from `8c84267` through `5c16a46` failed the Windows Python
 regression step. Their Docker and fresh Windows installation jobs passed.
-The [latest failing run](https://github.com/Zimkjdv/Smart-Social-Downloader/actions/runs/40017372470)
+The [reported failing run](https://github.com/Zimkjdv/Smart-Social-Downloader/actions/runs/40017372470)
 executed **344 Python tests in 107.026 seconds**, with **one failure and one
 error** in `tests/test_browser_ui.py`:
 
@@ -21,7 +21,24 @@ Cookie field and Shift+Tab must return to its summary. Tests remain enabled,
 strict mode remains active, and the suite size and production UI are unchanged.
 This is a stale test-contract repair, not evidence of a failed download engine.
 
-Local checks cover Python syntax and diff whitespace only; no local test suite
+The [first repair run](https://github.com/Zimkjdv/Smart-Social-Downloader/actions/runs/40019763517)
+for `c23f745` passed all **344 Python tests in 124.166 seconds**, plus Docker and
+fresh Windows installation. It then reached the previously skipped Node step:
+**7/23 passed, 16 failed**, with two shared fixture startup errors:
+
+- The synthetic dashboard loaded `app.js` without `pixiv_login.js`, causing
+  `SSDLPixivLogin is not defined` across 14 existing DOM cases. Load the real
+  Pixiv controller before application composition, as the shipped HTML does.
+- The Chrome mock lacked `webRequest.onBeforeRequest` and tab/session APIs used
+  by connector 1.2.0. Its single message-listener slot also discarded the X
+  handler when the Pixiv handler registered. Model the required API surface and
+  dispatch messages to all registered listeners, retaining the first response.
+
+These fixture repairs preserve the existing 23 Node cases and X preflight /
+source-rejection assertions. They do not weaken the production connector or
+constitute new Pixiv OAuth/callback acceptance.
+
+Local checks cover Python/JavaScript syntax and diff whitespace only; no local test suite
 or real platform download was run for this repair. Full execution is performed
 by the existing push-triggered workflow. Results must be associated with that
 exact commit/run; a completed older run does not verify these changes.
