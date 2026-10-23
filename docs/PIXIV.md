@@ -1,10 +1,11 @@
 # Pixiv author works
 
-Source implementation added on 2026-10-23. The UI and worker integration are
-implemented. A native Windows / ordinary Chrome authorization completed on
-2026-10-24 after fixing dashboard controller initialization. Other authorization
-paths and real media download acceptance remain pending. No author collection
-was downloaded during implementation.
+Source implementation added on 2026-10-23. A native Windows / ordinary Chrome
+authorization completed on 2026-10-24. The same day, real author acceptance for
+Hoshirapu (82728784) passed 22 works / 24 files, pause/stop recovery, repeat sync,
+missing/changed-page recovery and normal-user Windows restart/session restore.
+See the [measured results and remaining limits](PIXIV_ACCEPTANCE.md). Other
+authorization, content and Docker/Linux paths remain pending.
 
 ## Sign in with Chrome (default)
 
@@ -68,6 +69,13 @@ The author homepage and `/artworks`, `/illustrations`, `/manga` variants are
 normalized to the same author identity. The author mode scans all accessible
 image works, rather than interpreting a pasted tab URL as a content-type filter.
 Single artwork URLs continue through the ordinary media path with the Pixiv session.
+
+The history and active monitor show `Pixiv author · Author name(ID)` after the
+scan identifies the author. Traditional Chinese uses `Pixiv 作者 · 作者名(ID)`.
+Names persist in job history; older rows with a matching named author folder
+can display that name immediately. Before a name is known, the numeric ID is
+shown. This presentation does not change the author's URL, archive identity or
+downloaded files.
 
 The workflow scans the full visible list before downloading. The monitor shows
 works/files discovered, the final total, verified existing pages and pages to

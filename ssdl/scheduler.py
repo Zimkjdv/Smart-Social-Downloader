@@ -81,8 +81,9 @@ class QueueScheduler:
                     return
                 title = data.get("title")
                 is_profile = job.get("mode") in self.app.PROFILE_MODES
-                if title and not is_profile:
-                    job["title"] = title[:180]
+                is_pixiv_profile = job.get("mode") == "pixiv_profile"
+                if title and (not is_profile or is_pixiv_profile):
+                    job["title"] = title[:256 if is_pixiv_profile else 180]
                 filename = data.get("filename")
                 if filename:
                     job["filename"] = Path(filename).name
@@ -283,7 +284,7 @@ class QueueScheduler:
                     current = self.app.state.jobs.get(job_id)
                     if current:
                         if result.get("title"):
-                            current["title"] = str(result["title"])[:180]
+                            current["title"] = str(result["title"])[:256 if current.get("mode") == "pixiv_profile" else 180]
                         current["files"] = result["files"]
                         current["filename"] = result["files"][0] if result["files"] else ""
                         current["quality"] = result["quality"]

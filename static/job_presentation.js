@@ -1,7 +1,24 @@
 /* Job formatting and keyed table rendering; actions live in jobs_controller.js. */
 const safe = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
 const statusNames = { queued: '等待中', active: '下載中', completed: '已完成', failed: '失敗', selecting: '待選擇媒體' };
-const jobTitle = (job) => job.mode === 'pixiv_profile' ? t('ui.pixiv_author_title', { account: job.account || '' }) : job.mode === 'x_profile' ? t('ui.x_account_media_account', { account: job.account || '' }) : !job.title || job.title === '等待下載' || job.title === '正在下載圖片來源檔' ? t(job.title || 'ui.waiting_to_download') : job.title;
+function pixivAuthorLabel(job) {
+  const account = String(job.account || '');
+  if (!/^[1-9][0-9]{0,19}$/.test(account)) return account;
+  const suffix = `(${account})`;
+  const prefix = 'Pixiv · ';
+  if (typeof job.title === 'string' && job.title.startsWith(prefix) && job.title.endsWith(suffix)) {
+    return job.title.slice(prefix.length);
+  }
+  // Older history already contains the named folder, even before its next sync.
+  for (const filename of job.files || []) {
+    const parts = String(filename).split(/[\\/]/);
+    if (parts.length === 3 && parts[0] === 'pixiv' && parts[1].endsWith(suffix) && parts[1].length > suffix.length) {
+      return parts[1];
+    }
+  }
+  return account;
+}
+const jobTitle = (job) => job.mode === 'pixiv_profile' ? t('ui.pixiv_author_title', { account: pixivAuthorLabel(job) }) : job.mode === 'x_profile' ? t('ui.x_account_media_account', { account: job.account || '' }) : !job.title || job.title === '等待下載' || job.title === '正在下載圖片來源檔' ? t(job.title || 'ui.waiting_to_download') : job.title;
 
 function wasSkipped(job) {
   return job.status === 'completed' && !['x_profile', 'pixiv_profile'].includes(job.mode) &&

@@ -123,6 +123,23 @@ test('controller modules load without DOM access or application globals', () => 
   assert.equal(typeof context.window.SSDLDiagnosticsController.create, 'function');
 });
 
+test('Pixiv author titles include display names from metadata and matching historical folders', async () => {
+  const app = appHarness();
+  try {
+    const profile = {mode:'pixiv_profile', account:'82728784', title:'Pixiv · 82728784', files:[]};
+    const title = values => app.evaluate('jobTitle(' + JSON.stringify({...profile, ...values}) + ')');
+    assert.equal(title({}), 'Pixiv 作者 · 82728784');
+    assert.equal(title({title:'Pixiv · Hoshirapu(82728784)'}), 'Pixiv 作者 · Hoshirapu(82728784)');
+    for (const filename of ['pixiv/Hoshirapu(82728784)/1_p0.png', 'pixiv\\Hoshirapu(82728784)\\1_p0.png']) {
+      assert.equal(title({files:[filename]}), 'Pixiv 作者 · Hoshirapu(82728784)');
+    }
+    assert.equal(title({files:['pixiv/Another author(123)/1_p0.png']}), 'Pixiv 作者 · 82728784');
+    assert.equal(title({files:['pixiv/82728784/1_p0.png']}), 'Pixiv 作者 · 82728784');
+    await app.get('#language-toggle').fire('click');
+    assert.equal(title({title:'Pixiv · Hoshirapu(82728784)'}), 'Pixiv author · Hoshirapu(82728784)');
+  } finally {app.close();}
+});
+
 test('capacity health renders size, warning, blocked save and English messages', async () => {
   const app = appHarness();
   try {

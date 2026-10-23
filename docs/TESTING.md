@@ -1,5 +1,18 @@
 # Regression and acceptance tests
 
+## Pixiv native Windows author checks — 2026-10-24
+
+[Real author acceptance](PIXIV_ACCEPTANCE.md) covers Hoshirapu (82728784):
+22 works / 24 files, original-image decoding, scan-first totals, pause/stop
+recovery, verified repeat sync, single missing/mtime-changed page recovery,
+normal-user DPAPI/history restart and bilingual named author titles in Chrome.
+The private evidence remains outside the source tree. Other authorization,
+legacy-folder, Ugoira and Linux/Docker cases remain explicitly pending.
+
+The focused Python command in that report passes **40 tests in 13.729 seconds**;
+frontend Node checks pass **24 cases**, zero skips/failures. This is not a claim
+that the complete project suite was rerun locally for this change.
+
 ## Settings UI CI contract repair — 2026-10-24
 
 The five pushes from `8c84267` through `5c16a46` failed the Windows Python

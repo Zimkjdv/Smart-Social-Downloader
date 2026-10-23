@@ -45,6 +45,7 @@ def download_pixiv_account(url, output_dir, emit, *, archive_file, refresh_token
         raise DownloadError("缺少 Pixiv 下載引擎，請恢復基準依賴。")
     from gallery_dl.extractor.common import Extractor, Message
     _, account = normalize_pixiv_account(url)
+    title = "Pixiv · " + account
     root = Path(output_dir).resolve()
     root.mkdir(parents=True, exist_ok=True)
     saved = {}
@@ -68,7 +69,7 @@ def download_pixiv_account(url, output_dir, emit, *, archive_file, refresh_token
         if not force and now - last_report < .5:
             return
         last_report = now
-        emit({"files": list(saved), "aggregate_bytes": saved_total, "downloaded_bytes": 0,
+        emit({"title": title, "files": list(saved), "aggregate_bytes": saved_total, "downloaded_bytes": 0,
               "profile_posts": posts, "profile_skipped": skipped, "profile_downloaded_posts": downloaded_posts,
               "profile_stage": stage, "profile_scan_complete": complete, "profile_scanned_posts": scanned,
               "profile_scanned_files": scanned_files, "profile_total_posts": scanned if complete else None,
@@ -171,6 +172,7 @@ def download_pixiv_account(url, output_dir, emit, *, archive_file, refresh_token
                     if author is None:
                         # One display name per scan even if it changes during pagination.
                         author = {"id": account, "name": data["user"].get("name", "")}
+                        title = "Pixiv · " + author_folder(author)
                     if expected == 0:
                         # The extractor reports zero pages for inaccessible/deleted
                         # works or unavailable original animation frames.
@@ -280,6 +282,6 @@ def download_pixiv_account(url, output_dir, emit, *, archive_file, refresh_token
     if unavailable:
         warnings.append(f"{unavailable} 個作品未提供可取得的原圖，已略過；其他可取得原圖仍正常處理。")
     warnings.append("已同步 Pixiv 目前允許此登入帳號取得的原圖；動圖以原始影格保存。")
-    return {"title": "Pixiv · " + account, "files": list(saved), "quality": QUALITY, "warnings": warnings,
+    return {"title": title, "files": list(saved), "quality": QUALITY, "warnings": warnings,
             "engine": "gallery-dl", "skipped": downloaded_files == 0 and bool(saved),
             "skipped_file_count": existing_files, "downloaded_file_count": downloaded_files}

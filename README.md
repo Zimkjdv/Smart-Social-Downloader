@@ -16,7 +16,7 @@ A local video and image download manager with a browser interface. Paste URLs, q
 - **Quality control:** highest available video quality by default; optional 2160p–144p height limits. Merge streams without re-encoding.
 - **Optional JavaScript capture:** a temporary Chrome context can discover dynamic video/audio sources and hand them to the normal download queue. [Enable it](docs/DYNAMIC_CAPTURE.md).
 - **X account media:** scan accessible images/videos first, show file totals, verify existing files, and sync missing/new media using your connected X session.
-- **Pixiv author works:** OAuth setup, scan-first file totals, original illustrations/manga pages and animation frames, `pixiv/Author name(ID)/` folders, and file-verified incremental sync. [Setup and current acceptance status](docs/PIXIV.md).
+- **Pixiv author works:** OAuth setup, scan-first file totals, original illustrations/manga pages and animation frames, `pixiv/Author name(ID)/` folders, and file-verified incremental sync. [Setup](docs/PIXIV.md) · [Real author acceptance](docs/PIXIV_ACCEPTANCE.md).
 - **Queue control:** background serial downloads, 3–8 second delays, configurable hourly quota, per-platform/shared cooldowns, pause, stop and retry.
 - **A manageable library:** local thumbnails, file size/time, view/play/open-folder actions, filters, pagination and preserved history.
 - **Local operation:** English / Traditional Chinese UI, Windows-encrypted X / Pixiv session storage, environment checks and redacted diagnostic export.
@@ -34,7 +34,7 @@ Some sites, including YouTube, need **Node.js 22+ or Deno 2.3+**. Install a runt
 
 For X login, sign into X in ordinary Chrome, then use **Settings → X sign-in**. If the connector is needed, follow its [one-time installation guide](chrome-extension/README.md). The tool connects an existing session; it does not perform Google/Apple sign-in.
 
-For Pixiv, use **Settings → Pixiv sign-in**, click **Connect Pixiv** and finish sign-in in ordinary Chrome. Connector 1.2.0 returns authorization automatically (install/reload it once); then select **Pixiv author works** and paste an author URL or numeric ID. See the [Pixiv guide](docs/PIXIV.md). Real platform acceptance is pending.
+For Pixiv, use **Settings → Pixiv sign-in**, click **Connect Pixiv** and finish sign-in in ordinary Chrome. Connector 1.2.0 returns authorization automatically (install/reload it once); then select **Pixiv author works** and paste an author URL or numeric ID. See the [Pixiv guide](docs/PIXIV.md). Core Windows author download/recovery checks have passed; other authorization and platform cases remain pending.
 
 ### Background start and stop (Windows)
 
