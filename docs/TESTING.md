@@ -685,3 +685,33 @@ See [complete scope](DESKTOP_ACCEPTANCE.md); those manual checks remain in ROADM
   non-root user and mounts no host media/state. Full boundaries and remaining
   actual author rename / OS archive migration are in
   [path acceptance](PIXIV_PATH_ACCEPTANCE.md).
+
+
+## Pixiv incremental and failure recovery — 2026-10-25
+
+- Native Windows / Python 3.12.10: full regression passed **383 Python cases**;
+  Node passed **24 cases**. The focused path/recovery/presentation/receipt suite
+  passed **28 cases**.
+- Initial fault injection reproduced count-only acceptance of gapped ordinals,
+  duplicate ordinals with different extensions, unrelated error-file import,
+  `.part` masking cancellation and duplicate retained-page payloads masking it
+  again. Tests failed before the corresponding production corrections, then
+  passed with assertions retained.
+- Linux / Python 3.12.15: the combined `--pixiv` probe passed **25 cases**
+  (nine paths and 16 recovery), zero errors/failures/skips; its first standalone
+  run also passed the nine existing runtime/context checks.
+- Full CI-shaped Docker integration `check_docker.py --browser --pixiv` passed
+  on the local Linux engine: runtime/context, 14 service, 15 interaction, eight
+  actual host-bind/secret and seven host-Chrome stages, plus both Pixiv groups
+  running 25 tests. Existing PNG/H.264 decode/seek and scoped backup/restore
+  remained successful; receipt is ignored `data/pixiv-roadmap-docker.json`.
+- The reviewed source ZIP (230 files, deferred comparison excluded) passed
+  the complete extracted regression: **383 Python + 24 Node cases**, then
+  **116 dependency-fault cases** with zero errors/failures/skips. Source acceptance
+  exited successfully. The known reviewed urllib3 SSL-options deprecation
+  remained an observation. Private log: `data/pixiv-roadmap-source.log`.
+- The real isolated RequestPolicy closes a synthetic 429 response, retains
+  cooldown and permits a retry after its test clock advances. No real network
+  limit, production queue, original download or login state was changed.
+- [Recovery acceptance](PIXIV_RECOVERY_ACCEPTANCE.md) records cases, failure
+  causes, corrections and the live/Ugoira coverage that remains pending.

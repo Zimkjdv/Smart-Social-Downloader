@@ -291,7 +291,7 @@ def main(arguments=None):
     parser.add_argument("--host-storage", action="store_true", help="Also accept actual private host binds and Compose file secrets")
     parser.add_argument("--browser", action="store_true", help="Also accept host Chrome file UI and actual PNG/H.264 decoding")
     parser.add_argument("--browser-headed", action="store_true", help="Show the isolated Chrome window (requires --browser)")
-    parser.add_argument("--pixiv", action="store_true", help="Also run synthetic Pixiv path/archive tests without network or host data")
+    parser.add_argument("--pixiv", action="store_true", help="Also run synthetic Pixiv path/archive/recovery tests without network or host data")
     parser.add_argument("--report", type=Path, default=ROOT / "data/docker-runtime.json")
     args = parser.parse_args(arguments)
     if args.browser_headed and not args.browser:

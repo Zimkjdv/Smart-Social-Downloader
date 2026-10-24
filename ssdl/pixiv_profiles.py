@@ -14,6 +14,7 @@ from urllib.parse import urlparse
 from . import gallery_adapter as gallery, media_engines as engines, request_policy
 from .diagnostics import redact_text
 from .media_contracts import DownloadError
+from .media_manifest import file_entries
 from .profiles import normalize_pixiv_account
 from .pixiv_paths import author_folder
 from .x_profiles import ProfileArchive
@@ -156,6 +157,7 @@ def download_pixiv_account(url, output_dir, emit, *, archive_file, refresh_token
             extractor.session.send = paced_send
             report(status_text="正在掃描 Pixiv 作者作品清單")
             seen = set()
+            pages_seen = set()
             plan = None
             author = None
             expected = 0
@@ -182,12 +184,14 @@ def download_pixiv_account(url, output_dir, emit, *, archive_file, refresh_token
                     seen.add(artwork)
                     plan = {"id": artwork, "assets": [], "names": [], "targets": [],
                             "existing": 0, "duplicate": duplicate}
+                    pages_seen.clear()
                 elif kind == Message.Url:
                     if plan is None:
                         raise DownloadError("Pixiv 原圖清單不完整。", code="pixiv_invalid_media")
                     name, asset = original_asset(asset_url, data, account, plan["id"], author)
-                    if name in plan["names"]:
-                        raise DownloadError("Pixiv 回傳了重複頁碼。", code="pixiv_invalid_media")
+                    if asset[1]["num"] >= expected or asset[1]["num"] in pages_seen:
+                        raise DownloadError("Pixiv 回傳了重複或不完整的頁碼。", code="pixiv_invalid_media")
+                    pages_seen.add(asset[1]["num"])
                     plan["names"].append(name)
                     plan["targets"].append(name)
                     plan["assets"].append(asset)
@@ -217,11 +221,32 @@ def download_pixiv_account(url, output_dir, emit, *, archive_file, refresh_token
                     kept, missing = verify(plan)  # Recheck after quota/cooldown/pause waits.
                 if missing:
                     pending = {}
+                    kept_paths = {os.path.normcase(entry["name"]) for entry in kept}
+                    expected_paths = {os.path.normcase(name): name for name in plan["names"]
+                                      if os.path.normcase(name) not in kept_paths}
+
+                    def completed_entries(names):
+                        # Error/progress payloads are not completion evidence.
+                        # Admit only this work's planned, nonempty original files.
+                        entries = {}
+                        for name in names:
+                            target = expected_paths.get(os.path.normcase(name)) if isinstance(name, str) else None
+                            if target is None:
+                                continue
+                            key = os.path.normcase(target)
+                            if key in entries:
+                                continue
+                            try:
+                                entry = file_entries(root, [target])[0]
+                            except (OSError, ValueError, TypeError, RuntimeError):
+                                continue
+                            entries[key] = entry
+                        return list(entries.values())
+
                     def progress(data):
-                        for name in data.get("files", ()):
-                            path = (root / name).resolve()
-                            if path.is_relative_to(root) and path.is_file():
-                                pending[name] = path.stat().st_size
+                        entries = completed_entries([*pending, *data.get("files", ())])
+                        pending.clear()
+                        pending.update((entry["name"], entry["size"]) for entry in entries)
                         # Persist verified successful pages even if this work is
                         # interrupted. Full lookup still checks the fresh total/names.
                         partial_names = [entry["name"] for entry in kept] + list(pending)
@@ -246,11 +271,7 @@ def download_pixiv_account(url, output_dir, emit, *, archive_file, refresh_token
                         downloaded_posts += 1
                         request_policy.POLICY.job_completed()
                     except Exception as exc:
-                        recovered = []
-                        for name in dict.fromkeys([*pending, *getattr(exc, "files", ())]):
-                            path = (root / name).resolve()
-                            if path.is_relative_to(root) and path.is_file() and path.stat().st_size > 0:
-                                recovered.append(name)
+                        recovered = [entry["name"] for entry in completed_entries([*pending, *getattr(exc, "files", ())])]
                         # A partial work is never recorded as a successful complete work.
                         if recovered:
                             partial_names = [item["name"] for item in kept] + recovered

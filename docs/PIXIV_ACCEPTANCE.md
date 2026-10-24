@@ -73,8 +73,10 @@ permissions. The following remain in [ROADMAP](../ROADMAP.md):
 
 - Fresh authorization on other Chrome installations and Docker; expired,
   cancelled or mismatched callback attempts and extension upgrade permissions.
-- New remote works appearing between syncs, inaccessible/deleted/private works,
-  intentional rate-limit/failure recovery and original Ugoira frame coverage.
+- Live new works, inaccessible/deleted/private responses, real rate-limit/failure
+  recovery and original Ugoira frame coverage. The automated portion now has
+  [16 synthetic recovery cases](PIXIV_RECOVERY_ACCEPTANCE.md); it does not replace
+  those actual platform observations.
 - An actual author rename and archive migration between OS path/scope formats.
   Synthetic Unicode/long-name, same-name/different-ID, legacy-folder reuse, root
   change and whole-folder relocation now pass on Windows and Linux; see

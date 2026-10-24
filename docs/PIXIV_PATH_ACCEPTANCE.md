@@ -22,8 +22,10 @@ limits and an owned tmpfs. No checkout, browser profile, key, media or state bin
 is mounted. Random labelled container/image ownership scopes cleanup; no global
 prune is used. The test files are not added to production images.
 
-The probe requires a matching receipt, exactly nine path tests, integer counters,
-zero failures/errors/skips and a successful process exit. Unexpected report fields
+The probe requires a matching receipt, integer counters, zero failures/errors/skips
+and a successful process exit. The first path-only run required nine tests;
+[recovery acceptance](PIXIV_RECOVERY_ACCEPTANCE.md) now extends it to exactly
+25 tests (nine paths plus 16 recovery cases). Unexpected report fields
 are rejected. This same gate is enabled alongside existing Docker CI acceptance.
 
 ## Verified cases

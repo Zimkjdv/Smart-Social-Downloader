@@ -1,10 +1,10 @@
 """Run synthetic Pixiv path tests inside the reviewed network-disabled image."""
 from .check_docker import clean_container, decode_json, ordinary, require
 
-MODULES = ("tests.test_pixiv_paths",)
+MODULES = ("tests.test_pixiv_paths", "tests.test_pixiv_recovery")
 FILES = ("tests/__init__.py", "tests/helpers/__init__.py", "tests/helpers/pixiv.py",
-         "tests/test_pixiv_paths.py")
-EXPECTED_TESTS = 9
+         "tests/test_pixiv_paths.py", "tests/test_pixiv_recovery.py")
+EXPECTED_TESTS = 25
 
 
 def validate(value, receipt):
@@ -60,5 +60,6 @@ with tempfile.TemporaryDirectory(dir='/work') as temporary:
         require(code == 0, "pixiv_probe_exit_failed")
         report["pixiv"] = {key: value for key, value in result.items() if key != "receipt"}
         report["checks"].append("pixiv_author_paths")
+        report["checks"].append("pixiv_author_recovery")
     finally:
         clean_container(docker, name, receipt)

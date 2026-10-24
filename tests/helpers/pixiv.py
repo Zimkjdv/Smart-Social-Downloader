@@ -16,7 +16,7 @@ class Source:
 
     def __init__(self, author, works):
         self.author, self.works = author, works
-        self.session = SimpleNamespace(send=Mock())
+        self.session = SimpleNamespace(send=Mock(), close=Mock())
 
     def initialize(self):
         pass
@@ -84,14 +84,15 @@ class PixivFixture:
         return {"files": names, "quality": "original"}
 
     def sync(self, *, name="作者", account="123", works=(("100", 2),), root=None,
-             source=None, before_post=None, checkpoint=None, transfer=None, previous_files=()):
+             source=None, before_post=None, checkpoint=None, transfer=None, previous_files=(), policy=None):
         self.events.clear()
         self.transferred.clear()
         source = source or Source({"id": int(account), "name": name}, works)
+        self.policy = policy or Mock()
         with patch.object(gallery_adapter, "_pace_gallery"), \
              patch.object(gallery_adapter, "download_gallery", side_effect=transfer or self.transfer), \
              patch.object(pixiv_profiles.engines.gallery_extractor, "find", return_value=source), \
-             patch.object(pixiv_profiles.request_policy, "POLICY", Mock()):
+             patch.object(pixiv_profiles.request_policy, "POLICY", self.policy):
             return pixiv_profiles.download_pixiv_account(
                 f"https://www.pixiv.net/users/{account}", root or self.root, self.events.append,
                 archive_file=self.archive, refresh_token="SYNTHETIC_PIXIV_SESSION",

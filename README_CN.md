@@ -159,7 +159,7 @@ smart-social-downloader/
 │   ├── docker_host_acceptance.py   真正主機掛載／ACL／檔案型 secret 驗收
 │   ├── docker_host_probe.py        receipt 限定的主機權限與備份檢查
 │   ├── docker_browser_acceptance.py 主機 Chrome 檔案操作、PNG 解碼與 H.264 播放
-│   ├── docker_pixiv_acceptance.py Linux 隔離 Pixiv 目錄／保存紀錄驗收
+│   ├── docker_pixiv_acceptance.py Linux 隔離 Pixiv 目錄／保存與故障恢復驗收
 │   ├── measure_persistence.py      隔離合成保存與 API 延遲量測
 │   ├── measure_capacity.py         帳號掃描、IPC 及 64 MiB 邊界驗收
 │   └── measure_hashing.py          合成檔案內容雜湊成本評估
