@@ -118,7 +118,8 @@ smart-social-downloader/
 │   ├── docker_host_probe.py    # receipt 限定的 bind 權限／歸還擁有者與備份檢查
 │   ├── docker_browser_acceptance.py # 主機 Chrome 檔案 UI／鍵盤與實際圖片／影片解碼
 │   ├── measure_persistence.py # 隔離合成歷史保存／API 延遲量測
-│   └── measure_capacity.py    # 合成帳號掃描、IPC 及保存容量邊界
+│   ├── measure_capacity.py    # 合成帳號掃描、IPC 及保存容量邊界
+│   └── measure_hashing.py     # 合成內容雜湊評估，未接入下載流程
 ├── docs/                     # 使用、發布、去重及架構說明
 ├── tests/                    # 本機 API、下載、串流及發布測試
 │   ├── __init__.py            # 明確測試套件，discovery 以專案根為 top level

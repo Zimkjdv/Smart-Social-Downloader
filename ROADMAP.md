@@ -1,6 +1,6 @@
 # Roadmap
 
-更新：2026-10-24。此檔是**未完成工作與最新審查發現的唯一總清單**；完成紀錄移至 [CHANGELOG](CHANGELOG.md)。目前基準為 Windows／Python 3.12，沒有 Python 3.10 驗收工作。下列核取方塊均尚未完成，不代表已修正或已發布。N01～N08 已完成並移到 [CHANGELOG](CHANGELOG.md#unreleased)，回歸結果見 [TESTING](docs/TESTING.md)。N07 的索引評估已記錄，實際索引／游標儲存列為後續選配，尚未實作。
+更新：2026-10-25。此檔是**未完成工作與最新審查發現的唯一總清單**；完成紀錄移至 [CHANGELOG](CHANGELOG.md)。目前基準為 Windows／Python 3.12，沒有 Python 3.10 驗收工作。下列核取方塊均尚未完成，不代表已修正或已發布。N01～N08 已完成並移到 [CHANGELOG](CHANGELOG.md#unreleased)，回歸結果見 [TESTING](docs/TESTING.md)。N07 的索引評估已記錄，實際索引／游標儲存列為後續選配，尚未實作。
 
 ## 本輪整體審查
 
@@ -60,7 +60,9 @@ Windows／一般 Chrome 授權主流程，以及 Hoshirapu（82728784）的 22 �
 ### 去重與匯入選配
 
 - [ ] 擴充可靠的平台穩定 ID，保留畫質／媒體差異；簽章更新是否能合併須逐平台確認。
-- [ ] 評估跨 URL／平台的內容雜湊比較；目前網址指紋不是內容雜湊。
+跨 URL／平台內容雜湊評估已於 2026-10-25 完成並移至 [CHANGELOG](CHANGELOG.md#unreleased)。[評估與量測](docs/CONTENT_HASH_ASSESSMENT.md)建議保留原路徑規則，以選配 SHA-256 索引顯示相同內容候選；量測工具只讀取自建合成資料，未接入下載流程。
+
+- [ ] 若採用內容雜湊比對索引，另行實作排程／取消、完整檔案核對、私有索引保存／恢復、候選 UI 及驗收。原位置缺檔、搬移、改名或換下載根目錄仍重新下載；不以跨來源雜湊自動略過或刪除檔案。
 - [ ] 為已清除清單、沒有可信成功紀錄的舊檔提供可確認完整性的匯入流程，不因同名就直接認定完成。背景見 [DOWNLOAD_DEDUP](docs/DOWNLOAD_DEDUP.md)。
 
 ## 名稱與發布資料建議

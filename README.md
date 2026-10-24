@@ -76,7 +76,7 @@ Use the ordinary Chrome profile where you sign into X or Pixiv. Keep the downloa
 | [Usage](docs/USAGE.md) / [繁體中文操作指南](docs/USAGE_CN.md) | Settings, quality, file actions, X sync, queue limits and CLI commands |
 | [Troubleshooting](docs/TROUBLESHOOTING.md) | Installation, diagnostics, local API and login repair |
 | [Chrome connector](chrome-extension/README.md) | Installation, pairing, custom port and reloading |
-| [Video quality](docs/VIDEO_QUALITY.md) · [Existing-file checks](docs/DOWNLOAD_DEDUP.md) | Selection, storage and duplicate-download rules |
+| [Video quality](docs/VIDEO_QUALITY.md) · [Existing-file checks](docs/DOWNLOAD_DEDUP.md) · [Hash assessment](docs/CONTENT_HASH_ASSESSMENT.md) | Selection, storage and duplicate-download rules |
 | [JavaScript capture](docs/DYNAMIC_CAPTURE.md) · [Testing](docs/TESTING.md) | Optional setup, capture bounds, regression and browser acceptance |
 | [Project audit](docs/PROJECT_AUDIT.md) | Reproduced bugs, fixes and remaining acceptance (Chinese) |
 | [Reliability](docs/RELIABILITY.md) · [Performance](docs/PERFORMANCE.md) | Recovery, cancellation, integrity, pagination and cache behavior |
@@ -160,7 +160,8 @@ smart-social-downloader/
 │   ├── docker_host_probe.py        Receipt-gated host permissions and backup checks
 │   ├── docker_browser_acceptance.py Host Chrome file UI and actual PNG/H.264 playback
 │   ├── measure_persistence.py      Isolated synthetic saves and API latency
-│   └── measure_capacity.py         Account scan, IPC and 64 MiB boundary probes
+│   ├── measure_capacity.py         Account scan, IPC and 64 MiB boundary probes
+│   └── measure_hashing.py          Synthetic content-hash cost assessment
 ├── docs/                          Usage, architecture and maintenance guides
 │   └── images/dashboard-preview.svg  Fictional public illustration
 ├── tests/                         Importable local regression package

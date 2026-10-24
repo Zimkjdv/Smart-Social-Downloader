@@ -76,7 +76,7 @@ Pixiv 請使用 **設定 → Pixiv 登入** 按「一鍵連接 Pixiv」，在一
 | [繁體中文操作指南](docs/USAGE_CN.md)／[English usage](docs/USAGE.md) | 設定、畫質、檔案操作、X 同步、限流與 CLI |
 | [操作與排錯](docs/TROUBLESHOOTING.md) | 安裝、診斷、本機 API 與登入問題 |
 | [Chrome 連接器](chrome-extension/README.md) | 安裝、配對、自訂連接埠及重新載入 |
-| [影片畫質](docs/VIDEO_QUALITY.md) · [已下載檔案檢查](docs/DOWNLOAD_DEDUP.md) | 畫質、保存位置與避免重複下載 |
+| [影片畫質](docs/VIDEO_QUALITY.md) · [已下載檔案檢查](docs/DOWNLOAD_DEDUP.md) · [內容雜湊評估](docs/CONTENT_HASH_ASSESSMENT.md) | 畫質、保存位置與避免重複下載 |
 | [JavaScript 捕捉](docs/DYNAMIC_CAPTURE.md) · [測試紀錄](docs/TESTING.md) | 選配安裝、捕捉限制、回歸與瀏覽器驗收 |
 | [專案複查](docs/PROJECT_AUDIT.md) | 本輪重現問題、修正與剩餘驗收 |
 | [可靠性](docs/RELIABILITY.md) · [效能](docs/PERFORMANCE.md) | 恢復、停止、串流完整性、分頁與快取 |
@@ -160,7 +160,8 @@ smart-social-downloader/
 │   ├── docker_host_probe.py        receipt 限定的主機權限與備份檢查
 │   ├── docker_browser_acceptance.py 主機 Chrome 檔案操作、PNG 解碼與 H.264 播放
 │   ├── measure_persistence.py      隔離合成保存與 API 延遲量測
-│   └── measure_capacity.py         帳號掃描、IPC 及 64 MiB 邊界驗收
+│   ├── measure_capacity.py         帳號掃描、IPC 及 64 MiB 邊界驗收
+│   └── measure_hashing.py          合成檔案內容雜湊成本評估
 ├── docs/                          操作、架構與維護文件
 │   └── images/dashboard-preview.svg  可公開的虛構介面示意
 ├── tests/                         可匯入的本機回歸測試套件
