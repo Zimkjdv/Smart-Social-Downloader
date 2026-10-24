@@ -17,7 +17,8 @@ python tools/check_docker.py --pixiv --report data/pixiv-auth-docker.json
 The Python module has **16 cases**: 13 manager/parser/storage cases and three
 real-loopback HTTP API cases. Four additional Node cases run the shipped
 connector background script against mocked Chrome APIs; all 28 Node cases pass.
-The Docker probe now requires **41 cases** (nine paths, 16 recovery, 16 auth),
+The current Docker probe requires **55 cases** (nine paths, 16 recovery, 16 auth
+and [14 identity cases](SOURCE_IDENTITY.md)),
 zero failures/errors/skips and the matching ownership receipt.
 
 ## Coverage

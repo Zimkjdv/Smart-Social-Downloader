@@ -16,6 +16,7 @@
 - **畫質選擇**：預設最高可用畫質，可選 2160p～144p 高度上限；合併影音串流時不重新編碼。
 - **選配 JavaScript 捕捉**：使用臨時 Chrome 工作階段發現動態影音來源，再交給原有下載流程。[啟用方法](docs/DYNAMIC_CAPTURE.md)。
 - **X 帳號媒體**：先掃描可存取的圖片與影片並顯示總數，核對原位置檔案，再補抓新增或缺少的內容。
+- **檔案核對去重**：已確認的 Pixiv 單篇作品網址變體共用穩定 ID；仍核對原位置、檔案大小與修改時間，畫質／媒體選取分開。[來源識別與舊紀錄相容](docs/SOURCE_IDENTITY.md)。
 - **Pixiv 作者作品**：OAuth 登入設定、先掃描總數、插畫／漫畫原圖與動圖原始影格、`pixiv/作者名(ID)/` 資料夾，以及核對檔案後的增量補抓。[操作說明](docs/PIXIV.md) · [實際作者驗收](docs/PIXIV_ACCEPTANCE.md)。
 - **背景佇列**：單 worker、3～8 秒延時、可調每小時額度、獨立／共用平台冷卻，以及暫停、停止與重新下載。
 - **清單管理**：本機縮圖、SIZE／TIME、播放／查看／開啟資料夾、篩選、分頁及保存紀錄。
@@ -159,7 +160,7 @@ smart-social-downloader/
 │   ├── docker_host_acceptance.py   真正主機掛載／ACL／檔案型 secret 驗收
 │   ├── docker_host_probe.py        receipt 限定的主機權限與備份檢查
 │   ├── docker_browser_acceptance.py 主機 Chrome 檔案操作、PNG 解碼與 H.264 播放
-│   ├── docker_pixiv_acceptance.py Linux 隔離 Pixiv 目錄／恢復與授權驗收
+│   ├── docker_pixiv_acceptance.py Linux 隔離 Pixiv 目錄／恢復／授權與來源識別驗收
 │   ├── measure_persistence.py      隔離合成保存與 API 延遲量測
 │   ├── measure_capacity.py         帳號掃描、IPC 及 64 MiB 邊界驗收
 │   └── measure_hashing.py          合成檔案內容雜湊成本評估

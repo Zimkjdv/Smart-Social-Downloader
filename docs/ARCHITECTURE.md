@@ -117,7 +117,7 @@ smart-social-downloader/
 │   ├── docker_host_acceptance.py # 私有主機資料夾、檔案型 secret 與還原登入驗收
 │   ├── docker_host_probe.py    # receipt 限定的 bind 權限／歸還擁有者與備份檢查
 │   ├── docker_browser_acceptance.py # 主機 Chrome 檔案 UI／鍵盤與實際圖片／影片解碼
-│   ├── docker_pixiv_acceptance.py # 非 root、斷網的 Linux Pixiv 目錄驗收
+│   ├── docker_pixiv_acceptance.py # 非 root、斷網的 Linux Pixiv 目錄／恢復／授權／識別驗收
 │   ├── measure_persistence.py # 隔離合成歷史保存／API 延遲量測
 │   ├── measure_capacity.py    # 合成帳號掃描、IPC 及保存容量邊界
 │   └── measure_hashing.py     # 合成內容雜湊評估，未接入下載流程

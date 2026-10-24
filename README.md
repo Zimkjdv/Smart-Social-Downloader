@@ -16,6 +16,7 @@ A local video and image download manager with a browser interface. Paste URLs, q
 - **Quality control:** highest available video quality by default; optional 2160p–144p height limits. Merge streams without re-encoding.
 - **Optional JavaScript capture:** a temporary Chrome context can discover dynamic video/audio sources and hand them to the normal download queue. [Enable it](docs/DYNAMIC_CAPTURE.md).
 - **X account media:** scan accessible images/videos first, show file totals, verify existing files, and sync missing/new media using your connected X session.
+- **Verified duplicate checks:** recognized Pixiv artwork link variants share a stable ID; original files must still match their saved location, size and modification time. Quality/media preferences stay separate. [Identity and legacy compatibility](docs/SOURCE_IDENTITY.md).
 - **Pixiv author works:** OAuth setup, scan-first file totals, original illustrations/manga pages and animation frames, `pixiv/Author name(ID)/` folders, and file-verified incremental sync. [Setup](docs/PIXIV.md) · [Real author acceptance](docs/PIXIV_ACCEPTANCE.md).
 - **Queue control:** background serial downloads, 3–8 second delays, configurable hourly quota, per-platform/shared cooldowns, pause, stop and retry.
 - **A manageable library:** local thumbnails, file size/time, view/play/open-folder actions, filters, pagination and preserved history.
@@ -159,7 +160,7 @@ smart-social-downloader/
 │   ├── docker_host_acceptance.py   Actual host bind/ACL/file-secret acceptance
 │   ├── docker_host_probe.py        Receipt-gated host permissions and backup checks
 │   ├── docker_browser_acceptance.py Host Chrome file UI and actual PNG/H.264 playback
-│   ├── docker_pixiv_acceptance.py Synthetic Pixiv paths/recovery/auth checks in Linux
+│   ├── docker_pixiv_acceptance.py Synthetic Pixiv paths/recovery/auth/identity checks in Linux
 │   ├── measure_persistence.py      Isolated synthetic saves and API latency
 │   ├── measure_capacity.py         Account scan, IPC and 64 MiB boundary probes
 │   └── measure_hashing.py          Synthetic content-hash cost assessment

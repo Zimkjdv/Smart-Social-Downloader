@@ -158,6 +158,33 @@ def _image_source_key(url: str) -> str:
     return hashlib.sha256(normalized.encode()).hexdigest()
 
 
+def pixiv_artwork_id(url: str) -> str | None:
+    """Recognize reviewed whole-work forms; keep unknown query semantics distinct."""
+    try:
+        parsed = urlparse(url)
+        if (parsed.scheme not in {"http", "https"}
+                or parsed.netloc.lower() not in {"pixiv.net", "www.pixiv.net"}):
+            return None
+        tracking = {"utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content", "utm_id"}
+        query = {}
+        for key, value in parse_qsl(parsed.query, keep_blank_values=True, max_num_fields=64):
+            if key.lower() in tracking:
+                continue
+            if key in query:
+                return None
+            query[key] = value
+        match = re.fullmatch(r"/(?:en/)?artworks/([1-9][0-9]{0,19})/?|/i/([1-9][0-9]{0,19})/?", parsed.path)
+        if match and not query:
+            return match[1] or match[2]
+        if (parsed.path == "/member_illust.php" and set(query) <= {"illust_id", "mode"}
+                and query.get("mode") in {None, "medium"}
+                and re.fullmatch(r"[1-9][0-9]{0,19}", query.get("illust_id", ""))):
+            return query["illust_id"]
+    except (ValueError, UnicodeError):
+        pass
+    return None
+
+
 def source_key(url: str) -> str:
     """Identify a queue source; preserve meaningful parameters on other platforms."""
     post_id = x_post_id(url)
@@ -166,6 +193,9 @@ def source_key(url: str) -> str:
     image_url = original_image_url(url)
     if image_url:
         return "image:" + _image_source_key(image_url)
+    artwork = pixiv_artwork_id(url)
+    if artwork:
+        return "pixiv-artwork:" + artwork
     parsed = urlparse(url)
     host = (parsed.hostname or "").lower().removeprefix("www.").removeprefix("m.")
     video_id = None
@@ -178,6 +208,14 @@ def source_key(url: str) -> str:
     if video_id and re.fullmatch(r"[A-Za-z0-9_-]{11}", video_id):
         return "youtube:" + video_id
     return "url:" + urlunparse(parsed._replace(fragment=""))
+
+
+def source_keys(url: str) -> tuple[str, ...]:
+    """Current identity, then the exact pre-normalization manifest key, if known."""
+    current = source_key(url)
+    if current.startswith("pixiv-artwork:"):
+        return current, "url:" + urlunparse(urlparse(url)._replace(fragment=""))
+    return (current,)
 
 
 def _same_output_directory(record: dict, root: Path) -> bool:

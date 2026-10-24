@@ -734,3 +734,43 @@ See [complete scope](DESKTOP_ACCEPTANCE.md); those manual checks remain in ROADM
   `data/pixiv-auth-regression.log`. Known upstream SSL-options deprecation is an
   observation. Storage-denial limits, mocked Chrome scope and remaining real
   login/DPAPI/permission prompts are in [auth acceptance](PIXIV_AUTH_ACCEPTANCE.md).
+
+
+## Pixiv artwork identity and legacy compatibility — 2026-10-25
+
+- Native Windows / Python 3.12.10: complete regression passed **414 cases in
+  108.227 seconds**, zero failures/errors/skips. The final focused identity,
+  manifest, HTTP/P2 and container-receipt command passed **36 cases**. Node passed
+  **28 cases**. The earlier auth commit `ccbb14f` also passed all three
+  [GitHub CI jobs](https://github.com/Zimkjdv/Smart-Social-Downloader/actions/runs/40139113814).
+- Fourteen new identity cases use real temporary originals and SQLite with
+  synthetic transport; one HTTP case verifies pending-row reuse and quality
+  separation. Preserve exact old URL completion evidence and root scope;
+  unanchored old hashes and unknown query semantics are not guessed.
+- Reproduced promotion accepting a file changed after its old lookup when the
+  new record restatted that file. Copy the old size/mtime evidence unchanged,
+  insert without replacing another writer, then verify again. Keep the failing
+  mutation regression and competing-writer/original-missing cases. Two URL
+  boundary subcases also reproduced normalization of an empty port/username;
+  require an exact reviewed authority instead.
+- Linux / Python 3.12.15: final `check_docker.py --browser --pixiv` passed the
+  existing **53 runtime/service/interaction/host/browser stages**, plus **55 Pixiv
+  cases**, zero failures/errors/skips, with `passed: true`, `complete: true` and
+  owned-resource cleanup. Initial integration reached the Pixiv stage without a
+  successful receipt after cases were extended while its image was already
+  built; rebuild/rerun using the fixed final test/source versions passed. The
+  final image source fingerprint is
+  `5d7588331f14340f14ba8a55fb35eb6ddb51801ef332bb67db02f8f08ce2928f`.
+- Verified a **235-file** source ZIP from the reviewed Git-file export, excluding
+  the deferred comparison document and all runtime data. Full extracted-source
+  regression passed **414 Python cases in 107.241 seconds / 28 Node cases**.
+- Extracted dependency-fault acceptance passed **116 cases in 71.719 seconds**,
+  with only the reviewed urllib3 SSL-options deprecation and zero unexpected
+  observations. The current checkout interpreter has pycryptodomex 3.24.0; this
+  run did not reinstall its packages. The source lock and successful Docker
+  runtime use the reviewed 3.24.1 baseline; fresh Windows CI installs that lock.
+- Private logs/receipts are ignored `data/pixiv-identity-regression.log`,
+  `data/pixiv-identity-source.log` and `data/pixiv-identity-docker.json`. No
+  production service, download, queue or login state was changed. Recognized
+  URL forms, legacy limits and remaining live-platform scope are in
+  [source identity](SOURCE_IDENTITY.md).
