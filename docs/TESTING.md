@@ -668,3 +668,20 @@ Browser verification records `webbrowser.open` dispatch and does not open a
 personal browser. It is not evidence of Windows default-browser association,
 visible pages, human double-clicks or every upstream engine's cancellation.
 See [complete scope](DESKTOP_ACCEPTANCE.md); those manual checks remain in ROADMAP.
+
+
+## Pixiv directory compatibility — 2026-10-25
+
+- Native Windows / Python 3.12.10: `tests.test_pixiv_paths`, presentation,
+  container receipt, Docker gate and workflow-policy suites passed **29 cases**.
+- Linux Docker / Python 3.12.15 / gallery-dl 1.32.16: `check_docker.py --pixiv`
+  passed all nine path cases, with zero errors/failures/skips, alongside the nine
+  existing runtime/context checks. The final strict receipt probe was rerun.
+- Test real directories and SQLite while replacing remote listings/transport;
+  cover portable names, simulated renames, old complete/partial folders, root
+  changes, relocation and removal during a wait. Retained originals keep their
+  hashes/mtimes; complete reuse makes no quota call.
+- No production path change was needed. Docker has no network, runs as a
+  non-root user and mounts no host media/state. Full boundaries and remaining
+  actual author rename / OS archive migration are in
+  [path acceptance](PIXIV_PATH_ACCEPTANCE.md).

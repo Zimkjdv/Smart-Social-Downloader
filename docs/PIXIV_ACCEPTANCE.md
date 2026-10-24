@@ -75,10 +75,11 @@ permissions. The following remain in [ROADMAP](../ROADMAP.md):
   cancelled or mismatched callback attempts and extension upgrade permissions.
 - New remote works appearing between syncs, inaccessible/deleted/private works,
   intentional rate-limit/failure recovery and original Ugoira frame coverage.
-- Legacy numeric-folder / earlier-name archive reuse, an actual author rename,
-  same-name authors with different IDs, Unicode/invalid/long names, another
-  output root and whole-folder relocation. Those were not simulated by editing
-  production archive records.
+- An actual author rename and archive migration between OS path/scope formats.
+  Synthetic Unicode/long-name, same-name/different-ID, legacy-folder reuse, root
+  change and whole-folder relocation now pass on Windows and Linux; see
+  [2026-10-25 path acceptance](PIXIV_PATH_ACCEPTANCE.md). Production archive records
+  were not edited to manufacture those cases.
 - Linux/Docker title/media/session persistence and additional browser environments.
 
 The completed Windows checks above are recorded in [CHANGELOG](../CHANGELOG.md).

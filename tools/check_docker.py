@@ -291,6 +291,7 @@ def main(arguments=None):
     parser.add_argument("--host-storage", action="store_true", help="Also accept actual private host binds and Compose file secrets")
     parser.add_argument("--browser", action="store_true", help="Also accept host Chrome file UI and actual PNG/H.264 decoding")
     parser.add_argument("--browser-headed", action="store_true", help="Show the isolated Chrome window (requires --browser)")
+    parser.add_argument("--pixiv", action="store_true", help="Also run synthetic Pixiv path/archive tests without network or host data")
     parser.add_argument("--report", type=Path, default=ROOT / "data/docker-runtime.json")
     args = parser.parse_args(arguments)
     if args.browser_headed and not args.browser:
@@ -309,13 +310,14 @@ def main(arguments=None):
             if plugins.is_dir():
                 (Path(config) / "config.json").write_text(json.dumps({"cliPluginsExtraDirs": [str(plugins)]}), encoding="utf-8")
             docker = Docker(args.docker, Path(config), args.host)
-            if args.service or args.interaction or args.host_storage or args.browser:
+            if args.service or args.interaction or args.host_storage or args.browser or args.pixiv:
                 sys.path.insert(0, str(ROOT))
                 # Script and package callers must share the same exception type.
                 sys.modules.setdefault("tools.check_docker", sys.modules[__name__])
                 from tools.docker_service_acceptance import run_checks
                 def service_gate(*values):
-                    run_checks(*values)
+                    if args.service or args.interaction or args.host_storage or args.browser:
+                        run_checks(*values)
                     if args.interaction or args.host_storage or args.browser:
                         from tools.docker_interaction_acceptance import run_checks as interaction_checks
                         interaction_checks(*values)
@@ -325,6 +327,9 @@ def main(arguments=None):
                     if args.browser:
                         from tools.docker_browser_acceptance import run_checks as browser_checks
                         browser_checks(*values, headed=args.browser_headed)
+                    if args.pixiv:
+                        from tools.docker_pixiv_acceptance import run_checks as pixiv_checks
+                        pixiv_checks(*values)
                 report = run_gate(docker, ROOT, report, service_gate=service_gate)
             else:
                 report = run_gate(docker, ROOT, report)
