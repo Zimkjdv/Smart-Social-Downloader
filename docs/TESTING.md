@@ -715,3 +715,22 @@ See [complete scope](DESKTOP_ACCEPTANCE.md); those manual checks remain in ROADM
   limit, production queue, original download or login state was changed.
 - [Recovery acceptance](PIXIV_RECOVERY_ACCEPTANCE.md) records cases, failure
   causes, corrections and the live/Ugoira coverage that remains pending.
+
+
+## Pixiv authorization lifecycle — 2026-10-25
+
+- Full native Windows / Python 3.12.10 regression: **399 Python cases passed**.
+  Node passed **28 cases**, including four new connector-script boundaries.
+- The focused auth module passed **16 cases** (13 manager/parser/storage and
+  three real-loopback API cases). Source archive verification covered **233
+  files**, then 17 auth/receipt cases and all 28 Node cases passed in extraction.
+- Linux Docker / Python 3.12.15 passed **41 Pixiv cases** without failures/errors/
+  skips, alongside the nine existing runtime/context checks; no host state or
+  browser profile was mounted and networking was disabled.
+- Reproduced stale encrypted credentials restoring after invalidation and an
+  explicit port-zero callback being accepted. Preserve both failing regressions;
+  store a token-free encrypted expired marker and require absent callback ports.
+- Private evidence: ignored `data/pixiv-auth-docker.json` and
+  `data/pixiv-auth-regression.log`. Known upstream SSL-options deprecation is an
+  observation. Storage-denial limits, mocked Chrome scope and remaining real
+  login/DPAPI/permission prompts are in [auth acceptance](PIXIV_AUTH_ACCEPTANCE.md).

@@ -15,7 +15,7 @@ python tools/check_docker.py --pixiv --report data/pixiv-recovery-docker.json
 
 The second command now runs **9 path + 16 recovery cases** inside the reviewed
 Linux runtime, with no network or host data mounts. The strict receipt requires
-exactly 25 tests, zero errors/failures/skips and a successful process exit.
+exactly 25 tests at that milestone, zero errors/failures/skips and a successful process exit. The current gate also includes [16 auth cases](PIXIV_AUTH_ACCEPTANCE.md), requiring 41 in total.
 It uses the same non-root/read-only/tmpfs ownership boundary documented in
 [directory acceptance](PIXIV_PATH_ACCEPTANCE.md), and runs in existing Docker CI.
 

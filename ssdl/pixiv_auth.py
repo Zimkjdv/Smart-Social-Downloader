@@ -2,6 +2,7 @@
 import base64
 import hashlib
 import json
+import logging
 from pathlib import Path
 import re
 import secrets
@@ -32,7 +33,7 @@ def callback_code(value):
                         and url.path == "/web/v1/users/auth/pixiv/callback")
                        or (url.scheme == "pixiv" and url.netloc == "account" and url.path == "/login"))
             query = parse_qs(url.query, max_num_fields=12)
-            if not allowed or url.username or url.password or url.port or len(query.get("code", [])) != 1:
+            if not allowed or url.username or url.password or url.port is not None or len(query.get("code", [])) != 1:
                 raise ValueError
             value = query["code"][0]
         except (ValueError, UnicodeError):
@@ -75,6 +76,10 @@ class PixivAuthManager:
             value = json.loads(self.storage.load(self.path))
             if not isinstance(value, dict) or value.get("service") != "pixiv":
                 raise ValueError
+            if value.get("expired") is True:
+                with self.lock:
+                    self._phase = "expired"
+                return
             token = token_value(value["refresh_token"])
         except (OSError, ValueError, KeyError, TypeError, AuthError):
             with self.lock:
@@ -198,6 +203,17 @@ class PixivAuthManager:
         with self.lock:
             if expected_token and self._token == expected_token:
                 self._token, self._phase = "", "expired"
+                if self.storage.persistent:
+                    try:
+                        # Keep the expiry across restart without retaining the
+                        # rejected refresh token. A new connection replaces it.
+                        self.storage.save(self.path, json.dumps({"service": "pixiv", "expired": True}).encode())
+                    except (OSError, AuthError):
+                        try:
+                            self.path.unlink(missing_ok=True)
+                        except OSError:
+                            # Do not terminate the queue because cleanup failed.
+                            logging.warning("Pixiv 登入已失效，但無法清除保存紀錄；請檢查儲存權限並重新連接。")
 
     def disconnect(self):
         with self.lock:

@@ -32,7 +32,9 @@ Windows 背景啟停的 7 項原生隔離驗收已於 2026-10-24 通過並移至
 
 Windows／一般 Chrome 授權主流程，以及 Hoshirapu（82728784）的 22 作品／24 檔案實際同步、原圖解碼、暫停／停止續傳、重複同步不重抓、單頁缺檔／修改時間補抓、正常 Windows 使用者環境重啟登入恢復與中英文作者標題已於 2026-10-24 驗收；完成紀錄移至 [CHANGELOG](CHANGELOG.md#unreleased)，詳細證據與範圍見 [Pixiv 驗收](docs/PIXIV_ACCEPTANCE.md)。
 
-- [ ] **其他授權與登入環境**：其他 Chrome／Docker 自動回接、連接器舊版升級與權限批准、未配對分頁／子框架／錯誤 port 拒絕、分頁關閉與 service worker 休眠恢復、code 過期／取消、失效憑證及 Docker 加密保存恢復。
+Pixiv 授權生命週期的自動化部分已於 2026-10-25 完成並移至 [CHANGELOG](CHANGELOG.md#unreleased)：16 個 manager／實際 loopback API 案例與四個 connector 腳本案例，驗證 PKCE、取消／過期、來源與錯誤 port 拒絕、模擬 worker 重載、加密／記憶體保存與失效登入恢復，並修正失效憑證重啟再現與 :0 回呼判定。範圍見 [授權驗收](docs/PIXIV_AUTH_ACCEPTANCE.md)。
+
+- [ ] **其他授權的剩餘真實環境**：一般 Chrome／Docker 真實 OAuth 自動回接、連接器舊版升級與權限批准、真實 service worker 休眠／瀏覽器重啟與分頁關閉、外部 code 過期／取消、原生 DPAPI／Docker secret 登入恢復，以及儲存權限故障的真人處置。模擬 Chrome API、固定時鐘及自建 AES 金鑰不代表這些環境已完成。
 Pixiv 新增內容與故障恢復的自動化部分已於 2026-10-25 完成並移至 [CHANGELOG](CHANGELOG.md#unreleased)。[16 項合成故障驗收](docs/PIXIV_RECOVERY_ACCEPTANCE.md)涵蓋新增／不可存取作品、掃描不完整、頁碼缺口與重複、限流、停止／傳輸中斷、已完成頁面保留、只補缺頁及登入敏感資料遮蔽，並修正完整性與錯誤恢復問題。
 
 - [ ] **內容與故障的剩餘真實驗收**：作者在平台新增作品後同步、Pixiv 實際不可存取／刪除／私密回應、真實平台限流與傳輸故障恢復，以及 Ugoira 原始影格完整數量／解碼。合成 API／傳輸案例與此次 22 作品／24 檔案不代表以上真人平台情境已完成。

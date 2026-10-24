@@ -458,8 +458,9 @@ test('DOM settings draft, page and scroll survive polling and English language s
   } finally {app.close();}
 });
 
-function extensionHarness(port = 8765, failPreflight = false) {
+function extensionHarness(port = 8765, failPreflight = false, handler = null) {
   let cookieReads = 0; const requests = [], listeners = [], session = {};
+  const updates = []; let callbackListener, removedListener;
   const id = 'fixture-extension', popup = 'chrome-extension://' + id + '/popup.html';
   const chrome = {
     runtime:{id, getURL:file => 'chrome-extension://' + id + '/' + file, onMessage:{addListener:fn => {listeners.push(fn);}}},
@@ -468,17 +469,25 @@ function extensionHarness(port = 8765, failPreflight = false) {
         set:async values => {Object.assign(session, values);},
         remove:async keys => {for (const key of Array.isArray(keys) ? keys : [keys]) delete session[key];}}},
     cookies:{getAll:async ({domain}) => {cookieReads++; return [{domain, name:'auth_token', value:'SYNTHETIC_COOKIE'}];}},
-    webRequest:{onBeforeRequest:{addListener:() => {}}},
-    tabs:{update:async () => ({}), onRemoved:{addListener:() => {}}},
+    webRequest:{onBeforeRequest:{addListener:fn => {callbackListener = fn;}}},
+    tabs:{update:async (id, change) => {updates.push({id, ...change}); return {};},
+      onRemoved:{addListener:fn => {removedListener = fn;}}},
   };
-  const context = vm.createContext({chrome, URL, AbortSignal, Date,
+  function load() {
+    listeners.length = 0;
+    const context = vm.createContext({chrome, URL, AbortSignal, Date,
     fetch:async (url, options) => {
       requests.push({url, body:options.body});
+      if (handler) return handler(url, options);
       return failPreflight ? json({error:'Windows storage unavailable'}, 503) :
         json(url.endsWith('/prepare') ? {token:'A'.repeat(43)} : {connected:true, message:'Fixture connected'});
     }});
-  vm.runInContext(source('chrome-extension/background.js'), context);
-  return {requests, cookieReads:() => cookieReads,
+    vm.runInContext(source('chrome-extension/background.js'), context);
+  }
+  load();
+  return {requests, session, updates, reload:load, setPort:value => {port = value;}, cookieReads:() => cookieReads,
+    callback:async details => {callbackListener(details); await pause(0); await pause(0);},
+    removeTab:async id => {removedListener(id); await pause(0);},
     send:(message, sender) => new Promise(resolve => {
       const pending = listeners.map(listener => listener(message, {id, ...sender}, resolve));
       if (!pending.includes(true)) resolve(undefined);
@@ -505,4 +514,71 @@ test('Chrome connector popup selects custom loopback port and preflight runs bef
   const rejected = await failure.send({type:'SSDL_CONNECT_X'}, {url:failure.popup});
   assert.equal(rejected.ok, false);
   assert.equal(failure.cookieReads(), 0);
+});
+
+const pixivAuthorization = () => json({authorization_url:'https://app-api.pixiv.net/web/v1/login?code_challenge=FIXTURE&code_challenge_method=S256'});
+const pixivSender = (port = 18991, id = 7) => ({tab:{id}, frameId:0, url:`http://127.0.0.1:${port}/pixiv-connect`});
+const pixivCallback = (id = 7, type = 'main_frame') => ({tabId:id, type,
+  url:'https://app-api.pixiv.net/web/v1/users/auth/pixiv/callback?code=SYNTHETIC_AUTH_CODE'});
+
+test('Pixiv connector rejects foreign frames, identities and wrong configured ports', async () => {
+  const extension = extensionHarness(18991, false, pixivAuthorization);
+  const message = {type:'SSDL_CONNECT_PIXIV', ticket:'A'.repeat(43)};
+  for (const sender of [{...pixivSender(), frameId:1}, {...pixivSender(), id:'foreign'},
+    {...pixivSender(), url:'https://foreign.example/pixiv-connect'}, pixivSender(18992)]) {
+    await extension.send(message, sender);
+  }
+  assert.equal(extension.requests.length, 0);
+  assert.equal(extension.cookieReads(), 0);
+});
+
+test('Pixiv connector restores paired tab after worker reload and submits callback once', async () => {
+  const extension = extensionHarness(18991, false, url => url.endsWith('/claim') ? pixivAuthorization() :
+    json({pixiv_auth:{connected:true, attempt_phase:'connected'}}));
+  assert.equal((await extension.send({type:'SSDL_CONNECT_PIXIV', ticket:'A'.repeat(43)}, pixivSender())).ok, true);
+  extension.reload();
+  await extension.callback(pixivCallback());
+  await extension.callback(pixivCallback());
+  assert.deepEqual(extension.requests.map(value => value.url), [
+    'http://127.0.0.1:18991/api/auth/pixiv/claim', 'http://127.0.0.1:18991/api/auth/pixiv/callback']);
+  assert.equal(extension.updates.at(-1).url, 'http://127.0.0.1:18991/pixiv-connect#result=connected');
+  assert.deepEqual(Object.keys(extension.session), []);
+  assert.equal(extension.cookieReads(), 0);
+});
+
+test('Pixiv connector refuses unpaired, subframe, expired and changed-port callbacks', async () => {
+  const extension = extensionHarness(18991, false, pixivAuthorization);
+  await extension.send({type:'SSDL_CONNECT_PIXIV', ticket:'A'.repeat(43)}, pixivSender());
+  await extension.callback(pixivCallback(8));
+  await extension.callback(pixivCallback(7, 'sub_frame'));
+  await extension.callback({...pixivCallback(), url:pixivCallback().url + '&code=SECOND'});
+  assert.equal(extension.requests.length, 1);
+  extension.session['pixivAttempt:7'].expires = 0;
+  await extension.callback(pixivCallback());
+  assert.equal(extension.requests.length, 1);
+  await extension.send({type:'SSDL_CONNECT_PIXIV', ticket:'B'.repeat(43)}, pixivSender());
+  extension.setPort(18992);
+  await extension.callback(pixivCallback());
+  assert.equal(extension.requests.length, 2);
+  extension.setPort(18991);
+  await extension.send({type:'SSDL_CONNECT_PIXIV', ticket:'C'.repeat(43)}, pixivSender());
+  await extension.removeTab(7);
+  await extension.callback(pixivCallback());
+  assert.equal(extension.requests.length, 3);
+});
+
+test('Pixiv connector consumes failed callback and allows a newly paired attempt', async () => {
+  let fail = true;
+  const extension = extensionHarness(18991, false, url => url.endsWith('/claim') ? pixivAuthorization() : fail ?
+    json({error:'Synthetic authorization rejected'}, 400) : json({pixiv_auth:{connected:true, attempt_phase:'connected'}}));
+  await extension.send({type:'SSDL_CONNECT_PIXIV', ticket:'A'.repeat(43)}, pixivSender());
+  await extension.callback(pixivCallback());
+  assert.equal(extension.updates.at(-1).url, 'http://127.0.0.1:18991/pixiv-connect#result=failed');
+  await extension.callback(pixivCallback());
+  assert.equal(extension.requests.length, 2);
+  fail = false;
+  await extension.send({type:'SSDL_CONNECT_PIXIV', ticket:'B'.repeat(43)}, pixivSender());
+  await extension.callback(pixivCallback());
+  assert.equal(extension.requests.length, 4);
+  assert.equal(extension.updates.at(-1).url, 'http://127.0.0.1:18991/pixiv-connect#result=connected');
 });
