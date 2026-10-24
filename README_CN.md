@@ -150,6 +150,7 @@ smart-social-downloader/
 │   ├── check_workflows.py          已審查 Action 來源／完整 SHA 檢查
 │   ├── check_installation.py       Windows 新來源／venv 安裝驗收
 │   ├── check_desktop.py            Windows 原生背景啟停驗收
+│   ├── check_chrome_pairing.py    一般 Chrome／原生 DPAPI 隔離配對驗收
 │   ├── check_dependency_faults.py  版本、警告與傳輸故障回歸門檻
 │   ├── check_docker.py             隔離 Docker 映像及建置內容驗收
 │   ├── docker_runtime_probe.py     經標準輸入執行的合成 FFmpeg／Node 檢查

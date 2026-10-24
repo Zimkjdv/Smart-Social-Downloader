@@ -150,6 +150,7 @@ smart-social-downloader/
 │   ├── check_workflows.py          Reviewed Action identity / full SHA check
 │   ├── check_installation.py       Fresh Windows source/venv acceptance
 │   ├── check_desktop.py            Native Windows background lifecycle acceptance
+│   ├── check_chrome_pairing.py    Ordinary Chrome / native DPAPI pairing acceptance
 │   ├── check_dependency_faults.py  Versioned warning / transport regression gate
 │   ├── check_docker.py             Isolated Docker image/context acceptance
 │   ├── docker_runtime_probe.py     Synthetic FFmpeg/Node probe streamed into the image

@@ -107,6 +107,7 @@ smart-social-downloader/
 │   ├── check_workflows.py      # 已審查 Action 來源與完整 SHA 的離線政策
 │   ├── check_installation.py   # 新來源／venv 的安裝、啟動與更新恢復驗收
 │   ├── check_desktop.py        # 原生背景啟停、佇列恢復與專案隔離驗收
+│   ├── check_chrome_pairing.py    一般 Chrome／原生 DPAPI 隔離配對驗收
 │   ├── check_dependency_faults.py # 有界警告／傳輸觀察與維護回歸門檻
 │   ├── check_docker.py       # 隔離來源、context 允許清單、映像與 runtime 驗收
 │   ├── docker_runtime_probe.py # 合成影音及 Node provider，經 stdin 傳入容器

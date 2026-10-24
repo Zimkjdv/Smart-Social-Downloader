@@ -774,3 +774,43 @@ See [complete scope](DESKTOP_ACCEPTANCE.md); those manual checks remain in ROADM
   production service, download, queue or login state was changed. Recognized
   URL forms, legacy limits and remaining live-platform scope are in
   [source identity](SOURCE_IDENTITY.md).
+
+
+## Ordinary Chrome pairing: partial live acceptance — 2026-10-25
+
+- Operator-assisted ordinary Chrome / connector 1.2.0: observed the explicit
+  8877/8765 mismatch; actual `/api/auth/x/prepare` and `/api/auth/x/extension`
+  both returned 200 with matching extension Origin/ID and reduced Chrome
+  User-Agent 155.0.0.0. No Cookie/code/token was printed or included in reports.
+- Native Windows user DPAPI round-trip passed. The temporary saved X session
+  remained connected after a new backend AppContext restored it. Production
+  service port 8765 was not restarted; the runner loads no production history.
+- The real X ticket was waiting at 597.6 seconds and failed at 616.6 seconds,
+  preserving the existing connected session. No shortened TTL or patched clock.
+  Post-expiry re-pairing is still pending.
+- Two ordinary-browser Pixiv begin requests succeeded; no connector claim or
+  callback reached the service. Pixiv auto-return and restore are not accepted.
+  Cancel/re-pair, offline/retry and actual browser/worker restarts also remain.
+- Both supplied Codex settings screenshots show Browse allowed for 8877,
+  including Chrome management. Nevertheless browser tools still reject that
+  origin under saved permissions/managed policy. Stop UI retries after checking
+  those settings; do not substitute another browser/CDP/proxy to bypass it.
+  This gate failure does not establish a DPAPI or downloader authorization bug.
+- The live temporary service exited 0. The final runner's separate native
+  random-byte DPAPI/start/restart/cleanup probe also passed, with encrypted test
+  scope removal confirmed and no browser connection requested. The operator
+  confirmed returning the connector destination to production port 8765.
+- Full native regression: **420 Python in 105.083 seconds**. Verified **238 source
+  files**, excluding private state and the deferred comparison document; complete
+  extraction passed **420 Python in 107.638 seconds / 28 Node cases**, then
+  **116 dependency-fault cases in 71.000 seconds**, zero failures/errors/skips.
+  Only the previously reviewed urllib3 SSL-options deprecation was observed.
+  The current checkout interpreter remains on pycryptodomex 3.24.0; this run did
+  not install packages or change the reviewed 3.24.1 source baseline.
+- Six new mocked runner contracts cover report/port boundaries, explicit opt-in,
+  secret-free snapshots, fixed operator notes, private real-expiry setup and
+  orderly forced cleanup. They do not count as real Chrome UI coverage.
+- Private ignored evidence: `data/chrome-pairing.json`,
+  `data/chrome-pairing-tool-smoke.json`, `data/chrome-pairing-regression.log` and
+  `data/chrome-pairing-source.log`. Procedure and all remaining scope are in
+  [ordinary Chrome acceptance](CHROME_PAIRING_ACCEPTANCE.md).

@@ -21,7 +21,9 @@ N01～N08 已移至 [CHANGELOG](CHANGELOG.md#unreleased)。本輪列出的修正
 Windows 背景啟停的 7 項原生隔離驗收已於 2026-10-24 通過並移至 [CHANGELOG](CHANGELOG.md#unreleased)：自訂／重複／同時啟動、瀏覽器網址分派、不同專案隔離、下載中停止與待辦／Rate 恢復、日誌輪替及前景服務佔用拒絕。範圍與指令見 [背景驗收](docs/DESKTOP_ACCEPTANCE.md)；瀏覽器視窗及人手操作保留如下。
 
 - [ ] **一般桌面 Windows／互動驗收**：全新一般 Windows 的 Python／Node／Chrome 安裝、實際雙擊 start.bat／stop.bat、預設瀏覽器視窗／作業系統關聯、鍵盤／終端批次提示及授權 X 登入仍待驗收。新來源／新 venv 安裝、離線重啟、自動修復、更新／基準恢復，以及獨立控制台真正 Ctrl+C 的閒置／下載中關閉、程序清理及待辦恢復已自動化並移至 [CHANGELOG](CHANGELOG.md#unreleased)，見 [安裝驗收](docs/INSTALLATION_ACCEPTANCE.md) 與 [控制台驗收](docs/CONSOLE_ACCEPTANCE.md)。這些隔離副本／程式產生的事件不等於出廠桌面或人手按鍵；沒有 Python 3.10 工作。
-- [ ] **一般 Chrome 真實配對**：重新載入 connector 1.2.0（含新增 Pixiv 網站／webRequest 權限）、自訂 port、取消／過期／失敗後重配及重啟恢復。先前預設 port 曾成功配對，不代表新版自訂 port 已驗收。正常 Windows 使用者環境的 DPAPI 是前提，不能以受限工具環境的失敗宣稱 DPAPI 普遍失效。
+一般 Chrome 配對的已完成部分（2026-10-25）：使用者確認重新載入 connector 1.2.0，觀察 8877／8765 埠不一致提示，實際 Chrome X prepare／submission 均成功且 extension Origin／ID 符合；正常 Windows 使用者環境 DPAPI 保存與後端重啟恢復成功。未修改期限的 X 配對在 616.6 秒觀察到逾時，原本有效登入仍保留。新增隔離驗收工具與來源包驗收，完成部分移至 [CHANGELOG](CHANGELOG.md#unreleased)，範圍見 [Chrome 驗收](docs/CHROME_PAIRING_ACCEPTANCE.md)。
+
+- [ ] **一般 Chrome 剩餘真實配對**：取消後重配、逾時後重配、服務離線／失敗後重試、Pixiv 真實 claim／callback、自訂 port 下的 Pixiv 重啟恢復，以及真正 worker 休眠／Chrome 重啟後重配。這次 Pixiv 只收到 begin，未收到 claim／callback，不能算自動回接成功。Codex 的 Browser 與 Chrome 管理頁均顯示 8877 瀏覽允許，但工具仍因 saved permission／managed policy 拒絕存取，待重建工具連線或排除平台權限不一致後繼續；未繞過限制。正常 Windows 使用者 DPAPI 已證實可用，這項工具權限阻擋不能當成 DPAPI 失效。
 - [ ] **線上平台抽樣**：實際 Best／指定畫質、登入失效、限流與恢復、帳號媒體掃描、缺檔補抓；先取得適合的測試素材。104＋10 合成測試不代表所有平台即時相容。
 - [ ] **GitHub 設定與發布**：啟用並確認私人漏洞回報入口，核對 tag、版本、來源 ZIP、release notes 後發布 preview。repo 已公開、Windows／Python 3.12 CI 已通過，目前沒有 tag／Release。
 - [ ] **後續依賴更新提案驗收**：首輪 Python 提案審查與 pycryptodomex 3.24.1 修補驗收已完成，移至 [CHANGELOG](CHANGELOG.md#unreleased)；[審查紀錄](docs/DEPENDENCY_ACCEPTANCE.md)記錄 PR #1／#2 的版本、相容性及恢復驗證。目前尚未收到 Actions 更新提案；收到後仍須核對官方版本／完整 SHA 與兩個 Windows CI 工作。pyee 14 與目前 Playwright 1.63.0 的 `pyee>=13,<14` 要求不相容，延後至相容的 Playwright／瀏覽器更新一起驗收；不能因 Python 3.12 支援就單獨強裝。後續提案不自動合併，也未宣稱完成 CVE 掃描。

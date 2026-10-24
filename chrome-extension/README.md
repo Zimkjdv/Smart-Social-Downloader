@@ -41,4 +41,4 @@ Chrome 要求擴充功能具有 cookies 與相應網站權限，才能透過正�
 - [Chrome storage API](https://developer.chrome.com/docs/extensions/reference/api/storage)
 - [Chrome webRequest API](https://developer.chrome.com/docs/extensions/reference/api/webRequest)
 
-完整排錯：[安裝、狀態更新與 X 登入](../docs/TROUBLESHOOTING.md)。本輪新版的自訂連接埠配對尚未實際驗證。
+完整排錯：[安裝、狀態更新與 X 登入](../docs/TROUBLESHOOTING.md)。新版自訂連接埠的實際驗收、隔離工具及各項完成範圍見 [一般 Chrome 配對驗收](../docs/CHROME_PAIRING_ACCEPTANCE.md)。
