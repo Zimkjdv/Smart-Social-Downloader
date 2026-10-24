@@ -814,3 +814,39 @@ See [complete scope](DESKTOP_ACCEPTANCE.md); those manual checks remain in ROADM
   `data/chrome-pairing-tool-smoke.json`, `data/chrome-pairing-regression.log` and
   `data/chrome-pairing-source.log`. Procedure and all remaining scope are in
   [ordinary Chrome acceptance](CHROME_PAIRING_ACCEPTANCE.md).
+
+
+## Chrome pairing CI path-alias repair — 2026-10-25
+
+The [c21b928 run](https://github.com/Zimkjdv/Smart-Social-Downloader/actions/runs/40141804763)
+passed fresh Windows installation and Docker acceptance. Its Windows regression
+ran 420 cases in 120.629 seconds with one failure, at the first report-path
+assertion in `test_explicit_custom_port_and_report_boundary`. CI supplies TEMP
+through the Windows 8.3 spelling `RUNNER~1`; the validator returns the resolved
+long path. The fixture compared that canonical result with its unresolved path.
+This was a test expectation failure, not a rejected valid report location.
+
+A new deterministic regression invokes the same original boundary case through
+a real temporary directory spelled using an existing component followed by
+`..`. This reproduces equivalent-but-lexically-different paths without requiring
+8.3-name creation. It failed before the fix. Resolve the owned fixture root in
+setUp, then compare paths in the same canonical form. The directory-existence
+check and zero-error assertion ensure the inner case reaches its path checks.
+All original port/path rejection assertions remain active; the production
+validator, auth handlers and workflow configuration are unchanged.
+
+Focused pairing/source tests pass **16 cases**. Complete native regression
+passes **421 Python cases in 107.080 seconds**, zero failures/errors/skips.
+Source verification covers **238 files**, with the deferred comparison document
+and all private state excluded. Complete extracted-source acceptance passed
+**421 Python cases in 105.857 seconds / 28 Node cases**, followed by **116
+dependency-fault cases in 71.672 seconds**, zero failures/errors/skips. Only the
+existing reviewed urllib3 SSL-options deprecation was observed. Private logs are
+ignored `data/chrome-pairing-ci-repair.log` and `data/chrome-ci-repair-source.log`.
+
+A direct Chrome request on resumption still received the saved-permission/
+managed-policy denial, despite the prior Browser/Chrome allow screenshots and
+the local origin rule `access = "allow"`. The actual cause remains unconfirmed;
+no global settings or browser policy were changed. The operator chose to keep
+remaining real pairing work pending while this CI repair completes. This turn
+did not start another live-login service or claim additional real-pairing cases.

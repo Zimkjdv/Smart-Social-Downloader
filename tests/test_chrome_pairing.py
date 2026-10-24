@@ -12,7 +12,7 @@ from tools import check_chrome_pairing as gate
 
 class ChromePairingTests(unittest.TestCase):
     def setUp(self):
-        self.root = Path(self.enterContext(tempfile.TemporaryDirectory()))
+        self.root = Path(self.enterContext(tempfile.TemporaryDirectory())).resolve()
         self.report = self.root / "receipt.json"
 
     def test_explicit_custom_port_and_report_boundary(self):
@@ -24,6 +24,33 @@ class ChromePairingTests(unittest.TestCase):
             for path in (self.root / "receipt.json", self.root / "data/receipt.txt", self.root / "data/../outside.json"):
                 with self.assertRaises(ValueError):
                     gate.validate(8877, path)
+
+    def test_fixture_normalizes_temporary_directory_spelling(self):
+        # CI TEMP can use a Windows 8.3 alias. Exercise this same assertion
+        # through a real, equivalent lexical spelling without requiring 8.3.
+        create_temporary = tempfile.TemporaryDirectory
+        class AlternateSpelling:
+            def __init__(self):
+                self.scope = create_temporary()
+
+            def __enter__(self):
+                root = Path(self.scope.__enter__()).resolve()
+                marker = root / "alternate-spelling"
+                marker.mkdir()
+                if not root.is_dir():
+                    raise AssertionError("Temporary scope disappeared before validation")
+                return str(marker / "..")
+
+            def __exit__(self, *error):
+                return self.scope.__exit__(*error)
+
+        case = ChromePairingTests("test_explicit_custom_port_and_report_boundary")
+        result = unittest.TestResult()
+        with patch.object(tempfile, "TemporaryDirectory", AlternateSpelling):
+            case.run(result)
+        self.assertEqual(result.testsRun, 1)
+        self.assertFalse(result.errors, "Fixture failed before reaching its boundary assertion")
+        self.assertTrue(result.wasSuccessful(), "Equivalent temporary path spelling broke the boundary contract")
 
     def test_main_requires_real_login_opt_in_before_storage(self):
         with patch.object(gate, "SessionStorage") as storage, patch("sys.stderr", new_callable=io.StringIO):

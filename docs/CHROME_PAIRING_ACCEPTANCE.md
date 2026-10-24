@@ -52,7 +52,7 @@ assisted manual acceptance, not automated UI coverage.
 Commands: `status`, `prepare-x`, `offline`, `online`, `restart`, `stop`.
 Optional attestations: `note connector-reloaded-1.2.0`, `note permissions-reviewed`,
 `note port-configured`, `note chrome-restarted`, `note port-restored`. Only enter
-an attestation after the operator actually completes that step. The six unit
+an attestation after the operator actually completes that step. The seven unit
 contracts in `tests.test_chrome_pairing` check runner boundaries; they do not
 prove real Chrome login.
 
@@ -88,7 +88,11 @@ pending in [ROADMAP](../ROADMAP.md). The actual browser steps were manual becaus
 Codex's origin gate denied 8877. Screenshots show both its Browser and Chrome
 management rules set Browse to Always allow, but the tool still reports a saved
 permission/managed-policy denial. This is an unresolved host permission mismatch,
-not evidence of a downloader login or DPAPI defect. No alternate browser surface,
+not evidence of a downloader login or DPAPI defect. A resumed direct Chrome
+request after restarting Codex was also denied before loading the page; that
+tool access discrepancy remains unresolved; its cause is unconfirmed. The
+operator requested deferring the remaining live pairing cases while CI is fixed.
+No alternate browser surface,
 direct debugging connection or permission bypass was used.
 
 Private metadata-only receipts: ignored `data/chrome-pairing.json` and
