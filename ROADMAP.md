@@ -24,6 +24,8 @@ Windows 背景啟停的 7 項原生隔離驗收已於 2026-10-24 通過並移至
 
 一般 Chrome 配對的已完成部分（2026-10-25）：使用者確認重新載入 connector 1.2.0，觀察 8877／8765 埠不一致提示，實際 Chrome X prepare／submission 均成功且 extension Origin／ID 符合；正常 Windows 使用者環境 DPAPI 保存與後端重啟恢復成功。未修改期限的 X 配對在 616.6 秒觀察到逾時，原本有效登入仍保留。新增隔離驗收工具與來源包驗收，完成部分移至 [CHANGELOG](CHANGELOG.md#unreleased)，範圍見 [Chrome 驗收](docs/CHROME_PAIRING_ACCEPTANCE.md)。
 
+依使用者要求先處理 CI；路徑別名修正已在 GitHub 通過。後續介面測試補強連線容量與必要腳本失敗診斷，紀錄見 [TESTING](docs/TESTING.md#browser-ui-ci-fixture-capacity-and-diagnostics--2026-10-25)。此項合成測試維護不代表下列真實配對待辦完成。
+
 - [ ] **一般 Chrome 剩餘真實配對**：取消後重配、逾時後重配、服務離線／失敗後重試、Pixiv 真實 claim／callback、自訂 port 下的 Pixiv 重啟恢復，以及真正 worker 休眠／Chrome 重啟後重配。這次 Pixiv 只收到 begin，未收到 claim／callback，不能算自動回接成功。Codex 的 Browser 與 Chrome 管理頁均顯示 8877 瀏覽允許，但工具仍因 saved permission／managed policy 拒絕存取，重啟 Codex 後仍被拒絕。依使用者指示先保留待辦，待工具存取異常（設定已允許但工具仍拒絕，原因未確認）排除後繼續；未繞過限制。正常 Windows 使用者 DPAPI 已證實可用，這項工具存取異常不能當成 DPAPI 失效。
 - [ ] **線上平台抽樣**：實際 Best／指定畫質、登入失效、限流與恢復、帳號媒體掃描、缺檔補抓；先取得適合的測試素材。104＋10 合成測試不代表所有平台即時相容。
 - [ ] **GitHub 設定與發布**：啟用並確認私人漏洞回報入口，核對 tag、版本、來源 ZIP、release notes 後發布 preview。repo 已公開、Windows／Python 3.12 CI 已通過，目前沒有 tag／Release。

@@ -850,3 +850,48 @@ the local origin rule `access = "allow"`. The actual cause remains unconfirmed;
 no global settings or browser policy were changed. The operator chose to keep
 remaining real pairing work pending while this CI repair completes. This turn
 did not start another live-login service or claim additional real-pairing cases.
+
+
+## Browser UI CI fixture capacity and diagnostics — 2026-10-25
+
+The [e11e4d1 run](https://github.com/Zimkjdv/Smart-Social-Downloader/actions/runs/40142930583)
+confirms both Chrome report-path tests pass. Fresh Windows installation and
+Docker also pass. The Windows regression instead reports one error among 421
+cases in 124.733 seconds: the first UI keyboard case reaches its snapshot wait
+with `ReferenceError: lastResponse is not defined`, before interacting with the
+Cookie field. The old harness did not report failed resource requests, so the
+original runner's exact trigger cannot be established from that log.
+
+Thirty successive local page loads pass. Aborting only `ui_state.js` reproduces
+the exact ReferenceError. Delaying that deferred script still loads normally,
+which does not support an early snapshot wait as the cause. A separate real TCP
+probe stops accepting pending connections at the fixture's default backlog of
+five. Increase the fixture to 64, matching the application's existing listener;
+the production server and frontend behavior are unchanged.
+
+Three regressions fail before this change: eight real pending connections,
+an aborted bootstrap asset, and an HTTP-successful script that throws during
+initialization. After the change all 11 Chrome UI cases pass. The last two
+regressions require an immediate assertion naming the failed resource or script
+error, not the secondary global-variable error. Ordinary loads and reloads now
+check resource failures/HTTP errors and JavaScript errors before waiting for the
+first snapshot. No retries, longer timeouts, disabled tests or swallowed script
+errors were introduced. These synthetic isolated tests do not access the denied
+live pairing origin, a personal browser profile or production login state.
+
+Complete native regression passes **424 Python cases in 105.309 seconds**, zero
+failures/errors/skips. Python syntax checks cover 130 files; the reviewed eight
+Action pins and changed-document local links also pass. Private native output
+is ignored `data/browser-ui-ci-repair.log`.
+
+The reviewed **238-file** source ZIP excludes the deferred comparison document
+and private state. Complete extracted-source acceptance passes **424 Python
+cases in 106.536 seconds / 28 Node cases**, followed by **116 dependency-fault
+cases in 71.094 seconds**, zero failures/errors/skips. Only the existing reviewed
+urllib3 SSL-options deprecation is observed. The checkout interpreter still has
+pycryptodomex 3.24.0; no packages were installed or source-lock versions changed.
+The acceptance child exited zero and logged completion; the local wrapper then
+hit a GBK encoding error while echoing Unicode Node checkmarks. Reading its
+UTF-8 log confirms the successful child result, separately from that console
+summary failure. Private extracted output is ignored
+`data/browser-ui-ci-source.log`.

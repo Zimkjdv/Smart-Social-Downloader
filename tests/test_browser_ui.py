@@ -1,8 +1,10 @@
 """Real headless Chrome UI, with a synthetic API and no personal state."""
 import copy
+from contextlib import ExitStack
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 from pathlib import Path
+import socket
 import threading
 import unittest
 from urllib.parse import parse_qs, urlparse
@@ -12,6 +14,12 @@ from ssdl.job_views import job_page, job_summary
 from ssdl.video_quality import VIDEO_QUALITIES
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+class BrowserFixtureServer(ThreadingHTTPServer):
+    # Chrome fetches the deferred scripts/styles in parallel. Keep the fixture's
+    # listen backlog aligned with the application instead of the default five.
+    request_queue_size = 64
 
 
 def environment():
@@ -91,7 +99,7 @@ class BrowserUITests(unittest.TestCase):
                     job.pop("selection_options")
                 return self.send_json(self.state())
             def log_message(self, *args): pass
-        cls.server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+        cls.server = BrowserFixtureServer(("127.0.0.1", 0), Handler)
         cls.thread = threading.Thread(target=cls.server.serve_forever, daemon=True); cls.thread.start()
         cls.driver_context = browser_driver(True); cls.driver = cls.driver_context.__enter__()
         cls.browser = cls.driver.runtime.chromium.launch(headless=True, channel="chrome")
@@ -111,14 +119,52 @@ class BrowserUITests(unittest.TestCase):
         self.context = self.browser.new_context(viewport={"width": 1440, "height": 1000}, reduced_motion="reduce")
         self.addCleanup(self.context.close)
         self.page = self.context.new_page(); self.errors = []
+        self.asset_failures = []
         self.page.on("pageerror", lambda error: self.errors.append(str(error)))
+        self.page.on("requestfailed", lambda request: self.record_asset_failure(
+            request, request.failure))
+        self.page.on("response", lambda response: self.record_asset_failure(
+            response.request, f"HTTP {response.status}") if response.status >= 400 else None)
+
+    def record_asset_failure(self, request, error):
+        path = urlparse(request.url).path
+        if request.resource_type in {"script", "stylesheet"} and path.startswith("/static/"):
+            self.asset_failures.append(f"{path}: {error}")
 
     def load(self):
         self.page.goto(f"http://127.0.0.1:{self.server.server_port}/")
+        self.wait_for_snapshot()
+
+    def wait_for_snapshot(self):
+        # goto/reload wait for deferred scripts. Fail on the underlying resource
+        # or JS error before evaluating a global whose script may never load.
+        self.assertEqual(self.asset_failures, [], "Dashboard assets failed to load")
+        self.assert_no_errors()
+        self.assertTrue(self.page.evaluate("typeof lastResponse !== 'undefined'"),
+                        "Dashboard bootstrap did not declare lastResponse")
         self.page.wait_for_function("lastResponse !== null")
+        self.assert_no_errors()
 
     def assert_no_errors(self):
         self.assertEqual(self.errors, [])
+
+    def test_fixture_accepts_browser_connection_burst_before_serving(self):
+        # Exercise the real listener with pending connections, without relying
+        # on CPU scheduling to make a browser resource load fail intermittently.
+        with type(self.server)(("127.0.0.1", 0), BaseHTTPRequestHandler) as server, ExitStack() as sockets:
+            for _ in range(8):
+                sockets.enter_context(socket.create_connection(server.server_address, timeout=.5))
+
+    def test_missing_bootstrap_asset_fails_with_resource_diagnostic(self):
+        self.page.route("**/static/ui_state.js", lambda route: route.abort())
+        with self.assertRaisesRegex(AssertionError, "/static/ui_state.js"):
+            self.load()
+
+    def test_bootstrap_script_exception_is_reported_before_snapshot_wait(self):
+        self.page.route("**/static/ui_state.js", lambda route: route.fulfill(
+            content_type="application/javascript", body="throw new Error('fixture bootstrap exception');"))
+        with self.assertRaisesRegex(AssertionError, "fixture bootstrap exception"):
+            self.load()
 
     def test_every_quality_submitted_and_profile_mode_restores_video_draft(self):
         self.load(); page = self.page
@@ -197,7 +243,7 @@ class BrowserUITests(unittest.TestCase):
         page.wait_for_function("state.pageSize === 10 && state.jobs.length === 10")
         page.set_viewport_size({"width": 390, "height": 844})
         self.assertLessEqual(page.evaluate("document.documentElement.scrollWidth"), 390)
-        page.reload(); page.wait_for_function("lastResponse !== null")
+        page.reload(); self.wait_for_snapshot()
         self.assertEqual(page.locator("#jobs-page-size").input_value(), "10")
         self.assertEqual(job["status"], "queued")
         self.assert_no_errors()
