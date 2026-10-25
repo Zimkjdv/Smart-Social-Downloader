@@ -62,7 +62,7 @@ logs session contents. Session removal is local; it does not sign out the
 operator's Chrome account. After an interrupted process, verify scope cleanup
 before treating its lifecycle report as complete.
 
-## Current evidence
+## Initial partial evidence
 
 Completed assisted-manual observations:
 
@@ -81,21 +81,85 @@ Completed assisted-manual observations:
   connection. Production service port 8765 was not restarted; the operator
   confirmed restoring the connector destination to 8765 after cleanup.
 
-Pixiv received two actual UI begin requests, but no connector claim/callback;
-therefore Pixiv auto-return/permission effectiveness is not accepted. Cancel,
-post-expiry re-pair, offline/retry, browser/worker restart and Pixiv restore remain
-pending in [ROADMAP](../ROADMAP.md). The actual browser steps were manual because
-Codex's origin gate denied 8877. Screenshots show both its Browser and Chrome
-management rules set Browse to Always allow, but the tool still reports a saved
-permission/managed-policy denial. This is an unresolved host permission mismatch,
-not evidence of a downloader login or DPAPI defect. A resumed direct Chrome
-request after restarting Codex was also denied before loading the page; that
-tool access discrepancy remains unresolved; its cause is unconfirmed. The
-operator requested deferring the remaining live pairing cases while CI is fixed.
-No alternate browser surface,
-direct debugging connection or permission bypass was used.
+At the initial checkpoint, Pixiv had received begin requests without claim or
+callback. Cancel/re-pair, post-expiry retry, offline recovery and browser
+lifecycle cases were still pending. The browser tool then denied port 8877
+despite visible allow rules, so the operator deferred these cases while CI was
+repaired. This was an external tool-access discrepancy, not a DPAPI diagnosis.
+The later follow-up below supersedes that partial native acceptance result.
+Initial metadata-only receipts remain ignored `data/chrome-pairing.json` and
+`data/chrome-pairing-tool-smoke.json`.
 
-Private metadata-only receipts: ignored `data/chrome-pairing.json` and
-`data/chrome-pairing-tool-smoke.json`. Regression/source results and remaining
-scope are in [TESTING](TESTING.md). No complete-acceptance claim is made for this
-roadmap item.
+## Follow-up evidence — 2026-10-25
+
+The HTTP browser surface now reaches the isolated service on port 8877. A fresh
+native-DPAPI session (`data/chrome-pairing-followup.json`, ignored) observed the
+actual dashboard start an X connection, return HTTP 200 from disconnect on
+Cancel, then report phase `idle` with no pending session file. The installed
+1.2.0 connector was detected on `/chrome-connect`; clicking Connect while it
+still targeted 8765 displayed the explicit 8877/8765 mismatch. No extension
+Cookie submission reached this isolated session at that point.
+
+The operator selected 8877 and pressed Connect in the installed popup. Real
+X prepare/submission returned 200 with matching extension Origin/ID; status
+reported connected, native DPAPI and an encrypted session file. This completes
+the cancel/re-pair sequence above. With the same pairing page already loaded,
+`offline` produced the visible service-unavailable message. After `online`,
+the same button obtained a fresh ticket and connected again. No response was
+fabricated and no request was retried silently.
+
+Pixiv begin/claim/callback also returned 200. The claim and callback matched
+the extension Origin/ID, status became connected/not pending/not busy with a
+DPAPI-encrypted file, and the browser automatically returned to the local
+`/pixiv-connect#result=connected` success page. The operator completed Pixiv's
+external login page because the browser tool's site-safety policy denied that
+page. No code, Cookie or refresh token was copied into the receipt. The X
+ticket-expiry clock remains unmodified at 600 seconds.
+
+
+The operator then restarted ordinary Chrome using its normal restart command.
+Browser inventory changed from connection 3 to connection 4, with new restored
+tab IDs. The real connector was still detected on the restored pairing page;
+Pixiv's local success page and server-connected state remained available. This
+is assisted observation of an actual browser restart. It does not separately
+establish an in-flight OAuth callback across worker suspension. The runner's
+`chrome-restarted` note records the operator action, while new browser/tab IDs
+and later extension POSTs provide separate observed evidence.
+
+
+The fresh X ticket was still waiting at 544.2 actual seconds and failed at
+601.5 seconds. The saved X session remained connected. After the ordinary
+Chrome restart, clicking Connect on a fresh page produced another successful
+real prepare/submission and returned phase `connected` at the 625.2-second
+status observation. The runner then restarted its backend AppContext without
+another browser submission: both X and Pixiv restored as connected with their
+DPAPI-encrypted files present; Pixiv had no pending/busy attempt. The real
+receipt contains four successful X prepare/submission pairs, one successful
+Pixiv begin/claim/callback sequence and the separate cancellation event.
+
+
+For the worker-idle check, the operator reported the exact Chrome label
+`Service Worker (無法使用)` without opening DevTools. A further real Connect
+action then returned 200 from both prepare/submission with matching extension
+Origin/ID, and X remained connected. This is operator-assisted recovery from
+the reported idle/unavailable display, not an instrumented worker-termination
+trace. Chrome's [lifecycle documentation](https://developer.chrome.com/docs/extensions/develop/concepts/service-workers/lifecycle)
+explains ordinary idle termination and event-driven revival. In-flight Pixiv
+OAuth across worker suspension is still a separate acceptance case.
+
+
+Finally, the operator restored the connector to 8765. The 8877 page then
+reported the explicit mismatch against connector port 8765, confirming the
+saved destination. The runner exited 0 with `closed: true` and
+`temporary_scope_removed: true`; its temporary encrypted X/Pixiv sessions were
+removed. The normal 8765 service was initially not listening; the standard
+`tools/manage.py start-background` launcher passed its environment checks and
+restored HTTP 200 at the production URL. No acceptance downloads were submitted.
+
+This completes the listed native main-flow cases on this one Windows user /
+Chrome 155 / connector 1.2.0 environment with operator assistance. The four real
+X exchanges and Pixiv callback are server observations, whereas extension popup,
+external login, Chrome restart and worker-display checks include operator
+observations. It does not establish clean-install permission prompts, real
+Docker login, external OAuth expiration or in-flight OAuth continuity across
+worker/browser termination. Those broader cases remain in ROADMAP.

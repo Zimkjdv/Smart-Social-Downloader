@@ -895,3 +895,72 @@ hit a GBK encoding error while echoing Unicode Node checkmarks. Reading its
 UTF-8 log confirms the successful child result, separately from that console
 summary failure. Private extracted output is ignored
 `data/browser-ui-ci-source.log`.
+
+
+## Hosted CI confirmation — 2026-10-25
+
+[Run 40143826641](https://github.com/Zimkjdv/Smart-Social-Downloader/actions/runs/40143826641)
+for `d22c9a8` completed successfully at 07:50 Taipei time. All three jobs
+(`windows`, `install-windows`, `docker-runtime`) and their acceptance steps
+passed, including extracted-source tests. The earlier failed runs remain
+historical failures; this successful push validates the path normalization and
+browser fixture repairs on hosted runners. Real-account Chrome pairing remains
+a separate acceptance procedure.
+
+
+## Default branch protection — 2026-10-25
+
+The repository initially had no branch rules or rulesets. After the owner
+completed GitHub account verification, the UI confirmed `Ruleset created` and
+`Protect main Active`, applying to `main`. The read-only ruleset API confirms
+[rule 25801940](https://github.com/Zimkjdv/Smart-Social-Downloader/rules/25801940)
+has active enforcement, deletion/non-fast-forward restrictions, pull requests
+with zero required approvals and resolved review threads, and strict required
+checks `windows`, `install-windows`, `docker-runtime`, each bound to GitHub
+Actions integration 15368. The bypass list is empty. No destructive push or
+branch deletion was attempted to verify these settings. These are live GitHub
+repository settings, not settings installed by a source checkout.
+
+
+## Follow-up source verification — 2026-10-25
+
+A tracked-file export excluded the deferred comparison document and all private
+runtime data. The 238-file source ZIP passed byte/CRC/allowlist verification,
+then the extracted source passed **424 Python tests in 108.471 seconds**, **28
+Node tests**, and **116 dependency-fault tests in 71.156 seconds**, with zero
+failures/errors/skips. The dependency probe observed only the previously
+reviewed urllib3 SSL-options deprecation. Eight reviewed Action pins and the
+CRLF-aware whitespace check also pass. No runtime source or dependency versions
+changed; the final acceptance documentation is byte-verified in the reviewed
+source archive. Private output is ignored `data/main-protection-source.log`.
+
+
+## Completed native Chrome main flow — 2026-10-25
+
+Follow-up ordinary Chrome 155 / connector 1.2.0 at port 8877 used the real
+Windows user, native DPAPI and actual auth handlers. Observed outcomes:
+
+- Cancel returned 200 and phase idle; a fresh real connector exchange connected.
+- Offline Connect displayed service-unavailable; online retry connected using
+  fresh real prepare/submission requests.
+- An unchanged 600-second X ticket was waiting at 544.2 seconds and failed at
+  601.5 seconds while the existing login remained connected. Re-pairing after
+  the operator's Chrome restart succeeded and status was connected at 625.2
+  seconds.
+- Pixiv begin/claim/callback all returned 200, with matching extension Origin/ID
+  on claim/callback; the browser automatically returned to the local connected
+  page. A new backend AppContext restored both DPAPI-encrypted sessions with
+  no additional callback or manual token entry.
+- After the operator reported `Service Worker (無法使用)`, another real X
+  prepare/submission returned 200. The receipt contains four successful X
+  pairs in total. This is assisted recovery evidence, not a worker-termination
+  trace or an in-flight OAuth suspension test.
+- The saved connector destination returned to 8765, observed through the 8877
+  mismatch message. The runner exited 0 and removed its temporary scope. The
+  normal 8765 background service was started after a connection-refused probe;
+  the same HTTP probe then returned 200.
+
+The final report has `closed: true` and `temporary_scope_removed: true`.
+Receipts/screenshots stay under ignored `data/`; no Cookie, code, token, browser
+profile or login file enters the commit/archive. The full procedure and broader
+remaining scope are in [Chrome acceptance](CHROME_PAIRING_ACCEPTANCE.md).
