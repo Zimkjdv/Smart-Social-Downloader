@@ -1163,3 +1163,11 @@ hosted runners are not substitutes. Actual missing-Runtime bootstrap/repair,
 installed shortcuts/native prompts and real-account Chrome callbacks in that
 clean environment remain gates in ROADMAP and WINDOWS_DISTRIBUTION. No tag,
 public Release, automatic updater, signing, tray or startup registration was added.
+
+The first hosted D05 source runs exposed a stale native acceptance assertion:
+the new writer lease refused a same-scope foreground conflict before socket bind,
+but the fixture still required an OSError log. It now requires the specific
+writer-lease diagnostic and retains its foreground-survival, unchanged-state and
+normal-stop checks. No production refusal or shutdown behavior was weakened.
+The corrected receipt-owned native source acceptance passed all nine phases locally,
+including that conflict and abrupt-exit recovery, before the follow-up push.
