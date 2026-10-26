@@ -983,3 +983,14 @@ The two Chrome tests use a fresh temporary context and synthetic HTTP content;
 they do not establish pywebview/WebView2 or real-account login acceptance.
 Runtime output stays in ignored data. The unrelated untracked comparison note
 was excluded from the tracked-source export. See [contracts](API_CONTRACT.md).
+
+### D01 hosted Docker gate follow-up
+
+At `6c81b3a`, hosted Windows and installation jobs passed; Docker reached renamed
+file rejection after successful image decoding, keyboard selection, H.264
+playback/seek and reload checks, then failed. A reserved about:blank tab had
+already fired DOMContentLoaded, allowing the gate's URL check to run before the
+actual media navigation committed. A real Chrome test with delayed 404 headers
+reproduced `browser_error_navigation_escaped` before the fix and passed after it.
+The gate now waits for the exact local-origin job/content destination and then
+checks 404. Origin restrictions and missing-file validation remain enforced.

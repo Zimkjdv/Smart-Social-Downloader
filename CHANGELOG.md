@@ -12,6 +12,8 @@ No GitHub release or tag has been created.
 
 ### Fixed
 
+- D01 Docker browser gate (2026-10-26): wait for the committed local media URL before probing a renamed file. A reserved `about:blank` tab has already fired DOMContentLoaded, so the old gate could reject its initial URL before navigation reached the real 404. Add a real Chrome regression with delayed 404 headers; retain exact-origin, media-path and 404 checks.
+
 - Native Chrome pairing acceptance (2026-10-25): complete operator-assisted X cancellation/re-pair, actual 600-second expiry/re-pair, offline recovery, real Pixiv claim/callback and automatic return, native DPAPI/backend restore, and new pairing after an actual Chrome restart. Record a successful fresh extension exchange after the operator-reported unavailable worker display; retain in-flight OAuth suspension as separate work. Restore connector port 8765 and verify temporary-session cleanup. Keep receipts private and distinguish UI observations from HTTP evidence. See [acceptance scope](docs/CHROME_PAIRING_ACCEPTANCE.md#follow-up-evidence--2026-10-25).
 
 - Default-branch protection (2026-10-25): activate `Protect main` with no bypass actors, block deletion and force pushes, and require pull requests, resolved review conversations, an up-to-date branch and the existing Windows/install/Docker Actions checks. Keep required approvals at zero for the single-maintainer workflow. Verify GitHub reports the ruleset active after account confirmation; document the contribution flow and successful hosted CI repair.

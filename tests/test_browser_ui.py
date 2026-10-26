@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 import socket
 import threading
+import time
 import unittest
 from urllib.parse import parse_qs, urlparse
 
@@ -59,6 +60,9 @@ class BrowserUITests(unittest.TestCase):
                     "app_version": "fixture", "thumbnail_cache": {"ready": True}}
             def do_GET(self):
                 path = urlparse(self.path).path
+                if path == "/api/jobs/missing/content":
+                    time.sleep(.25)
+                    return self.send_json({"error": "synthetic missing file"}, 404)
                 if path == "/api/environment": return self.send_json(environment())
                 if path == "/api/databases": return self.send_json(cls.database_report)
                 if path.startswith("/api/jobs/") and path.endswith("/files"):
@@ -307,6 +311,21 @@ class BrowserUITests(unittest.TestCase):
         self.assertGreater(result['count'], 610)
         self.assertEqual(result['invalid'], [])
         self.assertEqual(result['missing'], [])
+        self.assert_no_errors()
+
+    def test_missing_media_gate_waits_for_navigation_from_reserved_blank_page(self):
+        from tools.docker_browser_acceptance import check_missing_media
+        self.jobs.append({"id": "missing", "title": "Synthetic missing file", "url": "https://example.org/album",
+                          "platform": "Web", "status": "completed", "created_at": 1, "files": ["missing.png"]})
+        self.load(); page = self.page
+        page.evaluate("state.fileActions = 'browser'")
+        with page.expect_popup() as opened:
+            page.locator('.row-icon-button[data-open-media="missing"]').click()
+        popup = opened.value
+        try:
+            check_missing_media(self.context, popup, f"http://127.0.0.1:{self.server.server_port}")
+        finally:
+            popup.close()
         self.assert_no_errors()
 
     def test_desktop_adapter_exports_diagnostics_as_a_real_browser_download(self):
