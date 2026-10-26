@@ -4,8 +4,8 @@ The optional pywebview shell displays the **same** HTML/CSS/JavaScript and local
 HTTP API as the browser version. It adds a native window frame, folder chooser,
 diagnostics Save As and explicit background-service controls. Browser and Docker
 usage remain available. This is a source version requiring Python, not a packaged
-installer/EXE. D04 automated acceptance is implemented; its manual release gate
-and D05 packaging remain pending. See [D04 acceptance](DESKTOP_GUI_ACCEPTANCE.md).
+installer/EXE. D04 automated acceptance and the current Windows host's manual
+baseline are complete. D05 packaging remains pending. See [D04 acceptance](DESKTOP_GUI_ACCEPTANCE.md).
 
 ## Start and stop
 
@@ -56,8 +56,10 @@ backend pairing routes. The backend's opened flag owns normal authorization
 launching; the adapter does not open a duplicate. Pairing/setup/manual Pixiv
 fallback links specifically choose ordinary Chrome, even if another browser is
 the Windows default. Other links use the default external browser. Auth results
-reach the desktop through the same HTTP polling/status rendering. Real-account
-callback/restart/suspension combinations remain in the D04 manual gate.
+reach the desktop through the same HTTP polling/status rendering. Desktop-initiated
+X/Pixiv callbacks, clear/reconnect and backend restart with
+DPAPI login retention passed on the current host. OAuth-in-progress browser
+restart/worker suspension combinations remain in the authorization roadmap.
 
 Choose folder changes only the current settings draft; Save still sends it
 through the standard HTTP settings validation. Cancel leaves the draft intact.
@@ -118,15 +120,16 @@ actual device pixel ratio; it is not a clean Windows OS or complete D04 matrix.
 
 Portable Python/Node fixtures additionally cover missing/incompatible/late
 bridge, action timeout/cancellation, folder draft epochs, native export/cancel,
-origin/frame/message refusal and Chrome fallback selection. Actual dialogs,
-clipboard permission refusal, OS DPI values, physical keyboard/focus and
-real-account authorization remain in the D04 manual gate.
+origin/frame/message refusal and Chrome fallback selection. The current host's
+actual dialogs, OS scaling, physical keyboard/focus and real-account callbacks
+were separately confirmed by the operator. Clipboard permission refusal is
+covered only by injected cases.
 
 For the expanded real GUI/Chrome/media/lifecycle matrix, run the same tool with
 `--matrix`. Native clipboard, codecs, seek, Range and scripted focus are now
-covered; physical keyboard, actual OS DPI/dialogs and real-account callbacks
-remain separate. [D04 acceptance](DESKTOP_GUI_ACCEPTANCE.md) lists precise
-evidence boundaries, artifacts and the remaining manual observations.
+covered. [D04 acceptance](DESKTOP_GUI_ACCEPTANCE.md) records the separate human
+keyboard/OS scaling/dialog/account observations, artifacts and untested
+environments.
 
 Technical references: [pywebview API](https://pywebview.flowrl.com/api/),
 [Windows engine selection](https://pywebview.flowrl.com/guide/web_engine),

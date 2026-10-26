@@ -130,4 +130,4 @@ The optional Windows GUI gate is separate from core/source/Docker acceptance:
 isolated sources/data/profile and compares the shared UI with fresh Chrome.
 Neither GUI dependencies nor an interactive desktop are required by normal CI.
 See [D04 GUI acceptance](DESKTOP_GUI_ACCEPTANCE.md) for artifacts, startup-only
-reproduction and the still-pending manual DPI/dialog/account observations.
+reproduction, completed manual baseline and remaining environment limits.

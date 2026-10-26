@@ -29,7 +29,7 @@ def prepare(root):
     media = Path(os.environ["SSDL_DOWNLOAD_DIR"])
     media.mkdir(parents=True, exist_ok=True)
     (media / "中文 image.png").write_bytes(base64.b64decode(
-        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jZGQAAAAASUVORK5CYII="))
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII="))
     subprocess.run([ffmpeg_path(), "-v", "error", "-f", "lavfi", "-i", "color=c=blue:s=64x64:d=2",
         "-c:v", "libx264", "-pix_fmt", "yuv420p", "-movflags", "+faststart", str(media / "中文 video.mp4")],
         check=True, capture_output=True, timeout=25, creationflags=subprocess.CREATE_NO_WINDOW)
@@ -114,7 +114,7 @@ def exercise(window, root, service):
     """Uses actual WebView2, bridge, filesystem, HTTP, codecs and fresh Chrome."""
     from playwright.sync_api import sync_playwright
     driver = Driver(window)
-    result = {"system_device_pixel_ratio": driver.js("devicePixelRatio"), "checks": [],
+    result = {"initial_device_pixel_ratio": driver.js("devicePixelRatio"), "checks": [],
         "dialog_evidence": "injected-native-dialog-results", "keyboard_evidence": "scripted-dom-events",
         "scale_evidence": "cdp-render-emulation-not-windows-display-settings"}
     from System import Func, Object, Action

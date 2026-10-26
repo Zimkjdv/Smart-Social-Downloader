@@ -2,16 +2,37 @@
 import os
 from pathlib import Path
 import subprocess
+import struct
 import sys
 import tempfile
 from types import SimpleNamespace
 import unittest
+import zlib
 from unittest.mock import Mock, patch
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
 class DesktopIsolationTests(unittest.TestCase):
+    @unittest.skipUnless(os.name == 'nt', 'native acceptance fixture is Windows-only')
+    def test_generated_png_is_valid_for_strict_native_decoders(self):
+        from tests.helpers.webview_matrix import prepare
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            media = root / 'media target 圖片'
+            with patch.dict(os.environ, {'SSDL_DOWNLOAD_DIR':str(media)}):
+                prepare(root)
+            data = (media / '中文 image.png').read_bytes()
+            self.assertEqual(data[:8], b'\x89PNG\r\n\x1a\n')
+            offset = 8
+            while offset < len(data):
+                size = struct.unpack('>I', data[offset:offset + 4])[0]
+                chunk = data[offset + 4:offset + 8 + size]
+                checksum = struct.unpack('>I', data[offset + 8 + size:offset + 12 + size])[0]
+                self.assertEqual(zlib.crc32(chunk) & 0xffffffff, checksum, chunk[:4])
+                offset += size + 12
+            self.assertEqual(offset, len(data))
+
     def test_core_http_runs_with_all_gui_imports_forbidden(self):
         script = r'''
 import importlib.abc, sys, tempfile, threading, http.client
