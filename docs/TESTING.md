@@ -1044,3 +1044,49 @@ This is current-runtime source-GUI smoke, not a fresh Windows OS, all DPI values
 actual native picker/clipboard permissions or real-account Chrome callbacks.
 Those remain D04. No D05 frozen EXE/installer work was performed. Commands and
 scope: [desktop guide](DESKTOP_GUI.md).
+
+## D04 shared contracts and native GUI matrix — 2026-10-26
+
+The 260-file reviewed source export passed 454 Python cases, 57 frontend cases
+and 116 dependency-fault cases. All eight pinned Action references passed policy
+checks. Core HTTP was additionally served in a fresh interpreter that rejects
+all pywebview/.NET imports. GUI packages remain optional; core/Docker CI has no
+new GUI installation. The reviewed urllib3 SSL-options warning remains the same
+dependency observation documented above.
+
+Real receipt-owned WebView2 sessions passed the expanded GUI matrix on this
+Windows/Python 3.12.10 host, WebView2 155.0.4283.62 and Chrome 155.0.8059.86.
+Observed system devicePixelRatio was 2. Matching 1280×800 CSS viewport captures
+of settings/errors in Chinese and English were visually inspected. The desktop
+picker, banner, font rendering and scrollbar differences are expected; no pixel
+identity is asserted. Four CDP scale captures are renderer emulation, not four
+actual Windows display settings.
+
+The matrix passed shared HTTP/UI flows, scripted focus/scroll, actual clipboard
+write/readback with previous data restored, injected picker cancel/selection and
+UTF-8 export, validated/intercepted file/folder/external dispatch, PNG/H.264 decode,
+advancing frames, seek, HTTP 206 and Chrome Blob/native-media export/playback.
+Two sessions verified profile preferences, attached-stop refusal, backend-exit
+offline UI, history/pending-queue/partial recovery, active synthetic work after
+programmatic window close and graceful owned shutdown. Concurrent gated GUI
+processes produced one primary window and backend. A foreign listener survived
+failed startup and its native error message was captured. Final fixture cleanup
+was reported separately from acceptance. Reports/PNGs are ignored local data.
+
+Red/green regressions found two bridge-wait cancellation issues (closed host
+reported unsupported; abort waited for handshake timeout) and a startup error
+rendering failure. Actual WebView2 NavigationStarting represented NavigateToString
+as a data URI, which the guard rejected; initialization could also overwrite an
+early error load. The host now registers exact generated HTML bytes, grants no
+native powers to those documents, keeps arbitrary data navigation blocked and
+waits for initialization before showing the error. The native conflict gate
+failed before this fix and passed after it. Temporary diagnostic tracing was
+removed.
+
+The manual release gate remains open for physical keyboard/focus, actual OS DPI,
+native dialogs/confirmations, OS file associations/permissions and ordinary
+Chrome real-account callbacks from the desktop. Prior browser-only pairing is
+not reused as proof. The runtime failure notification is an injected test;
+actual runtime-free Windows is not claimed. Exact commands, evidence boundaries
+and observation rows are in [D04 acceptance](DESKTOP_GUI_ACCEPTANCE.md). D05 was
+not started.

@@ -18,7 +18,7 @@ N01～N08 已移至 [CHANGELOG](CHANGELOG.md#unreleased)。本輪列出的修正
 
 ## Windows 桌面版：先 pywebview，保留 Electron 遷移路線
 
-2026-10-26 規劃，D01～D03 已完成並記錄於 CHANGELOG；依使用者範圍，本輪停在 D03，D04～D06 保留後續。決策依據為使用者指定的「先做 pywebview，業務功能走標準 API，桌面專屬功能集中封裝」，並參考 [Python WebUI 轉 Windows GUI 對話](chatgpt-conversation://6ade3c59-7034-83e8-843b-79c106709fe9)。目標是瀏覽器版與桌面版共用同一份 Web UI／Python 後端，日後替換外殼時保留業務程式與資料。
+2026-10-26 規劃，D01～D03 已完成並記錄於 CHANGELOG；本輪依使用者要求實作 D04 自動化與人工驗收清單，真人／實際 OS 操作仍待觀察，D05～D06 保留後續。決策依據為使用者指定的「先做 pywebview，業務功能走標準 API，桌面專屬功能集中封裝」，並參考 [Python WebUI 轉 Windows GUI 對話](chatgpt-conversation://6ade3c59-7034-83e8-843b-79c106709fe9)。目標是瀏覽器版與桌面版共用同一份 Web UI／Python 後端，日後替換外殼時保留業務程式與資料。
 
 ### 現況判斷與必要前置
 
@@ -70,13 +70,15 @@ N01～N08 已移至 [CHANGELOG](CHANGELOG.md#unreleased)。本輪列出的修正
 
 2026-10-26 完成，使用方式見 [桌面指南](docs/DESKTOP_GUI.md)，實作與證據見 [CHANGELOG](CHANGELOG.md#unreleased) 及 [測試紀錄](docs/TESTING.md)。`desktop.bat` 使用選配鎖定依賴載入相同 HTTP UI；原生視窗、資料夾選擇、診斷另存、專用 profile、關窗續抓與明確停止均已接上。原生 guard 限制導航／frame／彈窗與 bridge 訊息來源，X／Pixiv 授權沿用一般 Chrome。
 
-兩次真實 WebView2 隔離啟動已驗證 UI／bridge、共用 HTTP 寫入、重複開啟喚回、語言／頁數保存、拒絕導航後 bridge 仍可使用、關窗續留後端與 owned stop；當前實際 devicePixelRatio 為 2。這是來源版本與基本 smoke，不等於 D04 的完整 DPI／對話框／鍵盤／媒體／真人授權矩陣，也不是 D05 安裝包。依使用者指示，先不進行 D04／D05。
+兩次真實 WebView2 隔離啟動已驗證 UI／bridge、共用 HTTP 寫入、重複開啟喚回、語言／頁數保存、拒絕導航後 bridge 仍可使用、關窗續留後端與 owned stop；當前實際 devicePixelRatio 為 2。D03 是來源版本與基本 smoke；D04 擴充結果列於下方，也不是 D05 安裝包。
 
-### D04：共用介面與實際 Windows GUI 驗收
+### D04：共用介面與實際 Windows GUI 驗收（自動化已實作；人工矩陣待驗收）
 
-- [ ] 以同一組 Interface 契約驗證 Browser／Pywebview Adapter，包括能力缺少、bridge 尚未就緒、取消、拒絕、逾時及視窗已關閉；業務測試跨 HTTP 執行，不為每個外殼複製下載引擎／佇列測試。確認核心匯入、一般 Web／Docker 與既有 CI 不依賴安裝 GUI 套件。
-- [ ] 在暫存資料與專用 profile 驗收真實 WebView2：啟動、既有／重複／同時啟動、埠衝突、後端退出、關窗續抓、明確停止與重啟恢復；未安裝 Runtime 的結果要明確報告。分開自動化 fixture 與人工操作證據，不能用 headless Chrome 通過取代 pywebview GUI 驗收。
+- [x] 以同一組 Interface 契約驗證 Browser／Pywebview Adapter，包括能力缺少、bridge 尚未就緒、取消、拒絕、逾時及視窗已關閉；業務測試跨 HTTP 執行，不為每個外殼複製下載引擎／佇列測試。核心匯入與實際 HTTP 請求在禁止 GUI 匯入的獨立 interpreter 通過；一般 Web／Docker 與既有 CI 不增加 GUI 套件。
+- [x] 在暫存資料與專用 profile 自動化驗收真實 WebView2：啟動、既有／重複／同時啟動、埠衝突、後端退出、關窗續抓、明確停止與重啟恢復；缺少套件／Runtime 有明確失敗碼，不能跳過當作通過。實際未安裝 Runtime 的乾淨機器與人手操作仍屬人工觀察；實機 GUI 與 Chrome fixture 證據分列。
 - [ ] 對照瀏覽器版與桌面版的工作／設定／錯誤／語系／媒體頁：鍵盤與焦點、捲動、100／125／150／200% DPI、中文及空白路徑、資料夾選擇取消、開檔／顯示位置、圖片及影片 Range／播放、Blob 匯出、剪貼簿、外部頁與一般 Chrome 授權回接。以相同 viewport 截圖比較；訂明可接受的原生視窗／字型差異，不宣稱不同引擎逐像素相同。
+
+2026-10-26 已新增 `tools/check_desktop_gui.py --matrix` 與 [D04 驗收指南](docs/DESKTOP_GUI_ACCEPTANCE.md)。WebView2／Chrome 共用 UI 流程與 1280×800 CSS viewport 截圖、實際圖片／影片／Range、原生剪貼簿還原及瀏覽器 Blob 已通過；原生對話框回傳與檔案／外部分派明確標示為注入／攔截。四種 renderer scale 是 CDP 模擬，不能取代實際 Windows 縮放；人手鍵盤／原生提示、OS 關聯與一般 Chrome 真人授權仍待指南中的逐項記錄，因此第三項維持未完成，也不開始 D05。
 
 ### D05：可散布的 Windows 安裝版（在來源版 GUI 通過後）
 

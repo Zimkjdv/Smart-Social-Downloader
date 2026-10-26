@@ -215,6 +215,94 @@ function pywebviewHarness(api = null, options = {}) {
 const nativeDescription = () => ({version:1, kind:'pywebview', ownership:'started', capabilities:{
   openExternal:true, saveText:true, copyText:true, pickDirectory:true, stopBackend:true}});
 
+function contractHarness(kind, {clipboard = true, blocked = false, denyCopy = false} = {}) {
+  if (kind === 'browser') {
+    const h = desktopHarness({clipboard, blocked});
+    if (denyCopy) h.browser.navigator.clipboard.writeText = async () => {throw new Error('permission denied');};
+    return h;
+  }
+  return pywebviewHarness({
+    describe:async () => ({...nativeDescription(), capabilities:{...nativeDescription().capabilities, copyText:clipboard}}),
+    open_external:async () => ({status:blocked ? 'blocked' : 'completed'}),
+    save_text:async () => ({status:'completed'}),
+    copy_text:async () => {if (denyCopy) throw new Error('permission denied'); return {status:'completed'};},
+    pick_directory:async () => ({status:'cancelled'}),
+  });
+}
+
+// One public Interface suite, with only OS/browser boundaries replaced per host.
+for (const kind of ['browser', 'pywebview']) {
+  test(`${kind} DesktopInterface: immutable version and boolean capabilities`, async () => {
+    const d = contractHarness(kind).adapter;
+    try {
+      if (d.ready) await d.ready;
+      assert.equal(d.version, 1); assert.equal(d.kind, kind);
+      assert.equal(Object.isFrozen(d.capabilities), true);
+      for (const key of ['openExternal','saveText','copyText','pickDirectory']) assert.equal(typeof d.capabilities[key], 'boolean');
+      for (const key of ['openExternal','reserveExternal','saveText','copyText','pickDirectory','dispose']) assert.equal(typeof d[key], 'function');
+    } finally {d.dispose();}
+  });
+  test(`${kind} DesktopInterface: successful actions return completion data`, async () => {
+    const d = contractHarness(kind).adapter;
+    try {
+      assert.equal((await d.openExternal('https://example.org/')).status, 'completed');
+      assert.equal((await d.copyText('中文 synthetic')).status, 'completed');
+      assert.equal((await d.saveText({filename:'診斷 report.json',text:'{}',mimeType:'application/json'})).status, 'completed');
+    } finally {d.dispose();}
+  });
+  test(`${kind} DesktopInterface: reservation cancellation and one-use ownership`, async () => {
+    const d = contractHarness(kind).adapter;
+    try {
+      const cancelled = d.reserveExternal(); cancelled.cancel(); cancelled.cancel();
+      assert.equal((await cancelled.open('https://example.org/')).status, 'cancelled');
+      const used = d.reserveExternal();
+      assert.equal((await used.open('https://example.org/')).status, 'completed');
+      assert.equal((await used.open('https://example.org/again')).status, 'cancelled');
+    } finally {d.dispose();}
+  });
+  test(`${kind} DesktopInterface: pre-aborted export is cancelled`, async () => {
+    const d = contractHarness(kind).adapter, controller = new AbortController(); controller.abort();
+    try {assert.equal((await d.saveText({filename:'report.json',text:'{}'}, {signal:controller.signal})).status, 'cancelled');}
+    finally {d.dispose();}
+  });
+  test(`${kind} DesktopInterface: disposed host cancels every shared operation`, async () => {
+    const d = contractHarness(kind).adapter, reservation = d.reserveExternal(); d.dispose(); d.dispose();
+    for (const action of [() => d.openExternal('https://example.org/'), () => d.copyText('synthetic'),
+      () => d.saveText({filename:'report.json',text:'{}'}), () => d.pickDirectory(), () => reservation.open('https://example.org/')]) {
+      assert.equal((await action()).status, 'cancelled');
+    }
+  });
+  test(`${kind} DesktopInterface: unavailable clipboard preserves manual fallback`, async () => {
+    const d = contractHarness(kind, {clipboard:false}).adapter;
+    try {assert.equal((await d.copyText('synthetic')).status, 'unsupported'); assert.equal(d.capabilities.copyText, false);}
+    finally {d.dispose();}
+  });
+  test(`${kind} DesktopInterface: permission refusal and rejected calls are data`, async () => {
+    const d = contractHarness(kind, {blocked:true, denyCopy:true}).adapter;
+    try {
+      assert.equal((await d.openExternal('https://example.org/')).status, 'blocked');
+      assert.equal((await d.copyText('synthetic')).status, 'error');
+    } finally {d.dispose();}
+  });
+}
+
+test('closing an adapter cancels an action still waiting for its bridge', async () => {
+  const h = pywebviewHarness();
+  const action = h.adapter.copyText('synthetic');
+  h.adapter.dispose();
+  assert.equal((await action).status, 'cancelled');
+});
+
+test('aborting before bridge readiness finishes without waiting for the handshake deadline', async () => {
+  const h = pywebviewHarness(null, {readyTimeoutMs:5000}), controller = new AbortController();
+  try {
+    const action = h.adapter.saveText({filename:'report.json', text:'{}'}, {signal:controller.signal});
+    controller.abort();
+    const value = await Promise.race([action, pause(100).then(() => ({status:'still-waiting'}))]);
+    assert.equal(value.status, 'cancelled');
+  } finally {h.adapter.dispose();}
+});
+
 test('Pywebview Adapter waits for bridge-ready and maps native data without business dispatch', async () => {
   const calls = [], h = pywebviewHarness();
   const picking = h.adapter.pickDirectory('synthetic');

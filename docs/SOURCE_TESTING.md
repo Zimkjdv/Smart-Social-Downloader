@@ -124,3 +124,10 @@ closure case while keeping other intermittent transport observations pending.
 Fresh dependency installation is now checked by a separate Windows job/tool;
 the extraction regression above intentionally uses current dependencies. See
 [Installation acceptance](INSTALLATION_ACCEPTANCE.md).
+
+The optional Windows GUI gate is separate from core/source/Docker acceptance:
+`python tools/check_desktop_gui.py --matrix` opens actual WebView2 sessions with
+isolated sources/data/profile and compares the shared UI with fresh Chrome.
+Neither GUI dependencies nor an interactive desktop are required by normal CI.
+See [D04 GUI acceptance](DESKTOP_GUI_ACCEPTANCE.md) for artifacts, startup-only
+reproduction and the still-pending manual DPI/dialog/account observations.

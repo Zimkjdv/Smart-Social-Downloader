@@ -4,7 +4,8 @@ The optional pywebview shell displays the **same** HTML/CSS/JavaScript and local
 HTTP API as the browser version. It adds a native window frame, folder chooser,
 diagnostics Save As and explicit background-service controls. Browser and Docker
 usage remain available. This is a source version requiring Python, not a packaged
-installer/EXE; D04/D05 remain pending by scope.
+installer/EXE. D04 automated acceptance is implemented; its manual release gate
+and D05 packaging remain pending. See [D04 acceptance](DESKTOP_GUI_ACCEPTANCE.md).
 
 ## Start and stop
 
@@ -56,7 +57,7 @@ launching; the adapter does not open a duplicate. Pairing/setup/manual Pixiv
 fallback links specifically choose ordinary Chrome, even if another browser is
 the Windows default. Other links use the default external browser. Auth results
 reach the desktop through the same HTTP polling/status rendering. Real-account
-callback/restart/suspension combinations remain in D04 acceptance, not this smoke.
+callback/restart/suspension combinations remain in the D04 manual gate.
 
 Choose folder changes only the current settings draft; Save still sends it
 through the standard HTTP settings validation. Cancel leaves the draft intact.
@@ -93,6 +94,12 @@ cancelled navigation: WinForms control.Source otherwise caches the attempted
 URI. These are **version-pinned** hooks and must be revalidated when updating
 pywebview; the real smoke exercises refusal followed by a fresh bridge call.
 
+The host registers exact loading/error HTML bytes because NavigateToString can
+emit an internal data URI. Only registered documents before a service identity
+exists may navigate; they never receive native powers. Arbitrary data URLs stay
+blocked. Startup errors wait for renderer initialization so its first load cannot
+overwrite the error document. Real port-conflict acceptance verifies the message.
+
 ## Reproduce the native smoke
 
 After desktop dependencies are installed:
@@ -112,8 +119,14 @@ actual device pixel ratio; it is not a clean Windows OS or complete D04 matrix.
 Portable Python/Node fixtures additionally cover missing/incompatible/late
 bridge, action timeout/cancellation, folder draft epochs, native export/cancel,
 origin/frame/message refusal and Chrome fallback selection. Actual dialogs,
-clipboard permissions, all DPI values, keyboard/focus/media and real-account
-authorization combinations remain listed in ROADMAP D04.
+clipboard permission refusal, OS DPI values, physical keyboard/focus and
+real-account authorization remain in the D04 manual gate.
+
+For the expanded real GUI/Chrome/media/lifecycle matrix, run the same tool with
+`--matrix`. Native clipboard, codecs, seek, Range and scripted focus are now
+covered; physical keyboard, actual OS DPI/dialogs and real-account callbacks
+remain separate. [D04 acceptance](DESKTOP_GUI_ACCEPTANCE.md) lists precise
+evidence boundaries, artifacts and the remaining manual observations.
 
 Technical references: [pywebview API](https://pywebview.flowrl.com/api/),
 [Windows engine selection](https://pywebview.flowrl.com/guide/web_engine),
