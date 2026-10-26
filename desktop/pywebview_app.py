@@ -257,8 +257,9 @@ def run():
         if not session.primary:
             return 0
         backend.DATA.mkdir(parents=True, exist_ok=True)
-        profile = backend.DATA / "webview2"
-        profile.mkdir(exist_ok=True)
+        from ssdl.runtime_paths import paths
+        profile = paths().profile if backend.DATA == paths().home / "data" else backend.DATA / "webview2"
+        profile.mkdir(parents=True, exist_ok=True)
         webview.settings.update(ALLOW_DOWNLOADS=False, ALLOW_FILE_URLS=False, IGNORE_SSL_ERRORS=False,
                                 OPEN_EXTERNAL_LINKS_IN_BROWSER=True, OPEN_DEVTOOLS_IN_DEBUG=False)
         policy = NavigationPolicy()
@@ -319,6 +320,9 @@ def main():
         logging.basicConfig(filename=backend.DATA / "desktop.log", level=logging.ERROR)
         logging.exception("Desktop startup failed")
         message = "桌面版無法啟動。請執行 desktop.bat 安裝選配套件，並確認已安裝 Microsoft Edge WebView2 Runtime。\nDesktop startup failed. Run desktop.bat and check WebView2 Runtime. See data/desktop.log."
+        from ssdl.runtime_paths import frozen
+        if frozen():
+            message = '桌面版無法啟動。請修復安裝，並確認已安裝 Microsoft Edge WebView2 Runtime。\nRepair the installation and WebView2 Runtime. See ' + str(backend.DATA / 'desktop.log')
         if os.name == "nt":
             import ctypes
             ctypes.windll.user32.MessageBoxW(None, message, APP_NAME, 0x10)

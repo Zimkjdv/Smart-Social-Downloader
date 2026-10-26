@@ -19,6 +19,39 @@ const state = (jobs = []) => ({
 const job = (status = 'completed', id = 'one') => ({id, status, url:'https://example.org/media', platform:'Web', created_at:1, title:'Fixture', files:['web/media.png']});
 const json = (body, status = 200) => ({ok:status < 400, status, headers:{get:() => 'application/json'}, json:async () => body});
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+function preferences(dependencies) {
+  const context = vm.createContext({window:{}, AbortController});
+  vm.runInContext(source('static/preferences.js'), context);
+  return context.window.SSDLPreferences.create(dependencies);
+}
+test('shared preferences hydrate a new host and seed legacy choices only once', async () => {
+  let applied, writes = [];
+  const value = {schema:1, language:'en', page_size:50};
+  const host = preferences({api:async () => ({preferences:value}), read:() => value,
+    apply:v => {applied=v; host.changed();}, onError:error => {throw error;}});
+  await host.start(); assert.equal(applied, value);
+  const legacy = preferences({api:async (_, options) => {
+    if (options.method) writes.push(JSON.parse(options.body));
+    return {preferences:null};
+  }, read:() => value, apply:() => assert.fail('no saved preferences'), onError:error => {throw error;}});
+  await legacy.start(); assert.deepEqual(writes, [value]);
+  host.dispose(); legacy.dispose();
+});
+test('late preference hydration cannot overwrite input and writes keep order without retries', async () => {
+  let resolveRead, current = {schema:1, language:'en', page_size:10}, calls = [], errors = [];
+  const host = preferences({api:(_, options) => {
+    if (!options.method) return new Promise(resolve => {resolveRead=resolve;});
+    calls.push(JSON.parse(options.body));
+    return calls.length === 1 ? Promise.reject(new Error('lost response')) : Promise.resolve({});
+  }, read:() => ({...current}), apply:() => assert.fail('stale hydration'), onError:error => errors.push(error)});
+  const pending=host.start();
+  const first=host.changed(); current.page_size=50; const second=host.changed();
+  resolveRead({preferences:{schema:1, language:'zh-Hant', page_size:20}});
+  await pending; await first; await second;
+  assert.deepEqual(calls.map(v => v.page_size), [10,50]); assert.equal(errors.length,1);
+  host.dispose(); await host.changed(); assert.equal(calls.length,2);
+});
 function apiContext(fetch) {
   const context = vm.createContext({window:{}, fetch, AbortController, setTimeout, clearTimeout});
   vm.runInContext(source('static/api.js'), context);

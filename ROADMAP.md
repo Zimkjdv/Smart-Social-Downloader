@@ -1,6 +1,6 @@
 # Roadmap
 
-更新：2026-10-26。此檔是**未完成工作與最新審查發現的唯一總清單**；完成紀錄移至 [CHANGELOG](CHANGELOG.md)。目前基準為 Windows／Python 3.12，沒有 Python 3.10 驗收工作。下列核取方塊均尚未完成，不代表已修正或已發布。N01～N08 已完成並移到 [CHANGELOG](CHANGELOG.md#unreleased)，回歸結果見 [TESTING](docs/TESTING.md)。N07 的索引評估已記錄，實際索引／游標儲存列為後續選配，尚未實作。
+更新：2026-10-26。此檔是**未完成工作與最新審查發現的唯一總清單**；完成紀錄移至 [CHANGELOG](CHANGELOG.md)。目前基準為 Windows／Python 3.12，沒有 Python 3.10 驗收工作。未勾選項目尚未完成；已勾選階段仍以所列驗收範圍為準，不代表已發布。N01～N08 已完成並移到 [CHANGELOG](CHANGELOG.md#unreleased)，回歸結果見 [TESTING](docs/TESTING.md)。N07 的索引評估已記錄，實際索引／游標儲存列為後續選配，尚未實作。
 
 ## 本輪整體審查
 
@@ -18,7 +18,7 @@ N01～N08 已移至 [CHANGELOG](CHANGELOG.md#unreleased)。本輪列出的修正
 
 ## Windows 桌面版：先 pywebview，保留 Electron 遷移路線
 
-2026-10-26 規劃，D01～D03 已完成並記錄於 CHANGELOG；D04 自動化與目前 Windows 主機的人工基線驗收已完成，額外環境限制列於驗收指南，D05～D06 保留後續。決策依據為使用者指定的「先做 pywebview，業務功能走標準 API，桌面專屬功能集中封裝」，並參考 [Python WebUI 轉 Windows GUI 對話](chatgpt-conversation://6ade3c59-7034-83e8-843b-79c106709fe9)。目標是瀏覽器版與桌面版共用同一份 Web UI／Python 後端，日後替換外殼時保留業務程式與資料。
+2026-10-26 規劃，D01～D03 已完成並記錄於 CHANGELOG；D04 自動化與目前 Windows 主機的人工基線驗收已完成，額外環境限制列於驗收指南。D05 的資料夾型發行包、安裝程式與目前主機驗收已實作，乾淨 Windows 驗收仍待環境；D06 保留後續。決策依據為使用者指定的「先做 pywebview，業務功能走標準 API，桌面專屬功能集中封裝」，並參考 [Python WebUI 轉 Windows GUI 對話](chatgpt-conversation://6ade3c59-7034-83e8-843b-79c106709fe9)。目標是瀏覽器版與桌面版共用同一份 Web UI／Python 後端，日後替換外殼時保留業務程式與資料。
 
 ### 現況判斷與必要前置
 
@@ -78,13 +78,16 @@ N01～N08 已移至 [CHANGELOG](CHANGELOG.md#unreleased)。本輪列出的修正
 - [x] 在暫存資料與專用 profile 自動化驗收真實 WebView2：啟動、既有／重複／同時啟動、埠衝突、後端退出、關窗續抓、明確停止與重啟恢復；缺少套件／Runtime 有明確失敗碼，不能跳過當作通過。實際未安裝 Runtime 的乾淨機器與人手操作仍屬人工觀察；實機 GUI 與 Chrome fixture 證據分列。
 - [x] 對照瀏覽器版與桌面版的工作／設定／錯誤／語系／媒體頁：鍵盤與焦點、捲動、100／125／150／200% DPI、中文及空白路徑、資料夾選擇取消、開檔／顯示位置、圖片及影片 Range／播放、Blob 匯出、剪貼簿、外部頁與一般 Chrome 授權回接。以相同 viewport 截圖比較；訂明可接受的原生視窗／字型差異，不宣稱不同引擎逐像素相同。
 
-2026-10-26 已新增 `tools/check_desktop_gui.py --matrix` 與 [D04 驗收指南](docs/DESKTOP_GUI_ACCEPTANCE.md)。WebView2／Chrome 共用 UI 流程與 1280×800 CSS viewport 截圖、實際圖片／影片／Range、原生剪貼簿還原及瀏覽器 Blob 已通過；原生對話框回傳與檔案／外部分派明確標示為注入／攔截。四種 renderer scale 是 CDP 模擬，與使用者另外完成的實際 Windows 100／125／150／200% 縮放分列。人工已確認鍵盤／原生對話框與提示、中文空白路徑、開檔／位置／外部頁、覆寫與唯讀拒絕、桌面發起的 X／Pixiv 一般 Chrome 回接及後端重啟登入保留；第 2 輪關窗續留後端後，已清除隔離登入、正常停止 8877 並恢復連接器 8765。每個比例重新啟動、多螢幕 DPI、真實剪貼簿權限拒絕與未安裝 Runtime 的乾淨機器未測，詳見指南；本輪不開始 D05。
+2026-10-26 已新增 `tools/check_desktop_gui.py --matrix` 與 [D04 驗收指南](docs/DESKTOP_GUI_ACCEPTANCE.md)。WebView2／Chrome 共用 UI 流程與 1280×800 CSS viewport 截圖、實際圖片／影片／Range、原生剪貼簿還原及瀏覽器 Blob 已通過；原生對話框回傳與檔案／外部分派明確標示為注入／攔截。四種 renderer scale 是 CDP 模擬，與使用者另外完成的實際 Windows 100／125／150／200% 縮放分列。人工已確認鍵盤／原生對話框與提示、中文空白路徑、開檔／位置／外部頁、覆寫與唯讀拒絕、桌面發起的 X／Pixiv 一般 Chrome 回接及後端重啟登入保留；第 2 輪關窗續留後端後，已清除隔離登入、正常停止 8877 並恢復連接器 8765。每個比例重新啟動、多螢幕 DPI、真實剪貼簿權限拒絕與未安裝 Runtime 的乾淨機器未測，詳見指南；D04 完成範圍如驗收指南。
 
-### D05：可散布的 Windows 安裝版（在來源版 GUI 通過後）
+### D05：Windows 發行包與安裝版（實作／目前主機通過；乾淨機器待驗收）
 
-- [ ] 在打包前區分唯讀程式資源、使用者資料／登入／SQLite、cache／WebView profile 與使用者選擇的媒體目錄。開發版預設保持既有路徑；安裝版使用可寫使用者目錄並提供有備份與回退的明確遷移，不把資料寫進 Program Files 或 onefile 解壓暫存目錄，不因切換外殼就另建一份歷史／登入。服務／視窗互斥與擁有權識別須對齊同一資料 scope，不能因版本安裝位置不同而允許兩個 backend 共寫。需跨外殼保存的語言／清單偏好採有版本的中立資料格式或共用 API，不以複製 WebView2 profile 到 Electron 作為遷移機制。
-- [ ] 處理 `desktop_service` 與 `job_runtime` 目前依賴 `sys.executable -m ...` 的 frozen 相容性：定義 GUI／backend／下載 worker 的明確程序角色與啟動方式，避免 EXE 子程序遞迴開 GUI；驗證 FFmpeg／Node／下載引擎、靜態資源、Chrome 連接器、DLL 與 WebView2 Runtime 的定位、日誌與正常關閉。先做可檢查的資料夾型發行包，再評估單一 EXE。
-- [ ] 補上選配依賴與授權清單、來源封裝 allowlist／排除規則、Windows 打包 CI，以及 README／架構／安裝／回復文件。在沒有預裝 Python／Node 的乾淨 Windows 10／11 驗收安裝、更新保留資料、回退與解除安裝行為；自動更新、簽章、托盤與開機啟動按需求另估，不併入第一個 GUI 原型。
+- [x] 在打包前區分唯讀程式資源、使用者資料／登入／SQLite、cache／WebView profile 與使用者選擇的媒體目錄。開發版預設保持既有路徑；安裝版使用可寫使用者目錄並提供有備份與回退的明確遷移，不把資料寫進 Program Files 或 onefile 解壓暫存目錄，不因切換外殼就另建一份歷史／登入。服務／視窗互斥與擁有權識別須對齊同一資料 scope，不能因版本安裝位置不同而允許兩個 backend 共寫。需跨外殼保存的語言／清單偏好採有版本的中立資料格式或共用 API，不以複製 WebView2 profile 到 Electron 作為遷移機制。
+- [x] 處理 `desktop_service` 與 `job_runtime` 目前依賴 `sys.executable -m ...` 的 frozen 相容性：定義 GUI／backend／下載 worker 的明確程序角色與啟動方式，避免 EXE 子程序遞迴開 GUI；驗證 FFmpeg／Node／下載引擎、靜態資源、Chrome 連接器、DLL 與 WebView2 Runtime 的定位、日誌與正常關閉。先做可檢查的資料夾型發行包，再評估單一 EXE。
+- [x] 補上選配依賴與實際元件授權／對應原始碼、來源封裝 allowlist／排除規則、Windows 打包 CI，以及 README／架構／安裝／回復文件。使用 PyInstaller onedir＋每位使用者 Inno Setup；Node／FFmpeg 內附，WebView2 缺少時使用已校驗的 Microsoft bootstrapper。
+- [ ] 在沒有預裝 Python／Node 的乾淨 Windows 10／11 驗收安裝、缺少 Runtime 的線上安裝／離線失敗處置、真人雙擊／捷徑／原生提示及安裝版 Chrome 授權，並在該環境核對更新保留資料、回退與解除安裝。目前無 Windows Sandbox，使用者確認沒有其他乾淨測試機；不把 PATH 隔離或目前主機當作乾淨 OS 通過。自動更新、簽章、托盤與開機啟動不在本階段。
+
+2026-10-26 已在 Windows 10 build 19045 產生真正的 GUI／runtime EXE、資料夾 ZIP 與安裝程式；新程序以限定 PATH 驗證內附工具、實際 WebView2／bridge／HTTP 偏好、獨立 worker／Pixiv 管線、跨安裝位置共用資料 scope、DPAPI 合成登入／歷史恢復、正常停止，以及真實安裝／更新／回退／拒絕使用中程式／解除安裝保留資料。匯入先驗證及備份，SQLite 連線正常關閉後原子替換；中斷與明確回復均保留新舊資料。詳細範圍、指令及限制見 [Windows 發行指南](docs/WINDOWS_DISTRIBUTION.md)。本輪不實作 D06，也不建立公開 Release。
 
 ### D06：Electron 遷移保留與成本控制
 

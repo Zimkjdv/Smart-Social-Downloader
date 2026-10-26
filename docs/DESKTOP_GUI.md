@@ -5,7 +5,8 @@ HTTP API as the browser version. It adds a native window frame, folder chooser,
 diagnostics Save As and explicit background-service controls. Browser and Docker
 usage remain available. This is a source version requiring Python, not a packaged
 installer/EXE. D04 automated acceptance and the current Windows host's manual
-baseline are complete. D05 packaging remains pending. See [D04 acceptance](DESKTOP_GUI_ACCEPTANCE.md).
+baseline are complete. D05 directory/installer builds and current-host executable checks are implemented;
+clean Windows acceptance remains pending. See [distribution/migration](WINDOWS_DISTRIBUTION.md). See [D04 acceptance](DESKTOP_GUI_ACCEPTANCE.md).
 
 ## Start and stop
 

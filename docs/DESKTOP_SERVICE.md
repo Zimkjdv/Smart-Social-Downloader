@@ -41,7 +41,10 @@ and batch pauses, for callers that manage their own UI.
 ## Ownership and lifecycle
 
 `ssdl/desktop_service.py` owns a Windows named mutex and ready/stop/done events,
-scoped by the resolved project path in the current Windows session. It does not
+scoped by the resolved writable data home in the current Windows session. Source
+launches default to the project path; D05 installations default to
+`%LOCALAPPDATA%\Smart Social Downloader`. An absolute `SSDL_HOME` overrides either.
+See [Windows distribution](WINDOWS_DISTRIBUTION.md). It does not
 kill processes by PID, executable name or listening port. The PID in the local
 record is informative, not a termination target. Separate project copies have
 separate controls, although they still need different HTTP ports.

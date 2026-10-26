@@ -438,3 +438,18 @@ document.addEventListener('ssdl-language-changed', () => {
 renderJobs();
 renderInputMode();
 refresh();
+
+// Local storage seeds the first HTTP preference file; later shells use that file.
+const uiPreferences = window.SSDLPreferences?.create({ api,
+  read: () => ({ schema: 1, language: I18n.language, page_size: state.pageSize }),
+  apply: value => {
+    I18n.change(value.language, false);
+    state.pageSize = value.page_size; state.page = 1;
+    requestJobView();
+  },
+  onError: error => toast(error.message, true),
+});
+document.addEventListener('ssdl-language-changed', () => uiPreferences?.changed());
+$('#jobs-page-size').addEventListener('change', () => uiPreferences?.changed());
+window.addEventListener('pagehide', () => uiPreferences?.dispose(), { once: true });
+uiPreferences?.start();
