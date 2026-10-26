@@ -88,3 +88,33 @@ Keep the documented [review and recovery gate](MAINTENANCE.md#review-regression-
 First proposal acceptance does not authorize automatic approval/merge, establish
 ongoing platform compatibility, or replace future release-note/license/security
 review. New source revisions still need their own CI confirmation.
+
+
+## Actions proposal #5 and deferred Python candidates — 2026-10-27
+
+The official setup-python v7.1.0 tag resolves to
+`6d4fd22b20465ccc0f7354476588e8df7c9ca0e0`, matching #5. Its manifest still uses
+Node 24; the current hosted runner supports that runtime. The mirror and
+mirror-token options are not configured, permissions remain contents:read and
+checkout still disables persisted credentials. This is an Action source/input
+review, not a full vulnerability audit of its bundled dependencies.
+
+The original proposal changes three calls in checks.yml. D05 adds two calls in
+windows-package.yml; update all five to the same reviewed SHA/version comment.
+The two workflows retain 15 full-SHA references, and all seven policy tests pass.
+Before merging, require the refreshed head's source/installation/Docker checks
+and Windows media/build/frozen/installer acceptance. Actual merge SHA and hosted
+CI evidence are recorded in [PR integration](PR_INTEGRATION.md).
+
+Python proposals #3 and #2 stay Draft. An isolated gallery-dl 1.32.17 / Playwright
+1.64.0 candidate passes source/frozen checks but has unresolved native GUI matrix
+failures; the old dependency baseline also fails a different native startup
+case. Do not claim an upgrade cause, fix or stable native acceptance. Their full
+observations and resume conditions are in the integration record. Main retains
+gallery-dl 1.32.16, Playwright 1.63.0 and pyee 13.0.1. The 1.64.0 candidate permits
+pyee 14, but that candidate is not integrated; resolver success is not acceptance.
+No production packages, login state or TLS behavior are changed by this review.
+
+Sources: [official release](https://github.com/actions/setup-python/releases/tag/v7.1.0),
+[exact manifest](https://github.com/actions/setup-python/blob/6d4fd22b20465ccc0f7354476588e8df7c9ca0e0/action.yml),
+[Playwright metadata](https://pypi.org/pypi/playwright/1.64.0/json).

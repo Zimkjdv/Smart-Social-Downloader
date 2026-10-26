@@ -39,8 +39,8 @@ main
 | 3 | [#7](https://github.com/Zimkjdv/Smart-Social-Downloader/pull/7) D02 | `e71a13b` | 已合併 | merge [`fe682a3`](https://github.com/Zimkjdv/Smart-Social-Downloader/commit/fe682a3ee2afcd2d6fb260e3ff0d1679921183e9)；[CI](https://github.com/Zimkjdv/Smart-Social-Downloader/actions/runs/40370767494) |
 | 4 | [#8](https://github.com/Zimkjdv/Smart-Social-Downloader/pull/8) D03 | `8266257` | 已合併 | merge [`b947523`](https://github.com/Zimkjdv/Smart-Social-Downloader/commit/b9475238a2ad1528d8c7818f20778249b2580ad6)；[CI](https://github.com/Zimkjdv/Smart-Social-Downloader/actions/runs/40372279727) |
 | 5 | [#9](https://github.com/Zimkjdv/Smart-Social-Downloader/pull/9) D04 | `98adfbd` | 已合併 | merge [`ed45cf7`](https://github.com/Zimkjdv/Smart-Social-Downloader/commit/ed45cf73e446e54c1f4f9227967590a970209048)；[CI](https://github.com/Zimkjdv/Smart-Social-Downloader/actions/runs/40373685475) |
-| 6 | [#10](https://github.com/Zimkjdv/Smart-Social-Downloader/pull/10) D05 | `0ff62a8` | 待同步最新 main 及重新驗收 | 本 PR 承接目前進度；合併後另補結果 |
-| 7 | [#5](https://github.com/Zimkjdv/Smart-Social-Downloader/pull/5) setup-python 7.1 | `dbd4d2a` | 功能整合後審查；須同步所有工作流程 | — |
+| 6 | [#10](https://github.com/Zimkjdv/Smart-Social-Downloader/pull/10) D05 | `0ff62a8` | 已合併 | merge [`6503ae2`](https://github.com/Zimkjdv/Smart-Social-Downloader/commit/6503ae24854cd9d92148f89c5b6a4dfcae16d6fa)；[CI](https://github.com/Zimkjdv/Smart-Social-Downloader/actions/runs/40375316316) |
+| 7 | [#5](https://github.com/Zimkjdv/Smart-Social-Downloader/pull/5) setup-python 7.1 | `dbd4d2a` | 候選已更新到最新 main；等待完整 CI | 五處呼叫與七項政策測試已核對 |
 | 8 | [#3](https://github.com/Zimkjdv/Smart-Social-Downloader/pull/3) gallery-dl／Playwright | `42bc648` | Draft：隔離候選來源回歸通過；原生 GUI 待釐清 | 詳見下方候選審查 |
 | 延後 | [#2](https://github.com/Zimkjdv/Smart-Social-Downloader/pull/2) pyee 14 | `7d1c727` | Draft：main 仍為 Playwright 1.63.0，#3 尚未整合 | 1.64.0 已允許 pyee 14；#3 通過後再另驗 #2 |
 

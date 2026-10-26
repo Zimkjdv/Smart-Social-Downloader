@@ -1,6 +1,6 @@
 # Roadmap
 
-更新：2026-10-26。此檔是**未完成工作與最新審查發現的唯一總清單**；完成紀錄移至 [CHANGELOG](CHANGELOG.md)。目前基準為 Windows／Python 3.12，沒有 Python 3.10 驗收工作。未勾選項目尚未完成；已勾選階段仍以所列驗收範圍為準，不代表已發布。N01～N08 已完成並移到 [CHANGELOG](CHANGELOG.md#unreleased)，回歸結果見 [TESTING](docs/TESTING.md)。N07 的索引評估已記錄，實際索引／游標儲存列為後續選配，尚未實作。
+更新：2026-10-27。此檔是**未完成工作與最新審查發現的唯一總清單**；完成紀錄移至 [CHANGELOG](CHANGELOG.md)。目前基準為 Windows／Python 3.12，沒有 Python 3.10 驗收工作。未勾選項目尚未完成；已勾選階段仍以所列驗收範圍為準，不代表已發布。N01～N08 已完成並移到 [CHANGELOG](CHANGELOG.md#unreleased)，回歸結果見 [TESTING](docs/TESTING.md)。N07 的索引評估已記錄，實際索引／游標儲存列為後續選配，尚未實作。
 
 ## 本輪整體審查
 
@@ -110,7 +110,7 @@ Windows 背景啟停的 7 項原生隔離驗收已於 2026-10-24 通過並移至
 
 - [ ] **線上平台抽樣**：實際 Best／指定畫質、登入失效、限流與恢復、帳號媒體掃描、缺檔補抓；先取得適合的測試素材。104＋10 合成測試不代表所有平台即時相容。
 - [ ] **GitHub 設定與發布**：啟用並確認私人漏洞回報入口，核對 tag、版本、來源 ZIP、release notes 後發布 preview。repo 已公開、Windows／Python 3.12 CI 已通過，目前沒有 tag／Release。
-- [ ] **後續依賴更新提案驗收**：首輪 Python 提案審查與 pycryptodomex 3.24.1 修補驗收已完成，移至 [CHANGELOG](CHANGELOG.md#unreleased)；[審查紀錄](docs/DEPENDENCY_ACCEPTANCE.md)記錄 PR #1／#2 的版本、相容性及恢復驗證。目前尚未收到 Actions 更新提案；收到後仍須核對官方版本／完整 SHA 與兩個 Windows CI 工作。pyee 14 與目前 Playwright 1.63.0 的 `pyee>=13,<14` 要求不相容，延後至相容的 Playwright／瀏覽器更新一起驗收；不能因 Python 3.12 支援就單獨強裝。後續提案不自動合併，也未宣稱完成 CVE 掃描。
+- [ ] **後續依賴更新提案驗收**：首輪 pycryptodomex 3.24.1 修補驗收已完成。Actions #5 已收到並核對官方 SHA，須統一更新來源與 D05 打包流程的五處呼叫；其整合／CI 證據見 [PR 整合紀錄](docs/PR_INTEGRATION.md)與[依賴審查](docs/DEPENDENCY_ACCEPTANCE.md)。Python #3／#2 保留 Draft：新引擎／Playwright 候選仍有未釐清的原生 GUI 驗收失敗，main 保留 gallery-dl 1.32.16／Playwright 1.63.0／pyee 13.0.1。候選 Playwright 1.64.0 已允許 pyee 14，但尚未整合，不能跳過前置驗收直接強裝。後續提案仍逐次驗收、不自動合併，未宣稱完成 CVE 掃描。
 
 依賴故障追蹤工具、CI／來源包檢查及本輪 HTTP 錯誤回應資源修正已完成，移至 [CHANGELOG](CHANGELOG.md#unreleased)。後續每次引擎／Chrome／Playwright 升級仍須重跑；已知 SSL 棄用、10053 的驗證範圍與故障處置維護在[追蹤文件](docs/DEPENDENCY_FAULTS.md)，不代表所有上游問題已消失。未來二進位散布仍須逐版核對第三方授權。
 
