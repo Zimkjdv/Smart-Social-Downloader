@@ -44,6 +44,7 @@ assets/docs/tools and recursive **code-only** boundaries:
 | Boundary | Allowed files |
 | --- | --- |
 | `ssdl/` | Python modules, including subpackages |
+| `desktop/` | Optional shell Python modules, including subpackages; no binaries/profile data |
 | `tests/` | `__init__.py`, `test_*.py`, `*.test.cjs` |
 | `tests/helpers/` | Python helper modules, including subpackages |
 | Other source folders | Only the explicit `SOURCE_GLOBS` entries |

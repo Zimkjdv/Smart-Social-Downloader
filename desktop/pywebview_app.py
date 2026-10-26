@@ -1,0 +1,317 @@
+"""Optional Windows/WebView2 shell. Business functions stay on the local API."""
+from __future__ import annotations
+
+import html
+import logging
+import os
+from pathlib import Path
+import re
+import sys
+import subprocess
+import tempfile
+import threading
+from urllib.parse import urljoin, urlsplit
+import webbrowser
+
+from ssdl import desktop_service as backend
+from ssdl.version import APP_NAME
+from ssdl.x_auth import chrome_executable
+
+
+class NavigationPolicy:
+    def __init__(self):
+        self.service = None
+
+    def trusted(self, value):
+        if self.service is None or not isinstance(value, str):
+            return False
+        try:
+            parsed = urlsplit(value)
+            return (parsed.scheme + "://" + parsed.netloc == self.service["origin"]
+                    and parsed.path in {"/", "/index.html"} and parsed.query == "shell=pywebview")
+        except ValueError:
+            return False
+
+    def navigation(self, value):
+        return (value == "about:blank" and self.service is None) or self.trusted(value)
+
+    def external(self, value):
+        if not isinstance(value, str) or not value or len(value) > 8192 or any(ord(c) < 32 for c in value):
+            raise ValueError("Invalid external URL")
+        url = urljoin(self.service["origin"] + "/", value)
+        parsed = urlsplit(url)
+        if parsed.scheme not in {"http", "https"} or not parsed.hostname or parsed.username or parsed.password:
+            raise ValueError("Invalid external URL")
+        return url
+
+
+class NativeActions:
+    """Only these six public methods are exposed. All objects/state stay private."""
+    def __init__(self, window, webview, policy, *, opener=None):
+        self._window, self._webview, self._policy = window, webview, policy
+        self._opener = opener if opener is not None else self._launch_external
+        self._closed = False
+        self._dialog = threading.Lock()
+
+    def _trusted(self):
+        try:
+            return not self._closed and self._policy.service is not None and self._policy.trusted(self._window.get_current_url())
+        except Exception:
+            return False
+
+    def describe(self):
+        if not self._trusted():
+            return {"status": "error"}
+        return {"version": 1, "kind": "pywebview", "ownership": self._policy.service["ownership"],
+                "capabilities": {"openExternal": True, "saveText": True, "pickDirectory": True,
+                                 "copyText": True, "stopBackend": self._policy.service["ownership"] == "started"}}
+
+    def _launch_external(self, url):
+        parsed = urlsplit(url)
+        pairing = (parsed.scheme + "://" + parsed.netloc == self._policy.service["origin"]
+                   and parsed.path in {"/chrome-connect", "/pixiv-connect"})
+        pixiv = parsed.scheme == "https" and parsed.netloc == "app-api.pixiv.net" and parsed.path == "/web/v1/login"
+        if pairing or pixiv:
+            chrome = chrome_executable()
+            if chrome is None:
+                return False
+            subprocess.Popen([str(chrome), url], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                             creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+            return True
+        return webbrowser.open(url)
+
+    def open_external(self, value):
+        if not self._trusted():
+            return {"status": "cancelled" if self._closed else "error"}
+        try:
+            opened = self._opener(self._policy.external(value))
+            return {"status": "completed" if opened else "blocked"}
+        except (OSError, ValueError, TypeError):
+            return {"status": "error"}
+
+    def pick_directory(self, initial=""):
+        if not self._trusted():
+            return {"status": "error"}
+        if not isinstance(initial, str) or len(initial) > 2000 or "\0" in initial:
+            return {"status": "error"}
+        if not self._dialog.acquire(blocking=False):
+            return {"status": "blocked"}
+        try:
+            chosen = self._window.create_file_dialog(self._webview.FileDialog.FOLDER,
+                directory=initial if initial and Path(initial).is_dir() else "", allow_multiple=False)
+            if not chosen or self._closed:
+                return {"status": "cancelled"}
+            path = chosen[0] if isinstance(chosen, (list, tuple)) else chosen
+            if not isinstance(path, str) or not Path(path).is_absolute():
+                return {"status": "error"}
+            return {"status": "completed", "path": path}
+        except Exception:
+            return {"status": "error"}
+        finally:
+            self._dialog.release()
+
+    def save_text(self, value):
+        if not self._trusted() or not isinstance(value, dict):
+            return {"status": "error"}
+        name, text, mime = value.get("filename"), value.get("text"), value.get("mimeType", "text/plain")
+        if (not isinstance(name, str) or not re.fullmatch(r'[^/\\:\x00-\x1f<>"|?*]{1,128}', name)
+                or name in {".", ".."} or not isinstance(text, str) or len(text) > 16 * 1024 * 1024
+                or mime not in {"application/json", "text/plain"}):
+            return {"status": "error"}
+        if not self._dialog.acquire(blocking=False):
+            return {"status": "blocked"}
+        temporary = None
+        try:
+            chosen = self._window.create_file_dialog(self._webview.FileDialog.SAVE, save_filename=name)
+            if not chosen or self._closed:
+                return {"status": "cancelled"}
+            path = chosen[0] if isinstance(chosen, (list, tuple)) else chosen
+            if not isinstance(path, str) or not Path(path).is_absolute():
+                return {"status": "error"}
+            target = Path(path)
+            with tempfile.NamedTemporaryFile(dir=target.parent, prefix=".ssdl-export-", suffix=".tmp", delete=False) as output:
+                temporary = Path(output.name)
+                output.write(text.encode("utf-8")); output.flush(); os.fsync(output.fileno())
+            temporary.replace(target)
+            return {"status": "completed"}
+        except Exception:
+            return {"status": "error"}
+        finally:
+            if temporary is not None:
+                try:
+                    temporary.unlink(missing_ok=True)
+                except OSError:
+                    logging.error("Could not remove an owned export temporary file")
+            self._dialog.release()
+
+    def copy_text(self, text):
+        if not self._trusted() or not isinstance(text, str) or len(text) > 16 * 1024 * 1024:
+            return {"status": "error"}
+        try:
+            from System import Action
+            from System.Windows.Forms import Clipboard
+            self._window.native.Invoke(Action(lambda: Clipboard.SetText(text) if text else Clipboard.Clear()))
+            return {"status": "completed"}
+        except Exception:
+            return {"status": "error"}
+
+    def stop_backend(self):
+        if not self._trusted() or self._policy.service["ownership"] != "started":
+            return {"status": "unsupported"}
+        if not self._dialog.acquire(blocking=False):
+            return {"status": "blocked"}
+        try:
+            if not self._window.create_confirmation_dialog("停止背景服務 / Stop background service",
+                    "停止下載並保存佇列？\nStop downloads and preserve the queue?"):
+                return {"status": "cancelled"}
+            backend.stop_owned(self._policy.service)
+            return {"status": "completed"}
+        except Exception:
+            return {"status": "error"}
+        finally:
+            self._dialog.release()
+
+
+class WebViewGuard:
+    """Pinned WebView2 integration: enforce policy before bridge dispatch/navigation."""
+    def __init__(self, window, policy, api):
+        self.window, self.policy, self.api = window, policy, api
+        self.ready = threading.Event()
+        self.failed = False
+
+    def install(self):
+        native = self.window.native.webview
+        implementation = self.window.native.browser
+        blocked = set()
+        native.NavigationStarting -= implementation.on_navigation_start
+        native.NavigationCompleted -= implementation.on_navigation_completed
+        def navigating(sender, args):
+            if not self.policy.navigation(str(args.Uri)):
+                args.Cancel = True
+                blocked.add(int(args.NavigationId))
+            else:
+                implementation.on_navigation_start(sender, args)
+        def completed(sender, args):
+            key = int(args.NavigationId)
+            if key in blocked:
+                blocked.discard(key)
+                # WinForms control.Source caches the attempted URI even when
+                # WebView2 keeps the previous document after cancellation.
+                implementation.url = str(native.CoreWebView2.Source)
+                if self.policy.trusted(implementation.url):
+                    self.window.events.before_load.set()
+                    self.window.events._pywebviewready.set()
+                    self.window.events.loaded.set()
+                return
+            implementation.on_navigation_completed(sender, args)
+        def initialized(sender, args):
+            try:
+                if not args.IsSuccess:
+                    raise RuntimeError("WebView2 initialization failed")
+                core = native.CoreWebView2
+                implementation = self.window.native.browser
+                core.NewWindowRequested -= implementation.on_new_window_request
+                def popup(sender, args):
+                    args.Handled = True
+                    if args.IsUserInitiated and self.api._trusted():
+                        self.api.open_external(str(args.Uri))
+                def frame(sender, args):
+                    args.Cancel = True
+                def message(sender, args):
+                    if self.policy.trusted(str(args.Source)):
+                        implementation.on_script_notify(sender, args)
+                native.WebMessageReceived -= implementation.on_script_notify
+                native.WebMessageReceived += message
+                core.NewWindowRequested += popup
+                core.FrameNavigationStarting += frame
+                self._handlers = (popup, frame, message, navigating, completed, initialized)
+            except Exception:
+                self.failed = True
+                logging.exception("WebView2 policy installation failed")
+            finally:
+                self.ready.set()
+        native.NavigationStarting += navigating
+        native.NavigationCompleted += completed
+        native.CoreWebView2InitializationCompleted += initialized
+        self._handlers = (navigating, completed, initialized)
+
+
+LOADING = """<!doctype html><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'">
+<body style="background:#090d18;color:#e5e9f3;font:16px system-ui;padding:40px"><h2>Smart Social Downloader</h2>
+<p>正在啟動… / Starting…</p><p>關閉視窗後，背景服務會繼續。 / Closing this window keeps the background service running.</p></body>"""
+
+
+def run():
+    if os.name != "nt":
+        raise RuntimeError("The desktop shell requires Windows and Microsoft Edge WebView2 Runtime.")
+    import webview
+    with backend.WindowSession() as session:
+        if not session.primary:
+            return 0
+        backend.DATA.mkdir(parents=True, exist_ok=True)
+        profile = backend.DATA / "webview2"
+        profile.mkdir(exist_ok=True)
+        webview.settings.update(ALLOW_DOWNLOADS=False, ALLOW_FILE_URLS=False, IGNORE_SSL_ERRORS=False,
+                                OPEN_EXTERNAL_LINKS_IN_BROWSER=True, OPEN_DEVTOOLS_IN_DEBUG=False)
+        policy = NavigationPolicy()
+        api = NativeActions(None, webview, policy)
+        window = webview.create_window(APP_NAME + " · Desktop", html=LOADING, width=1360, height=900,
+            min_size=(1080, 720), background_color="#090d18", confirm_close=True, js_api=api)
+        api._window = window
+        guard = WebViewGuard(window, policy, api)
+        closed = threading.Event()
+        failed = []
+        def closed_window():
+            api._closed = True
+            closed.set()
+        def renderer(renderer):
+            if renderer != "edgechromium":
+                failed.append("Microsoft Edge WebView2 Runtime is required. Install it from https://developer.microsoft.com/microsoft-edge/webview2/ and retry.")
+                closed.set()
+                return False
+        window.events.initialized += renderer
+        window.events.before_show += guard.install
+        window.events.closed += closed_window
+        def serve_window():
+            try:
+                service = backend.ensure_backend()
+                policy.service = service
+                if not guard.ready.wait(30) or guard.failed:
+                    raise RuntimeError("WebView2 could not initialize securely. Repair WebView2 Runtime and retry.")
+                if closed.is_set():
+                    return
+                window.load_url(service["origin"] + "/?shell=pywebview")
+                while not closed.wait(.4):
+                    if session.consume_focus():
+                        window.restore(); window.show()
+            except Exception as error:
+                failed.append(str(error))
+                if not closed.is_set():
+                    policy.service = None
+                    window.load_html(LOADING.replace("正在啟動… / Starting…", html.escape(str(error))))
+        webview.start(serve_window, gui="edgechromium", debug=False, http_server=False,
+            private_mode=False, storage_path=str(profile),
+            localization={"global.quitConfirmation": "關閉視窗後，背景下載仍會繼續。要關閉嗎？\nBackground downloads keep running. Close this window?"})
+        if failed and not guard.ready.is_set():
+            raise RuntimeError(failed[0])
+        return 1 if failed else 0
+
+
+def main():
+    try:
+        return run()
+    except Exception:
+        backend.DATA.mkdir(parents=True, exist_ok=True)
+        logging.basicConfig(filename=backend.DATA / "desktop.log", level=logging.ERROR)
+        logging.exception("Desktop startup failed")
+        message = "桌面版無法啟動。請執行 desktop.bat 安裝選配套件，並確認已安裝 Microsoft Edge WebView2 Runtime。\nDesktop startup failed. Run desktop.bat and check WebView2 Runtime. See data/desktop.log."
+        if os.name == "nt":
+            import ctypes
+            ctypes.windll.user32.MessageBoxW(None, message, APP_NAME, 0x10)
+        else:
+            print(message, file=sys.stderr)
+        return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

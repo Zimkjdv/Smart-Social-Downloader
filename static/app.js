@@ -1,5 +1,6 @@
 /* Dashboard composition, ordered snapshot publishing and refresh scheduling. */
-const desktop = SSDLDesktop.createBrowser({ browser: window, document });
+const desktop = new URLSearchParams(location.search).get('shell') === 'pywebview'
+  ? SSDLDesktopPywebview.create({ browser: window, document }) : SSDLDesktop.createBrowser({ browser: window, document });
 const controllerDependencies = { document, browser: window, desktop, $, state, I18n, t, uiMessage, uiText,
   api, render, toast, refresh, getSnapshot: () => lastResponse, isOffline: () => connectionOffline };
 const diagnosticsController = SSDLDiagnosticsController.create({ ...controllerDependencies, scheduleStatusRefresh, timeLabel, fileSize });
@@ -11,11 +12,33 @@ const settingsController = SSDLSettingsController.create({ ...controllerDependen
 const pixivLogin = SSDLPixivLogin.create({ api, refresh, state, $, t, uiText, desktop });
 diagnosticsController.init(); jobsController.init(); settingsController.init(); pixivLogin.init();
 let dashboardDisposed = false;
+const shellScope = SSDLControllerLifecycle.create(window);
+let stoppingBackend = false, backendStopped = false;
+function renderDesktopStatus() {
+  if (dashboardDisposed || desktop.kind !== 'pywebview') return;
+  $('#desktop-bar').hidden = false;
+  $('#desktop-stop').disabled = stoppingBackend || backendStopped || !desktop.capabilities.stopBackend;
+  uiText($('#desktop-status'), backendStopped ? 'ui.desktop_stopped' : stoppingBackend ? 'ui.desktop_stopping' :
+    !desktop.capabilities.openExternal ? 'ui.desktop_bridge_unavailable' : desktop.ownership === 'attached' ? 'ui.desktop_attached' : '');
+}
+shellScope.listen($('#desktop-stop'), 'click', async () => {
+  if (stoppingBackend || backendStopped || !desktop.capabilities.stopBackend) return;
+  stoppingBackend = true; renderDesktopStatus();
+  try {
+    const result = await desktop.stopBackend();
+    if (result.status === 'completed') { backendStopped = true; refresh(); }
+    else if (result.status !== 'cancelled') toast('ui.desktop_action_failed', true);
+  } finally { stoppingBackend = false; renderDesktopStatus(); }
+});
+shellScope.listen(document, 'ssdl-language-changed', renderDesktopStatus);
+shellScope.init();
+if (desktop.kind === 'pywebview') { renderDesktopStatus(); desktop.ready.then(renderDesktopStatus); }
 function disposeDashboard() {
   if (dashboardDisposed) return;
   dashboardDisposed = true;
   clearTimeout(refreshTimer);
   pixivLogin.dispose(); settingsController.dispose(); jobsController.dispose(); diagnosticsController.dispose();
+  shellScope.dispose();
   desktop.dispose();
 }
 window.addEventListener('pagehide', (event) => { if (!event.persisted) disposeDashboard(); });

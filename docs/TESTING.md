@@ -1013,3 +1013,34 @@ stopped at host_bind_contract_failed under Windows Docker Desktop/Compose; it di
 not reach its browser stage. That host-bind result is not reported as a full
 local Docker pass. Linux hosted Docker completed the full sequence successfully.
 D03 real WebView2 presentation remains separate from these control fixtures.
+
+## D03 native WebView2 source shell — 2026-10-26
+
+The final 255-file reviewed source ZIP passed 450 Python cases, 41 frontend
+cases and 116 dependency-fault cases. The complete fresh Windows source/venv
+installation with browser dependencies and all nine background-control phases
+also passed. The eight pinned Action references passed policy checks; pip check
+reported no broken requirements after the optional desktop pins were installed.
+
+An opt-in native WebView2 gate then opened two receipt-owned temporary GUI
+sessions with separate application data and a dedicated persistent profile. Both
+verified the six-method bridge allowlist, the real dashboard, shared HTTP writes,
+repeat launch/focus, refused navigation followed by a successful new bridge call,
+closing the window while backend stayed reachable and explicit owned shutdown.
+Language/page preferences survived the second session. The observed device pixel
+ratio was 2; the synthetic screenshot was visually inspected. No ordinary Chrome
+profile, real account, user history or production media was used. Temporary
+receipts/PNG remain in ignored data, not the source ZIP.
+
+The first navigation refusal exposed a pywebview WinForms cache detail: cancelling
+kept the actual trusted document but cached the attempted URI. The host now
+preserves the committed CoreWebView2 Source and existing readiness after that
+cancelled navigation. Native regression checks this behavior and bridge reuse.
+Portable fixtures additionally test permissions/cancel/timeout, late handshakes,
+settings draft epochs, native export/cancel, popup/frame/message origin guards
+and ordinary Chrome selection for pairing fallback.
+
+This is current-runtime source-GUI smoke, not a fresh Windows OS, all DPI values,
+actual native picker/clipboard permissions or real-account Chrome callbacks.
+Those remain D04. No D05 frozen EXE/installer work was performed. Commands and
+scope: [desktop guide](DESKTOP_GUI.md).

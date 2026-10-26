@@ -21,6 +21,13 @@
 | greenlet（選配） | 3.5.6 | MIT AND PSF-2.0；以安裝套件 metadata／licenses 為準。 |
 | pyee（選配） | 13.0.1 | MIT；以安裝套件 metadata／licenses 為準。 |
 | typing-extensions（選配） | 4.16.0 | PSF-2.0；以安裝套件 metadata／licenses 為準。 |
+| pywebview（桌面選配） | 6.2.1 | BSD-3-Clause；[上游來源／授權](https://github.com/r0x0r/pywebview/tree/6.2.1)，以安裝套件 LICENSE 為準。 |
+| pythonnet（桌面選配） | 3.2.1 | MIT；以安裝套件 metadata／licenses 為準。 |
+| clr-loader（桌面選配） | 0.3.1 | MIT；以安裝套件 licenses/LICENSE 為準。 |
+| cffi（桌面選配） | 2.1.1 | MIT-0；以安裝套件 metadata／licenses 為準。 |
+| pycparser（桌面選配） | 3.12 | BSD-3-Clause；以安裝套件 metadata／licenses 為準。 |
+| proxy-tools（桌面選配） | 0.1.0 | MIT；以安裝套件 metadata 為準。 |
+| bottle（pywebview 依賴） | 0.13.4 | MIT；以安裝套件 metadata 為準。本專案桌面版仍載入既有 HTTP 後端，不另建 Bottle 業務服務。 |
 
 本專案直接呼叫 gallery-dl 的 Python API。MIT 與 GPL 相容，但散布包含 GPL 元件的組合程式時仍須遵守 GPL 的條件；不能宣稱整個組合產品只有 MIT 條件。[GNU 授權相容性說明](https://www.gnu.org/licenses/license-list.html#Expat)、[GNU 對結合模組的說明](https://www.gnu.org/licenses/gpl-faq.html#IfInterpreterIsGPL)
 
@@ -31,6 +38,8 @@
 目前提供原始碼與安裝腳本，不把 `.venv`、引擎套件、FFmpeg 執行檔或私人資料打包到 ZIP。完整依賴版本見 `requirements.lock.txt`，元件授權也可在安裝後的套件 metadata／licenses 目錄查閱。
 
 動態捕捉的選配版本見 `requirements-browser.txt`。Google Chrome 由使用者另行安裝，適用自己的條款；不下載或散布 Chrome／Chromium 執行檔，也不把 Playwright 的 Node 驅動放進原始碼包。
+
+桌面選配版本見 `requirements-desktop.txt`，這些套件與其 DLL 不包含在本專案來源 ZIP。Microsoft Edge WebView2 Runtime 由使用者另行安裝並適用 Microsoft 條款；來源版不重新散布 Runtime。安裝與範圍見 [桌面指南](docs/DESKTOP_GUI.md)。
 
 若將來提供含第三方引擎的 EXE、可攜版或離線安裝包，需要按實際打包的版本整理完整授權文字、版權聲明及適用的對應原始碼／建置資訊。不能只附本頁連結就視為完成二進位散布要求。
 

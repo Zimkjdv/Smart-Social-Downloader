@@ -81,7 +81,7 @@ class Element {
   focus() {}
   reportValidity() { return true; }
 }
-function appHarness() {
+function appHarness({desktop:injectedDesktop} = {}) {
   const elements = new Map(), scheduled = new Map(), realTimers = new Set(), calls = [];
   const document = new Element();
   document.querySelector = key => { if (!elements.has(key)) elements.set(key, new Element(key)); return elements.get(key); };
@@ -104,6 +104,7 @@ function appHarness() {
   vm.runInContext(source('static/i18n.js'), context);
   vm.runInContext(source('static/api.js'), context);
   vm.runInContext(source('static/desktop.js'), context);
+  if (injectedDesktop) context.SSDLDesktop = {createBrowser:() => injectedDesktop};
   const request = context.SSDLApi.request;
   context.SSDLApi.request = (url, options) => request(url, {...options, timeoutMs:20});
   for (const name of ['ui_state.js', 'job_presentation.js', 'x_login.js', 'media_selection.js', 'controller_lifecycle.js', 'database_controller.js', 'diagnostics_controller.js', 'jobs_controller.js', 'settings_controller.js', 'pixiv_login.js', 'app.js']) {
@@ -199,6 +200,92 @@ test('Browser Adapter clipboard capabilities preserve the manual-copy fallback',
   assert.equal((await unavailable.copyText('fixture')).status, 'unsupported');
   h.browser.navigator.clipboard.writeText = async () => {throw new Error('permission denied');};
   assert.equal((await h.adapter.copyText('fixture')).status, 'error');
+});
+
+function pywebviewHarness(api = null, options = {}) {
+  const listeners = new Map(), document = new Element();
+  const browser = {setTimeout, clearTimeout, location:new URL('http://127.0.0.1:8765/?shell=pywebview'),
+    addEventListener:(type, fn) => listeners.set(type, fn), removeEventListener:type => listeners.delete(type)};
+  if (api) browser.pywebview = {api};
+  const context = vm.createContext({window:{}, URL});
+  vm.runInContext(source('static/desktop_pywebview.js'), context);
+  return {browser, document, connect(api) {browser.pywebview={api}; listeners.get('pywebviewready')?.();},
+    adapter:context.window.SSDLDesktopPywebview.create({browser, document, readyTimeoutMs:25, timeoutMs:25, ...options})};
+}
+const nativeDescription = () => ({version:1, kind:'pywebview', ownership:'started', capabilities:{
+  openExternal:true, saveText:true, copyText:true, pickDirectory:true, stopBackend:true}});
+
+test('Pywebview Adapter waits for bridge-ready and maps native data without business dispatch', async () => {
+  const calls = [], h = pywebviewHarness();
+  const picking = h.adapter.pickDirectory('synthetic');
+  assert.equal(h.adapter.capabilities.pickDirectory, false);
+  h.connect({describe:async () => nativeDescription(), pick_directory:async path => {calls.push(path); return {status:'completed',path:'chosen'};}});
+  assert.equal(await h.adapter.ready, true);
+  assert.deepEqual(JSON.parse(JSON.stringify(await picking)), {status:'completed', path:'chosen'});
+  assert.deepEqual(calls, ['synthetic']);
+  assert.equal(Object.isFrozen(h.adapter.capabilities), true);
+  h.adapter.dispose();
+});
+
+test('Pywebview Adapter rejects incompatible metadata and never accepts a late handshake after deadline', async () => {
+  for (const describe of [async () => ({...nativeDescription(), version:2}), async () => {throw new Error('offline');}]) {
+    const h = pywebviewHarness({describe});
+    assert.equal(await h.adapter.ready, false);
+    assert.equal((await h.adapter.copyText('fixture')).status, 'unsupported');
+    h.adapter.dispose();
+  }
+  let reply;
+  const h = pywebviewHarness({describe:() => new Promise(resolve => {reply=resolve;})});
+  assert.equal(await h.adapter.ready, false);
+  reply(nativeDescription()); await pause(0);
+  assert.equal(h.adapter.capabilities.pickDirectory, false);
+  h.adapter.dispose();
+});
+
+test('Pywebview Adapter bounds operations, preserves cancellation and discards late native results', async () => {
+  let reply;
+  const h = pywebviewHarness({describe:async () => nativeDescription(),
+    pick_directory:() => new Promise(resolve => {reply=resolve;}), save_text:async () => ({status:'cancelled'})});
+  await h.adapter.ready;
+  assert.equal((await h.adapter.saveText({filename:'report.json',text:'{}'})).status, 'cancelled');
+  assert.equal((await h.adapter.pickDirectory()).code, 'timeout');
+  const pending = h.adapter.pickDirectory(); await pause(0);
+  h.adapter.dispose();
+  assert.equal((await pending).status, 'cancelled');
+  reply({status:'completed',path:'late'}); await pause(0);
+  assert.equal((await h.adapter.pickDirectory()).status, 'cancelled');
+});
+
+test('native directory picker edits only the active settings draft and cancellation preserves it', async () => {
+  for (const status of ['completed','cancelled']) {
+    const desktop = {kind:'browser', ready:Promise.resolve(true), capabilities:{pickDirectory:true}, dispose() {},
+      pickDirectory:async () => ({status,path:'chosen folder'})};
+    const app = appHarness({desktop});
+    try {
+      await pause(10); await app.evaluate('settingsController.open()');
+      app.get('#download-dir').value = 'original draft';
+      await app.get('#download-dir-pick').fire('click');
+      assert.equal(app.get('#download-dir').value, status === 'completed' ? 'chosen folder' : 'original draft');
+      assert.equal(app.calls.some(call => call.method === 'POST'), false);
+    } finally {app.close();}
+  }
+});
+
+test('directory result cannot overwrite a closed and reopened settings draft', async () => {
+  let reply;
+  const desktop = {kind:'browser', ready:Promise.resolve(true), capabilities:{pickDirectory:true}, dispose() {},
+    pickDirectory:() => new Promise(resolve => {reply=resolve;})};
+  const app = appHarness({desktop});
+  try {
+    await pause(10); await app.evaluate('settingsController.open()');
+    const picking = app.get('#download-dir-pick').fire('click');
+    app.evaluate('settingsController.close()');
+    await app.evaluate('settingsController.open()');
+    app.get('#download-dir').value = 'new draft';
+    reply({status:'completed',path:'stale selection'}); await picking;
+    assert.equal(app.get('#download-dir').value, 'new draft');
+    assert.equal(app.calls.some(call => call.method === 'POST'), false);
+  } finally {app.close();}
 });
 
 test('X pairing reserves before HTTP and discards a response invalidated by disconnect', async () => {
