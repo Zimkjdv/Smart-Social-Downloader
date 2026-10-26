@@ -28,15 +28,33 @@
     }
     browser.addEventListener('pywebviewready', initialize);
     initialize();
+    function waitReady(signal) {
+      return new Promise(resolve => {
+        let settled = false;
+        function finish(value) {
+          if (settled) return;
+          settled = true; pending.delete(cancel);
+          signal?.removeEventListener('abort', cancel);
+          resolve(value);
+        }
+        function cancel() { finish(false); }
+        pending.add(cancel);
+        signal?.addEventListener('abort', cancel, {once:true});
+        ready.then(finish);
+      });
+    }
     async function invoke(method, capability, args = [], { signal } = {}) {
       if (disposed || signal?.aborted) return result('cancelled');
-      if (!await ready || !metadata?.capabilities[capability]) return result('unsupported');
+      const available = await waitReady(signal);
       if (disposed || signal?.aborted) return result('cancelled');
+      if (!available || !metadata?.capabilities[capability]) return result('unsupported');
       const api = browser.pywebview?.api;
       if (typeof api?.[method] !== 'function') return result('unsupported');
       return new Promise(resolve => {
-        let timer;
+        let timer, settled = false;
         function finish(value) {
+          if (settled) return;
+          settled = true;
           browser.clearTimeout(timer); pending.delete(cancel);
           signal?.removeEventListener('abort', cancel);
           resolve(value);

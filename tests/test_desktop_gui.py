@@ -1,4 +1,5 @@
 """GUI boundary contracts run without importing pywebview/.NET or showing UI."""
+import base64
 import json
 from pathlib import Path
 import tempfile
@@ -47,6 +48,19 @@ class DesktopGUIContracts(unittest.TestCase):
         self.opener.assert_not_called()
         self.assertEqual(self.api.open_external("/chrome-connect")["status"], "completed")
         self.opener.assert_called_once_with("http://127.0.0.1:43210/chrome-connect")
+
+    def test_only_host_registered_loading_html_can_navigate_without_backend_identity(self):
+        policy = NavigationPolicy()
+        content = '<!doctype html><body>Startup failed</body>'
+        uri = 'data:text/html;charset=utf-8;base64,' + base64.b64encode(content.encode()).decode()
+        policy.allow_loading_html(content)
+        self.assertTrue(policy.navigation(uri))
+        self.assertFalse(policy.trusted(uri))
+        self.assertFalse(policy.navigation(uri + 'A'))
+        self.assertFalse(policy.navigation('data:text/html,<script>untrusted()</script>'))
+        policy.service = self.policy.service
+        self.assertFalse(policy.navigation(uri))
+        self.assertFalse(policy.navigation('about:blank'))
 
     def test_external_document_or_closed_window_cannot_use_native_actions(self):
         self.window.get_current_url.return_value = "https://foreign.example/"
