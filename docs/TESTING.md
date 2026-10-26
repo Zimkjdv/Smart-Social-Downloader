@@ -994,3 +994,22 @@ actual media navigation committed. A real Chrome test with delayed 404 headers
 reproduced `browser_error_navigation_escaped` before the fix and passed after it.
 The gate now waits for the exact local-origin job/content destination and then
 checks 404. Origin restrictions and missing-file validation remain enforced.
+
+## D02 supervisor control — 2026-10-26
+
+The final 245-file reviewed source ZIP passed 442 Python cases, 36 frontend
+cases and 116 dependency-fault cases. A new disposable Windows source/venv
+passed the full installation gate including optional browser installation,
+updates/restored pins, hidden console Ctrl+C, and nine native background phases.
+New native cases verify attached identity/stop refusal, a second real process
+requesting window focus, closing window controls without stopping work, deliberate
+receipt-owned Job Object exit, cold recovery, and refusal to stop a replacement.
+No PID-based termination or ordinary project state was used.
+
+D01's hosted follow-up at a437206 passed windows, install-windows and
+docker-runtime. Local Docker runtime plus all seven real browser stages and 55
+Pixiv cases passed as a focused check. The local full Docker sequence separately
+stopped at host_bind_contract_failed under Windows Docker Desktop/Compose; it did
+not reach its browser stage. That host-bind result is not reported as a full
+local Docker pass. Linux hosted Docker completed the full sequence successfully.
+D03 real WebView2 presentation remains separate from these control fixtures.

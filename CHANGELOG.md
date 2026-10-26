@@ -8,6 +8,8 @@ No GitHub release or tag has been created.
 
 ### Added
 
+- D02 backend supervisor (2026-10-26): separate start/attach from browser presentation; publish versioned loopback identity and UI/API readiness independently of engine health. Verify Windows ownership plus matching HTTP identity, expose a shell-neutral JSON CLI, and use instance-specific owned stop events. Add single-window/focus controls and native receipt-owned attach/restart/crash/stop acceptance while retaining existing batch, console, Docker and persistence behavior. See [control contract](docs/DESKTOP_CONTROL.md).
+
 - D01 shared desktop seam (2026-10-26): document HTTP API, response/error/deadline and compatibility contracts; inject a versioned Browser Adapter for external pages, synchronous pairing-tab reservation, diagnostics downloads and clipboard fallback. Centralize validated native file dispatch while retaining Chrome login and Docker media previews. Cover permission failures, cancellation/resource cleanup, stale login responses and backend path/origin refusals. See [contracts](docs/API_CONTRACT.md).
 
 ### Fixed

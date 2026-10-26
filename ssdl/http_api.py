@@ -206,6 +206,9 @@ class ApiHandler(BaseHTTPRequestHandler):
         if path == "/api/health":
             health = self.app.health()
             return self._json(200 if health["status"] == "healthy" else 503, health)
+        if path == "/api/identity":
+            identity = self.app.identity()
+            return self._json(200 if identity["api_ready"] and identity["ui_ready"] else 503, identity)
         if path.startswith("/api/jobs/") and path.endswith("/thumbnail"):
             job_id = path.removeprefix("/api/jobs/").removesuffix("/thumbnail")
             with self.app.lock:

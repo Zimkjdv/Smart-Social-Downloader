@@ -216,6 +216,13 @@ class AppContext:
         }
         return {"service": "ssdl", "status": "healthy" if all(checks.values()) else "unhealthy", "checks": checks}
 
+    def identity(self) -> dict:
+        """UI/API readiness is independent of engine/environment health."""
+        from .desktop_control import identity
+        return identity(self.ROOT, self.PORT, self.state.state_instance,
+                        api_ready=self._started and not self._closed and not self.state.shutdown.is_set(),
+                        ui_ready=(self.STATIC / "index.html").is_file())
+
     def __enter__(self):
         return self
 

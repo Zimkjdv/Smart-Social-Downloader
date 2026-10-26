@@ -59,7 +59,7 @@ def lifecycle(root):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("action", choices=("setup", "start", "stop", "foreground", "update", "lifecycle", "service", "browser", "restore-probe", "inventory", "console"))
+    parser.add_argument("action", choices=("setup", "start", "stop", "foreground", "update", "lifecycle", "service", "browser", "restore-probe", "inventory", "console", "supervisor-attached", "supervisor-cold", "supervisor-crash"))
     parser.add_argument("--token", required=True)
     args = parser.parse_args(argv)
     root = Path(__file__).resolve().parents[2]
@@ -78,7 +78,11 @@ def main(argv=None):
             # was attached to the owner's Job Object and admitted.
             return subprocess.call([str(root / ".venv/Scripts/python.exe"), "-I", "-X", "utf8", "-u",
                                     str(Path(__file__).resolve()), "service", "--token", args.token], cwd=root)
-        if args.action == "inventory":
+        if args.action.startswith("supervisor-"):
+            command = [str(root / ".venv/Scripts/python.exe"), "-X", "utf8", "-u",
+                       str(root / "tests/helpers/desktop_supervisor.py"), args.action.removeprefix("supervisor-"),
+                       "--token", args.token]
+        elif args.action == "inventory":
             script = ("import importlib.metadata as m,json,re,sys; from pathlib import Path; "
                       "assert sys.version_info[:2]==(3,12); "
                       "assert Path(sys.prefix).resolve()==Path('.venv').resolve(); "
