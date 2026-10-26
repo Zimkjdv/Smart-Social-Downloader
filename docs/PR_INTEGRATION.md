@@ -5,17 +5,17 @@
 ## Summary
 
 ```text
-main
+main（以下七個提案均已合併）
   → #4 Chrome 配對驗收與 main 保護
   → #6 D01 共用 API／平台契約
   → #7 D02 後端監督與視窗擁有權
   → #8 D03 pywebview／WebView2
   → #9 D04 桌面驗收
   → #10 D05 Windows 安裝包
-  → #5 Actions 更新（審查與驗收後）
-  → #3 Python／瀏覽器依賴更新（審查與驗收後）
+  → #5 Actions 更新（五處引用已統一為 7.1.0）
 
-#2 pyee 14：依相容性結果延後
+Draft #3：原生 GUI 驗收待釐清
+Draft #2：等待相容的 Playwright 整合及獨立驗收
 ```
 
 功能 PR 保留 merge commit 與原始提交關係，不逐個 squash/rebase。合併前先讓分支包含最新 main，核對新增差異，再等待該 head 的 CI。完成整合後才清理沒有未合併工作、也不再作為其他 PR base 的功能分支。
@@ -23,7 +23,7 @@ main
 ## Evidence：合併條件
 
 - **Before：** 九個 PR 尚未合併；#6～#10 的 base 是前一階段功能分支。main 起點為 `d22c9a8fbca149527a6624fdfa1c86d905400aec`。
-- **After：** 下表只在 GitHub 確認 merged 後填入合併 SHA／CI 連結；等待或失敗不當成完成。
+- **After：** 原九個提案已合併七個，#3／#2 保留 Draft。下表只記錄 GitHub 已確認的合併 SHA 與實際 CI；起始 head 是最初快照，證據欄另列經過 CI 的整合 head。
 - main 的 `Protect main` ruleset 保持啟用：禁止刪除／force push、透過 PR 合併、解決 review threads，且分支必須更新到最新 main。
 - 必要 CI：`windows`、`install-windows`、`docker-runtime`。D05 與會影響發行包的更新另核對 `Windows distribution`。
 - 合併呼叫帶入已核對的 head SHA；若 head／main 移動，重新檢查，不繞過保護或把失敗標成成功。
@@ -34,13 +34,13 @@ main
 
 | 順序 | PR | 起始 head | 處理狀態 | 合併／驗收證據 |
 | --- | --- | --- | --- | --- |
-| 1 | [#4](https://github.com/Zimkjdv/Smart-Social-Downloader/pull/4) Chrome 配對 | `a18565d` | 已合併 | merge [`c08cc05`](https://github.com/Zimkjdv/Smart-Social-Downloader/commit/c08cc05ebdb76c390bb1e5bd6a4cf8d8917d9b03)；[CI](https://github.com/Zimkjdv/Smart-Social-Downloader/actions/runs/40146910943) |
-| 2 | [#6](https://github.com/Zimkjdv/Smart-Social-Downloader/pull/6) D01 | `a437206` | 已合併 | merge [`9928376`](https://github.com/Zimkjdv/Smart-Social-Downloader/commit/9928376165d70fe5495a589895b32debc2617aa4)；[CI](https://github.com/Zimkjdv/Smart-Social-Downloader/actions/runs/40369204513) |
-| 3 | [#7](https://github.com/Zimkjdv/Smart-Social-Downloader/pull/7) D02 | `e71a13b` | 已合併 | merge [`fe682a3`](https://github.com/Zimkjdv/Smart-Social-Downloader/commit/fe682a3ee2afcd2d6fb260e3ff0d1679921183e9)；[CI](https://github.com/Zimkjdv/Smart-Social-Downloader/actions/runs/40370767494) |
-| 4 | [#8](https://github.com/Zimkjdv/Smart-Social-Downloader/pull/8) D03 | `8266257` | 已合併 | merge [`b947523`](https://github.com/Zimkjdv/Smart-Social-Downloader/commit/b9475238a2ad1528d8c7818f20778249b2580ad6)；[CI](https://github.com/Zimkjdv/Smart-Social-Downloader/actions/runs/40372279727) |
-| 5 | [#9](https://github.com/Zimkjdv/Smart-Social-Downloader/pull/9) D04 | `98adfbd` | 已合併 | merge [`ed45cf7`](https://github.com/Zimkjdv/Smart-Social-Downloader/commit/ed45cf73e446e54c1f4f9227967590a970209048)；[CI](https://github.com/Zimkjdv/Smart-Social-Downloader/actions/runs/40373685475) |
-| 6 | [#10](https://github.com/Zimkjdv/Smart-Social-Downloader/pull/10) D05 | `0ff62a8` | 已合併 | merge [`6503ae2`](https://github.com/Zimkjdv/Smart-Social-Downloader/commit/6503ae24854cd9d92148f89c5b6a4dfcae16d6fa)；[CI](https://github.com/Zimkjdv/Smart-Social-Downloader/actions/runs/40375316316) |
-| 7 | [#5](https://github.com/Zimkjdv/Smart-Social-Downloader/pull/5) setup-python 7.1 | `dbd4d2a` | 候選已更新到最新 main；等待完整 CI | 五處呼叫與七項政策測試已核對 |
+| 1 | [#4](https://github.com/Zimkjdv/Smart-Social-Downloader/pull/4) Chrome 配對 | `a18565d` | 已合併 | head `a18565d`；merge [`c08cc05`](https://github.com/Zimkjdv/Smart-Social-Downloader/commit/c08cc05ebdb76c390bb1e5bd6a4cf8d8917d9b03)；[來源 CI](https://github.com/Zimkjdv/Smart-Social-Downloader/actions/runs/40146910943) |
+| 2 | [#6](https://github.com/Zimkjdv/Smart-Social-Downloader/pull/6) D01 | `a437206` | 已合併 | head `5693651`；merge [`9928376`](https://github.com/Zimkjdv/Smart-Social-Downloader/commit/9928376165d70fe5495a589895b32debc2617aa4)；[來源 CI](https://github.com/Zimkjdv/Smart-Social-Downloader/actions/runs/40369204513) |
+| 3 | [#7](https://github.com/Zimkjdv/Smart-Social-Downloader/pull/7) D02 | `e71a13b` | 已合併 | head `90d6fa6`；merge [`fe682a3`](https://github.com/Zimkjdv/Smart-Social-Downloader/commit/fe682a3ee2afcd2d6fb260e3ff0d1679921183e9)；[來源 CI](https://github.com/Zimkjdv/Smart-Social-Downloader/actions/runs/40370767494) |
+| 4 | [#8](https://github.com/Zimkjdv/Smart-Social-Downloader/pull/8) D03 | `8266257` | 已合併 | head `629b4e6`；merge [`b947523`](https://github.com/Zimkjdv/Smart-Social-Downloader/commit/b9475238a2ad1528d8c7818f20778249b2580ad6)；[來源 CI](https://github.com/Zimkjdv/Smart-Social-Downloader/actions/runs/40372279727) |
+| 5 | [#9](https://github.com/Zimkjdv/Smart-Social-Downloader/pull/9) D04 | `98adfbd` | 已合併 | head `8e37524`；merge [`ed45cf7`](https://github.com/Zimkjdv/Smart-Social-Downloader/commit/ed45cf73e446e54c1f4f9227967590a970209048)；[來源 CI](https://github.com/Zimkjdv/Smart-Social-Downloader/actions/runs/40373685475) |
+| 6 | [#10](https://github.com/Zimkjdv/Smart-Social-Downloader/pull/10) D05 | `0ff62a8` | 已合併 | head `d2a6e76`；merge [`6503ae2`](https://github.com/Zimkjdv/Smart-Social-Downloader/commit/6503ae24854cd9d92148f89c5b6a4dfcae16d6fa)；[來源 CI](https://github.com/Zimkjdv/Smart-Social-Downloader/actions/runs/40375316316) ；[打包 CI](https://github.com/Zimkjdv/Smart-Social-Downloader/actions/runs/40375316172) |
+| 7 | [#5](https://github.com/Zimkjdv/Smart-Social-Downloader/pull/5) setup-python 7.1 | `dbd4d2a` | 已合併 | head `a7924eb`；merge [`708c72a`](https://github.com/Zimkjdv/Smart-Social-Downloader/commit/708c72a7c7be8960df637408d324f33dedbcbcf6)；[來源 CI](https://github.com/Zimkjdv/Smart-Social-Downloader/actions/runs/40377196625) ；[打包 CI](https://github.com/Zimkjdv/Smart-Social-Downloader/actions/runs/40377196661) |
 | 8 | [#3](https://github.com/Zimkjdv/Smart-Social-Downloader/pull/3) gallery-dl／Playwright | `42bc648` | Draft：隔離候選來源回歸通過；原生 GUI 待釐清 | 詳見下方候選審查 |
 | 延後 | [#2](https://github.com/Zimkjdv/Smart-Social-Downloader/pull/2) pyee 14 | `7d1c727` | Draft：main 仍為 Playwright 1.63.0，#3 尚未整合 | 1.64.0 已允許 pyee 14；#3 通過後再另驗 #2 |
 
@@ -54,7 +54,7 @@ main
 6. CI 失敗時保留失敗紀錄，查明原因、修正並重跑；不降低驗收條件。不可合併的依賴提案記錄原因後延後。
 7. 最後重查 open PR、main CI 與功能分支相依；有未合併工作或仍在本機使用的分支不直接刪除。
 
-合併過程的即時分類紀錄保存在忽略的本機驗收資料；本文件會在後續可審查的提交中彙整實際結果。若最後彙整需要獨立文件 PR，照相同 main 保護通過 CI 後再合併。
+合併過程的即時分類紀錄保存在忽略的本機驗收資料；這份最終彙整另以獨立文件 PR 提交，只修改本檔並照相同 main 保護通過 CI 後合併。原九個提案整合後的 main 基準為 [`708c72a`](https://github.com/Zimkjdv/Smart-Social-Downloader/commit/708c72a7c7be8960df637408d324f33dedbcbcf6)。
 
 ## Merge Danger
 
@@ -78,3 +78,11 @@ main 會納入 Chrome 配對與 D01～D05。合併不停止正式背景服務、
 候選的八組 frozen／GUI smoke／安裝生命週期也已通過；fixture 清理因 profile 鎖而保留，與驗收結果分列。這不能取代仍有失敗紀錄的完整原生矩陣。實際 resolver 已確認 1.63.0＋pyee 14 會產生 ResolutionImpossible，1.64.0＋14 可解出，dry-run 前後安裝清單不變。兩個提案均已標 Draft，body 附明確恢復審查條件。
 
 官方依據：[setup-python 7.1.0](https://github.com/actions/setup-python/releases/tag/v7.1.0)、[Action manifest](https://github.com/actions/setup-python/blob/6d4fd22b20465ccc0f7354476588e8df7c9ca0e0/action.yml)、[Playwright 1.64.0 metadata](https://pypi.org/pypi/playwright/1.64.0/json)、[gallery-dl 1.32.17 metadata](https://pypi.org/pypi/gallery-dl/1.32.17/json)。
+
+## 完成結果與清理
+
+- #4、#6、#7、#8、#9、#10、#5 均以 merge commit 併入 main；每步先同步最新 main 並等待該 head 的必要 CI。D05 及 Actions 更新另通過 Windows 發行工作流程，沒有使用保護規則 bypass。
+- 六個已完成、沒有 open PR 依賴、也不在任何本機 worktree 使用的遠端功能分支已清理；其 head 均先確認為 main 的祖先。原始提交仍可從 main／PR 紀錄追溯，本機歷史分支保留。
+- #3、#2 是僅剩的原始 open PR，均為 Draft，body 已記錄實測證據與恢復審查條件。沒有為了降低 open 數量而關閉或合併待驗提案。
+- 本機主要 checkout 同步到 main；原有未追蹤研究文件未納入提交或來源包，內容雜湊保持不變。本輪沒有執行正式服務啟停、正式環境套件更新或真實登入遷移。
+- main 的刪除／force-push 防護、嚴格最新分支要求、PR 與三個必要狀態檢查維持啟用。沒有 tag、公開 Release 或 D06 實作。
