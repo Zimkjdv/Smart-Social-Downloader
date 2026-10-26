@@ -8,6 +8,8 @@ No GitHub release or tag has been created.
 
 ### Added
 
+- D03 optional Windows source GUI (2026-10-26): launch the same Web UI/API in a native pywebview/WebView2 frame via desktop.bat, with pinned optional dependencies, folder selection, diagnostics Save As, dedicated persistent UI profile and clear background-close/owned-stop behavior. Restrict native bridge methods, document/frame navigation, popup schemes and message sources; keep X/Pixiv in ordinary Chrome. Add real receipt-owned WebView2 smoke and portable adapter/host contracts. Full D04/DPI/account acceptance and D05 installer work remain pending. See [desktop guide](docs/DESKTOP_GUI.md).
+
 - D02 backend supervisor (2026-10-26): separate start/attach from browser presentation; publish versioned loopback identity and UI/API readiness independently of engine health. Verify Windows ownership plus matching HTTP identity, expose a shell-neutral JSON CLI, and use instance-specific owned stop events. Add single-window/focus controls and native receipt-owned attach/restart/crash/stop acceptance while retaining existing batch, console, Docker and persistence behavior. See [control contract](docs/DESKTOP_CONTROL.md).
 
 - D01 shared desktop seam (2026-10-26): document HTTP API, response/error/deadline and compatibility contracts; inject a versioned Browser Adapter for external pages, synchronous pairing-tab reservation, diagnostics downloads and clipboard fallback. Centralize validated native file dispatch while retaining Chrome login and Docker media previews. Cover permission failures, cancellation/resource cleanup, stale login responses and backend path/origin refusals. See [contracts](docs/API_CONTRACT.md).

@@ -120,6 +120,13 @@ loopback port, exact path and ticket fragment; controllers validate before open.
 
 ## DesktopInterface version 1
 
+D03 adds [the actual Pywebview Adapter](DESKTOP_GUI.md). The explicit shell
+composition maps the same methods to six native calls and negotiates immutable
+version/capabilities. `ready` is a local Promise; owned native shells additionally
+support confirmed stopBackend. Folder results affect only a live settings draft,
+and Save still crosses HTTP. Native dialogs use serializable inputs/results,
+not Window/.NET objects. Browser fallback and file_actions meanings are unchanged.
+
 The composition root creates `SSDLDesktop.createBrowser({browser,document})`
 and injects `desktop` into controllers. The standalone Chrome pairing page owns
 its browser instance. Controllers have no framework detection or bridge imports.

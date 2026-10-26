@@ -13,8 +13,14 @@
   <link rel="stylesheet" href="/static/environment.css">
   <link rel="stylesheet" href="/static/settings.css">
   <link rel="stylesheet" href="/static/ui_accessibility.css">
+  <link rel="stylesheet" href="/static/desktop.css">
 </head>
 <body>
+  <div id="desktop-bar" class="desktop-bar" hidden>
+    <p data-i18n-key="ui.desktop_background_notice">關閉視窗後，背景下載仍會繼續。</p>
+    <span id="desktop-status" role="status"></span>
+    <button id="desktop-stop" class="subtle-button" type="button" disabled data-i18n-key="ui.desktop_stop">停止背景服務</button>
+  </div>
   <div class="app-shell">
     <header class="topbar">
       <a class="brand" href="/" aria-label="Smart Social Downloader 首頁" data-i18n-aria-label="ui.smart_social_downloader_home">
@@ -158,7 +164,7 @@
       </header>
       <div class="settings-content">
         <div class="settings-panel" id="settings-panel-general" role="tabpanel" aria-labelledby="settings-tab-general" tabindex="0">
-          <label class="field-label" for="download-dir" data-i18n-key="ui.download_folder_path">下載資料夾路徑</label><div class="path-input"><span>▱</span><input id="download-dir" type="text" autocomplete="off" spellcheck="false"></div><p class="field-hint" data-i18n-key="ui.enter_a_full_folder_path_on_this">請輸入這台電腦上的資料夾完整路徑。資料夾不存在時會自動建立。</p>
+          <label class="field-label" for="download-dir" data-i18n-key="ui.download_folder_path">下載資料夾路徑</label><div class="path-input"><span>▱</span><input id="download-dir" type="text" autocomplete="off" spellcheck="false"><button id="download-dir-pick" type="button" class="subtle-button" hidden data-i18n-key="ui.desktop_pick_folder">選擇資料夾</button></div><p class="field-hint" data-i18n-key="ui.enter_a_full_folder_path_on_this">請輸入這台電腦上的資料夾完整路徑。資料夾不存在時會自動建立。</p>
       <section class="queue-setting" aria-labelledby="queue-settings-title">
         <h3 class="auth-heading" id="queue-settings-title" data-i18n-key="ui.safe_queue">安全佇列</h3>
         <label class="field-label" for="hourly-job-limit" data-i18n-key="ui.hourly_job_limit">每小時工作上限</label>
@@ -308,6 +314,7 @@
   <script src="/static/i18n.js" defer></script>
   <script src="/static/api.js" defer></script>
   <script src="/static/desktop.js" defer></script>
+  <script src="/static/desktop_pywebview.js" defer></script>
   <script src="/static/job_rows.js" defer></script>
   <script src="/static/ui_state.js" defer></script>
   <script src="/static/job_presentation.js" defer></script>

@@ -48,6 +48,10 @@ See [desktop background service](docs/DESKTOP_SERVICE.md) for custom ports, shut
 
 For shell integrations, `python -m ssdl.desktop_control ensure` starts/attaches without opening a browser and returns versioned JSON; `status` verifies the running instance. See [supervisor contract](docs/DESKTOP_CONTROL.md). After updating an older running service, explicitly stop and restart it to publish the new identity record.
 
+### Optional Windows desktop window
+
+Run **desktop.bat** to install the optional pinned pywebview packages and open the same UI in WebView2. Microsoft Edge WebView2 Runtime is required. Closing the window keeps downloads running; use its confirmed Stop action when it owns the backend, or stop.bat for an existing service. Browser start.bat remains available. This is a Python source version; installer/EXE packaging is later work. See [desktop guide](docs/DESKTOP_GUI.md).
+
 ### Chrome connector: first-time setup
 
 Use the ordinary Chrome profile where you sign into X or Pixiv. Keep the downloader running during setup.

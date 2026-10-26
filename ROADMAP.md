@@ -18,7 +18,7 @@ N01～N08 已移至 [CHANGELOG](CHANGELOG.md#unreleased)。本輪列出的修正
 
 ## Windows 桌面版：先 pywebview，保留 Electron 遷移路線
 
-2026-10-26 規劃，D01、D02 已完成並記錄於 CHANGELOG；本輪依使用者範圍做到 D03，D04～D06 保留後續。決策依據為使用者指定的「先做 pywebview，業務功能走標準 API，桌面專屬功能集中封裝」，並參考 [Python WebUI 轉 Windows GUI 對話](chatgpt-conversation://6ade3c59-7034-83e8-843b-79c106709fe9)。目標是瀏覽器版與桌面版共用同一份 Web UI／Python 後端，日後替換外殼時保留業務程式與資料。
+2026-10-26 規劃，D01～D03 已完成並記錄於 CHANGELOG；依使用者範圍，本輪停在 D03，D04～D06 保留後續。決策依據為使用者指定的「先做 pywebview，業務功能走標準 API，桌面專屬功能集中封裝」，並參考 [Python WebUI 轉 Windows GUI 對話](chatgpt-conversation://6ade3c59-7034-83e8-843b-79c106709fe9)。目標是瀏覽器版與桌面版共用同一份 Web UI／Python 後端，日後替換外殼時保留業務程式與資料。
 
 ### 現況判斷與必要前置
 
@@ -66,13 +66,11 @@ N01～N08 已移至 [CHANGELOG](CHANGELOG.md#unreleased)。本輪列出的修正
 
 2026-10-26 完成，見 [Supervisor 契約](docs/DESKTOP_CONTROL.md) 及 [CHANGELOG](CHANGELOG.md#unreleased)。啟動／附接與開頁分離；核對 Windows 控制鎖、HTTP 身分、版本及執行個體，缺引擎仍可取得 UI／API 就緒。外殼停止使用執行個體專屬事件；單視窗與喚回事件已通過原生雙程序驗證，關閉視窗控制不停止後端。真正 GUI 與關窗提示由 D03 接上。
 
-### D03：接上第一個 pywebview／WebView2 桌面版本
+### D03：pywebview／WebView2 來源版本（已完成）
 
-- [ ] 新增獨立 GUI 入口與選配桌面依賴鎖定，透過既有服務載入同源 `http://127.0.0.1:<port>/`。保留同一份 HTML／CSS／JS，不使用 `file://` 或第二個內建 HTTP server 重建業務 API；pywebview 在主執行緒跑 GUI loop，服務等待與耗時操作不阻塞介面。
-- [ ] Windows 明確選用 WebView2，缺少 Runtime 時提供清楚的修復方式，不靜默退回舊 IE renderer。使用原生視窗框架、合理的最小尺寸與縮放；第一版先完成單視窗，不增加自訂無邊框標題列、多視窗或自動更新。
-- [ ] Pywebview Adapter 實作集中式桌面能力、bridge-ready 與失敗處理；GUI 成功／失敗狀態透過共用 API 更新。設定專用且穩定的 WebView profile／儲存位置，明確決定語言、頁數等 UI 偏好如何跨啟動保存；不可假設預設 private mode 會保留偏好，亦不共用／匯入個人 Chrome Cookie。登入秘密仍由 Python 的既有 DPAPI 保存。
-- [ ] 只讓可信的本機 UI 使用 bridge；限制主視窗導航與彈出視窗，外部內容不帶原生能力。沿用並驗證 loopback 綁定、Host／Origin／跨站檢查及媒體 sandbox；不以放行所有 CORS、`Origin: null` 或停用網頁安全解決相容問題。外部連結、`target=_blank`、Blob 診斷匯出、下載與剪貼簿逐項決定處理方式。
-- [ ] X／Pixiv 授權沿用一般 Chrome 與既有連接器，不在內嵌視窗另做登入或讀取 Chrome profile。統一授權開頁的責任，保留後端 `opened`／連結 fallback 語意，避免後端與 Adapter 各開一次。驗證外部 Chrome callback 成功後，桌面 UI 能更新；保留 extension ID、配對時限、自訂 port 與秘密不進入一般 snapshot／日誌的規則。
+2026-10-26 完成，使用方式見 [桌面指南](docs/DESKTOP_GUI.md)，實作與證據見 [CHANGELOG](CHANGELOG.md#unreleased) 及 [測試紀錄](docs/TESTING.md)。`desktop.bat` 使用選配鎖定依賴載入相同 HTTP UI；原生視窗、資料夾選擇、診斷另存、專用 profile、關窗續抓與明確停止均已接上。原生 guard 限制導航／frame／彈窗與 bridge 訊息來源，X／Pixiv 授權沿用一般 Chrome。
+
+兩次真實 WebView2 隔離啟動已驗證 UI／bridge、共用 HTTP 寫入、重複開啟喚回、語言／頁數保存、拒絕導航後 bridge 仍可使用、關窗續留後端與 owned stop；當前實際 devicePixelRatio 為 2。這是來源版本與基本 smoke，不等於 D04 的完整 DPI／對話框／鍵盤／媒體／真人授權矩陣，也不是 D05 安裝包。依使用者指示，先不進行 D04／D05。
 
 ### D04：共用介面與實際 Windows GUI 驗收
 

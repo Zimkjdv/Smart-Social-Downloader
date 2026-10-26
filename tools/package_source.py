@@ -16,19 +16,19 @@ from ssdl.version import __version__
 
 ROOT_FILES = (".gitignore", "LICENSE", "THIRD_PARTY_NOTICES.md", "README.md", "README_CN.md",
               "CHANGELOG.md", "SECURITY.md", "CONTRIBUTING.md", "ROADMAP.md", "requirements.txt",
-              "requirements.lock.txt", "requirements-browser.txt", "start.bat", "stop.bat", "setup.bat", "update.bat",
+              "requirements.lock.txt", "requirements-browser.txt", "requirements-desktop.txt", "desktop.bat", "start.bat", "stop.bat", "setup.bat", "update.bat",
               "app.py", "Dockerfile", "compose.yaml", "compose.login.yaml", ".dockerignore")
 SOURCE_GLOBS = {"static": ("*.js", "*.css", "*.html"),
                 "docker": ("entrypoint.py", "runtime.py", "storage.py", "healthcheck.py", "session_key.py", "debian.sources"),
                 "chrome-extension": ("*.js", "*.html", "manifest.json", "README.md"),
-                "tools": ("manage.py", "package_source.py", "check_source_archive.py", "check_workflows.py", "check_installation.py", "check_desktop.py", "check_chrome_pairing.py", "check_dependency_faults.py", "check_docker.py", "docker_runtime_probe.py", "docker_service_acceptance.py", "docker_storage_probe.py", "docker_interaction_acceptance.py", "docker_interaction_probe.py", "docker_host_acceptance.py", "docker_host_probe.py", "docker_browser_acceptance.py", "docker_pixiv_acceptance.py", "measure_state.py", "measure_persistence.py", "measure_capacity.py", "measure_hashing.py"),
+                "tools": ("manage.py", "package_source.py", "check_source_archive.py", "check_workflows.py", "check_installation.py", "check_desktop.py", "check_desktop_gui.py", "check_chrome_pairing.py", "check_dependency_faults.py", "check_docker.py", "docker_runtime_probe.py", "docker_service_acceptance.py", "docker_storage_probe.py", "docker_interaction_acceptance.py", "docker_interaction_probe.py", "docker_host_acceptance.py", "docker_host_probe.py", "docker_browser_acceptance.py", "docker_pixiv_acceptance.py", "measure_state.py", "measure_persistence.py", "measure_capacity.py", "measure_hashing.py"),
                 "docs": ("*.md",), "docs/images": ("dashboard-preview.svg",),
                 ".github/ISSUE_TEMPLATE": ("*.yml", "*.yaml"),
                 ".github": ("pull_request_template.md", "dependabot.yml"),
                 ".github/workflows": ("*.yml", "*.yaml")}
 # Recursive review boundaries, never a recursive search of the workspace.
 # Test helpers may have ordinary module names; test suites retain name filters.
-SOURCE_TREES = {"ssdl": ("*.py",), "tests": ("__init__.py", "test_*.py", "*.test.cjs"),
+SOURCE_TREES = {"ssdl": ("*.py",), "desktop": ("*.py",), "tests": ("__init__.py", "test_*.py", "*.test.cjs"),
                 "tests/helpers": ("*.py",)}
 EXCLUDED_DIRS = {"__pycache__", "data", "downloads", "dist", "node_modules"}
 PRIVATE_CONTENT = (

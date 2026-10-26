@@ -1,5 +1,13 @@
 /* Stable message keys: edit copy here without renaming keys. */
 window.SSDLMessages = {
+  "ui.desktop_background_notice": {"zh-Hant": "關閉視窗後，背景下載仍會繼續。", "en": "Background downloads keep running after this window closes."},
+  "ui.desktop_stop": {"zh-Hant": "停止背景服務", "en": "Stop background service"},
+  "ui.desktop_pick_folder": {"zh-Hant": "選擇資料夾", "en": "Choose folder"},
+  "ui.desktop_attached": {"zh-Hant": "已連接既有服務；請執行 stop.bat 停止。", "en": "Attached to an existing service. Run stop.bat to stop it."},
+  "ui.desktop_bridge_unavailable": {"zh-Hant": "桌面功能尚未連接，請關閉視窗後重新開啟。", "en": "Desktop features are unavailable. Close and reopen this window."},
+  "ui.desktop_action_failed": {"zh-Hant": "桌面操作未完成，請關閉尚未處理的對話框後再試。", "en": "The desktop action did not finish. Close any pending dialog before trying again."},
+  "ui.desktop_stopping": {"zh-Hant": "正在停止並保存佇列…", "en": "Stopping and preserving the queue…"},
+  "ui.desktop_stopped": {"zh-Hant": "背景服務已停止。", "en": "Background service stopped."},
   "ui.desktop_open_failed": {"zh-Hant": "無法開啟頁面，請允許彈出視窗後再試。", "en": "Unable to open the page. Allow popups and try again."},
   "ui.desktop_export_failed": {"zh-Hant": "無法匯出診斷檔，請確認瀏覽器允許下載後再試。", "en": "Unable to export diagnostics. Allow downloads and try again."},
   "ui.pixiv_use_link": {"zh-Hant": "請點選授權連結繼續 Pixiv 連接。", "en": "Use the authorization link to continue connecting Pixiv."},
