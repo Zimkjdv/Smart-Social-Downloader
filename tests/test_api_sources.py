@@ -58,7 +58,7 @@ class ApiSourceTests(unittest.TestCase):
         self.assertIn("extension_id", json.loads(body))
 
     def test_untrusted_get_is_rejected_before_reading_private_state(self):
-        for path in ("/api/state", "/api/environment", "/api/diagnostics", "/api/auth/x/setup", "/api/jobs/nonexistent/thumbnail", "/api/future-route"):
+        for path in ("/api/state", "/api/identity", "/api/environment", "/api/diagnostics", "/api/auth/x/setup", "/api/jobs/nonexistent/thumbnail", "/api/future-route"):
             for headers in ({"Host": "untrusted.example"}, {"Origin": "https://untrusted.example"},
                             {"Sec-Fetch-Site": "cross-site"}, {"Origin": "null"},
                             {"Origin": "http://[malformed"}, {"Origin": self.app.EXTENSION_ORIGIN}):

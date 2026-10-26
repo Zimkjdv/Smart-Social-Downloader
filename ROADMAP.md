@@ -18,13 +18,15 @@ N01～N08 已移至 [CHANGELOG](CHANGELOG.md#unreleased)。本輪列出的修正
 
 ## Windows 桌面版：先 pywebview，保留 Electron 遷移路線
 
-2026-10-26 規劃，D01 已完成並記錄於 CHANGELOG；D02～D06 為後續工作。決策依據為使用者指定的「先做 pywebview，業務功能走標準 API，桌面專屬功能集中封裝」，並參考 [Python WebUI 轉 Windows GUI 對話](chatgpt-conversation://6ade3c59-7034-83e8-843b-79c106709fe9)。目標是瀏覽器版與桌面版共用同一份 Web UI／Python 後端，日後替換外殼時保留業務程式與資料。
+2026-10-26 規劃，D01、D02 已完成並記錄於 CHANGELOG；本輪依使用者範圍做到 D03，D04～D06 保留後續。決策依據為使用者指定的「先做 pywebview，業務功能走標準 API，桌面專屬功能集中封裝」，並參考 [Python WebUI 轉 Windows GUI 對話](chatgpt-conversation://6ade3c59-7034-83e8-843b-79c106709fe9)。目標是瀏覽器版與桌面版共用同一份 Web UI／Python 後端，日後替換外殼時保留業務程式與資料。
 
 ### 現況判斷與必要前置
 
 **現有前後端已具備可沿用的分離，不需要先重寫或拆成兩個 repository。** `static/` 提供 HTML／CSS／JavaScript，`static/api.js` 集中 HTTP／JSON 請求與回應檢查，`ssdl/http_api.py` 提供路由，`AppContext`／scheduler／repository 處理工作與保存。先補齊桌面差異的 Interface 與生命週期，再接 pywebview；不把改用 FastAPI、React、TypeScript、bundler 或 WebSocket 列為前置。
 
-| 現有位置 | 已有能力／目前耦合 | 本輪需要的調整 | 時機 |
+以下盤點以 D01 實作前的結構為基準；各階段完成紀錄見下方與 CHANGELOG。
+
+| 原始位置 | 規劃當時的能力／耦合 | 需要的調整 | 時機 |
 | --- | --- | --- | --- |
 | `static/api.js`、各 controller | 已透過 HTTP 操作工作、設定、登入及診斷；API client 有期限、取消、schema 與不確定寫入結果處理 | 整理共用業務契約；controller 不直接使用外殼 bridge | D01，GUI 前 |
 | `static/jobs_controller.js`、`diagnostics_controller.js`、登入腳本 | 分散使用 `window.open`、Blob 匯出、剪貼簿及 browser／desktop 檔案操作分支 | 以集中式 `DesktopInterface` 與 Browser／Pywebview Adapter 承接實際差異 | D01／D03 |
@@ -60,12 +62,9 @@ N01～N08 已移至 [CHANGELOG](CHANGELOG.md#unreleased)。本輪列出的修正
 
 2026-10-26 完成，實作／測試範圍見 [共用契約](docs/API_CONTRACT.md) 及 [CHANGELOG](CHANGELOG.md#unreleased)。業務 API 保留；Browser Adapter 已承接開頁、配對分頁預留、診斷下載、剪貼簿與取消清理，Windows 開檔分派集中於平台 Module。未宣稱 pywebview／WebView2 已驗收。
 
-### D02：抽出可重用的後端與視窗生命週期
+### D02：後端與視窗生命週期（已完成）
 
-- [ ] 把 `desktop_service.start()` 的服務啟動／附接結果與 `open_page()` 分開；保留目前 `start.bat`／`stop.bat` 及 console／Docker 行為。兩種外殼共用服務控制，使用獨立 backend 程序，GUI 主執行緒不承擔 HTTP／下載工作。
-- [ ] 定義有版本的啟動結果，包含實際 origin、執行個體識別、版本／契約相容資訊及附接／擁有狀態；結合既有專案互斥鎖／控制通道核對身分，不能因任意 port 回 200 或 PID 相同就附接。處理重複／同時啟動、其他專案／其他軟體占埠、啟動失敗／逾時與 backend 異常退出。預設保留 8765 與明確設定的 port，不因占埠偷偷更換 Chrome 連接器目的地。
-- [ ] 分開「正確服務及 UI／API 已就緒」與「所有下載依賴健康」。目前 `/api/health` 將依賴健康納入總狀態；缺引擎時仍應讓使用者看到環境診斷，不能永遠卡在 GUI loading。一般操作繼續使用共用 API，不以視窗 bridge 另建工作操作路線。
-- [ ] 第一版關閉視窗只關閉介面、背景下載繼續；清楚顯示此行為，提供明確停止入口。正常停止沿用 AppContext／worker／writer 的保存順序；僅停止具有相應擁有權的本程式服務，附接既有服務或 renderer 崩潰時不誤停它。重複開 GUI 應喚回同一資料 scope 的既有視窗，不另建共寫服務；托盤、自動啟動另列選配。
+2026-10-26 完成，見 [Supervisor 契約](docs/DESKTOP_CONTROL.md) 及 [CHANGELOG](CHANGELOG.md#unreleased)。啟動／附接與開頁分離；核對 Windows 控制鎖、HTTP 身分、版本及執行個體，缺引擎仍可取得 UI／API 就緒。外殼停止使用執行個體專屬事件；單視窗與喚回事件已通過原生雙程序驗證，關閉視窗控制不停止後端。真正 GUI 與關窗提示由 D03 接上。
 
 ### D03：接上第一個 pywebview／WebView2 桌面版本
 

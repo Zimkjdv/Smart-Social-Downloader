@@ -46,6 +46,8 @@ For Pixiv, use **Settings → Pixiv sign-in**, click **Connect Pixiv** and finis
 
 See [desktop background service](docs/DESKTOP_SERVICE.md) for custom ports, shutdown timeouts and process ownership, and [native acceptance](docs/DESKTOP_ACCEPTANCE.md) for lifecycle checks and their scope.
 
+For shell integrations, `python -m ssdl.desktop_control ensure` starts/attaches without opening a browser and returns versioned JSON; `status` verifies the running instance. See [supervisor contract](docs/DESKTOP_CONTROL.md). After updating an older running service, explicitly stop and restart it to publish the new identity record.
+
 ### Chrome connector: first-time setup
 
 Use the ordinary Chrome profile where you sign into X or Pixiv. Keep the downloader running during setup.

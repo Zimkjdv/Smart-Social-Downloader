@@ -92,6 +92,7 @@ desktop bridge.
 | Method / path | Input | Success / behavior |
 | --- | --- | --- |
 | GET `/api/health` | None | 200 healthy / 503 unhealthy `{service:"ssdl",status,checks}`; application/worker/persistence/dependencies. Probe directly, not through State validator. |
+| GET `/api/identity` | None | D02: 200 UI/API ready / 503 unavailable; versioned service/instance/scope/app/API/origin/port metadata. Same origin guard; see [supervisor contract](DESKTOP_CONTROL.md). Not a shutdown capability. |
 | GET `/api/environment` | None | 200 phase/busy/ready, checked_at, status/errors/warnings, port, checks |
 | POST `/api/environment/refresh` | `{}` | 202 environment report; poll |
 | GET `/api/diagnostics` | None | 200 redacted `{format_version:1,created_at,counts,jobs,environment,...}` |

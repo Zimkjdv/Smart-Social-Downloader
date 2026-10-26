@@ -46,6 +46,8 @@ Pixiv 請使用 **設定 → Pixiv 登入** 按「一鍵連接 Pixiv」，在一
 
 自訂連接埠、停止逾時與程序管理詳見 [桌面背景服務](docs/DESKTOP_SERVICE.md)，測試情境與限制見 [原生背景啟停驗收](docs/DESKTOP_ACCEPTANCE.md)。
 
+供桌面外殼整合的 `python -m ssdl.desktop_control ensure` 會啟動／附接並回傳有版本的 JSON，不開瀏覽器；`status` 核對執行個體。詳見 [Supervisor 契約](docs/DESKTOP_CONTROL.md)。更新仍在執行的舊版服務後，請明確停止再重啟，以產生新的身分紀錄。
+
 ### Chrome 連接器：首次安裝
 
 請使用你平常登入 X 或 Pixiv 的一般 Chrome 個人檔案，安裝時保持下載工具運行。
