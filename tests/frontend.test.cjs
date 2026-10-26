@@ -93,7 +93,7 @@ function appHarness() {
   const context = vm.createContext({
     document, NodeFilter:{SHOW_TEXT:4}, CustomEvent:class {constructor(type) {this.type = type;}},
     localStorage:{getItem:key => store.get(key) ?? null, setItem:(key, value) => store.set(key, value)},
-    AbortController, URL, Blob, Intl, console,
+    AbortController, URL, URLSearchParams, Blob, Intl, console, location:new URL('http://127.0.0.1:8765/'),
     fetch:async (url, options) => { calls.push({url, method:options.method || 'GET'}); return response(url, options); },
     setTimeout:(fn, delay) => { const id = nextTimer++; if (delay <= 50) { const timer = setTimeout(() => {realTimers.delete(timer); fn();}, delay); realTimers.add(timer); } else scheduled.set(id, {fn, delay}); return id; },
     clearTimeout:id => scheduled.delete(id),
@@ -103,6 +103,7 @@ function appHarness() {
   vm.runInContext(source('static/locales.js'), context);
   vm.runInContext(source('static/i18n.js'), context);
   vm.runInContext(source('static/api.js'), context);
+  vm.runInContext(source('static/desktop.js'), context);
   const request = context.SSDLApi.request;
   context.SSDLApi.request = (url, options) => request(url, {...options, timeoutMs:20});
   for (const name of ['ui_state.js', 'job_presentation.js', 'x_login.js', 'media_selection.js', 'controller_lifecycle.js', 'database_controller.js', 'diagnostics_controller.js', 'jobs_controller.js', 'settings_controller.js', 'pixiv_login.js', 'app.js']) {
@@ -121,6 +122,160 @@ test('controller modules load without DOM access or application globals', () => 
   assert.equal(typeof context.window.SSDLSettingsController.create, 'function');
   assert.equal(typeof context.window.SSDLJobsController.create, 'function');
   assert.equal(typeof context.window.SSDLDiagnosticsController.create, 'function');
+});
+
+function desktopHarness({ blocked = false, clipboard = true, saveFails = false } = {}) {
+  const tabs = [], timers = new Map(), revoked = [], downloads = [], copied = [];
+  const browser = {
+    location:new URL('http://127.0.0.1:8765/'), Blob,
+    URL:{createObjectURL:() => 'blob:fixture-' + downloads.length, revokeObjectURL:url => revoked.push(url)},
+    setTimeout:fn => { const id = timers.size + 1; timers.set(id, fn); return id; }, clearTimeout:id => timers.delete(id),
+    open() {
+      if (blocked) return null;
+      const tab = {closed:false, opener:browser, destination:null, close() {this.closed = true;}};
+      tab.location = {replace:url => {tab.destination = url;}};
+      tabs.push(tab); return tab;
+    },
+    navigator:clipboard ? {clipboard:{writeText:async text => {copied.push(text);}}} : {},
+  };
+  const document = {createElement() {return {click() {if (saveFails) throw new Error('download denied'); downloads.push({href:this.href, filename:this.download});}};}};
+  const context = vm.createContext({window:{}, URL});
+  vm.runInContext(source('static/desktop.js'), context);
+  return {adapter:context.window.SSDLDesktop.createBrowser({browser, document}), browser, tabs, timers, revoked, downloads, copied};
+}
+
+test('Browser Adapter has a versioned capability contract and reserves popups synchronously', async () => {
+  const h = desktopHarness(), d = h.adapter;
+  assert.equal(d.version, 1); assert.equal(d.kind, 'browser');
+  assert.equal(d.capabilities.pickDirectory, false);
+  assert.equal((await d.pickDirectory()).status, 'unsupported');
+  const reservation = d.reserveExternal();
+  assert.equal(h.tabs.length, 1); assert.equal(h.tabs[0].opener, null);
+  assert.equal(h.tabs[0].destination, null);
+  assert.equal('location' in reservation, false);
+  assert.equal((await reservation.open('/chrome-connect#token=' + 'A'.repeat(43) + '&connect=1')).status, 'completed');
+  reservation.cancel(); d.dispose();
+  assert.equal(h.tabs[0].closed, false); // A successful page belongs to the user.
+  assert.match(h.tabs[0].destination, /^http:\/\/127\.0\.0\.1:8765\/chrome-connect#/);
+  assert.equal((await d.openExternal('https://x.com/home')).status, 'cancelled');
+});
+
+test('Browser Adapter rejects unsafe destinations and distinguishes denied, cancelled and closed operations', async () => {
+  const h = desktopHarness();
+  for (const url of ['javascript:alert(1)', 'file:///C:/private', 'data:text/html,fixture', 'https://user:secret@example.org/']) {
+    assert.equal((await h.adapter.openExternal(url)).status, 'error');
+  }
+  assert.equal(h.tabs.length, 0);
+  assert.equal((await desktopHarness({blocked:true}).adapter.openExternal('https://x.com/home')).status, 'blocked');
+  const closed = h.adapter.reserveExternal(); h.tabs.at(-1).closed = true;
+  assert.equal((await closed.open('https://x.com/home')).status, 'cancelled');
+  const pending = h.adapter.reserveExternal(); h.adapter.dispose();
+  assert.equal(h.tabs.at(-1).closed, true);
+  assert.equal((await pending.open('https://x.com/home')).status, 'cancelled');
+});
+
+test('Browser Adapter owns download URL cleanup for completion, cancellation, failure and disposal', async () => {
+  for (const finish of ['timer', 'abort', 'dispose', 'failure']) {
+    const h = desktopHarness({saveFails:finish === 'failure'}), signal = new AbortController();
+    const result = await h.adapter.saveText({filename:'診斷 report.json', text:'{"synthetic":true}', mimeType:'application/json'}, {signal:signal.signal});
+    assert.equal(result.status, finish === 'failure' ? 'error' : 'completed');
+    if (finish === 'timer') [...h.timers.values()][0]();
+    if (finish === 'abort') signal.abort();
+    h.adapter.dispose();
+    assert.equal(h.revoked.length, 1); assert.equal(h.timers.size, 0);
+  }
+  const h = desktopHarness(), signal = new AbortController(); signal.abort();
+  assert.equal((await h.adapter.saveText({filename:'report.json', text:'{}'}, {signal:signal.signal})).status, 'cancelled');
+  assert.equal((await h.adapter.saveText({filename:'../private.json', text:'{}'})).status, 'error');
+  assert.equal(h.downloads.length, 0);
+});
+
+test('Browser Adapter clipboard capabilities preserve the manual-copy fallback', async () => {
+  const h = desktopHarness();
+  assert.equal((await h.adapter.copyText('C:\\中文 Downloads')).status, 'completed');
+  assert.deepEqual(h.copied, ['C:\\中文 Downloads']);
+  const unavailable = desktopHarness({clipboard:false}).adapter;
+  assert.equal(unavailable.capabilities.copyText, false);
+  assert.equal((await unavailable.copyText('fixture')).status, 'unsupported');
+  h.browser.navigator.clipboard.writeText = async () => {throw new Error('permission denied');};
+  assert.equal((await h.adapter.copyText('fixture')).status, 'error');
+});
+
+test('X pairing reserves before HTTP and discards a response invalidated by disconnect', async () => {
+  const app = appHarness(), h = desktopHarness();
+  try {
+    await pause(10);
+    app.context.open = h.browser.open;
+    app.evaluate("state.xAuth.host_browser = true; openSettings = async () => true;");
+    let reply;
+    app.response((url) => url.includes('/api/auth/x/connect') ? new Promise(resolve => {reply = resolve;}) : json(state()));
+    const connecting = app.evaluate('connectX()');
+    assert.equal(h.tabs.length, 1); assert.equal(h.tabs[0].opener, null);
+    await pause(0);
+    await app.get('#x-disconnect').fire('click');
+    reply(json({...state(), pairing_url:'http://127.0.0.1:8765/chrome-connect#token=' + 'A'.repeat(43) + '&connect=1'}));
+    await connecting;
+    assert.equal(h.tabs[0].closed, true); assert.equal(h.tabs[0].destination, null);
+    assert.equal(app.get('#x-pairing-link').getAttribute('href'), null);
+  } finally {app.close();}
+});
+
+test('X validates pairing destination before adapter navigation and keeps a blocked-popup link', async () => {
+  const valid = 'http://127.0.0.1:8765/chrome-connect#token=' + 'A'.repeat(43) + '&connect=1';
+  for (const url of [valid, valid.replace(':8765', ':8877'), valid.replace('/chrome-connect', '/other'),
+    valid.replace('127.0.0.1', 'user:secret@127.0.0.1')]) {
+    const app = appHarness(), h = desktopHarness();
+    try {
+      await pause(10); app.context.open = h.browser.open;
+      app.evaluate("state.xAuth.host_browser = true; openSettings = async () => true;");
+      app.response(path => json(path.includes('/api/auth/x/connect') ? {...state(), pairing_url:url} : state()));
+      await app.evaluate('connectX()');
+      assert.equal(h.tabs[0].destination, url === valid ? valid : null);
+      assert.equal(h.tabs[0].closed, url !== valid);
+    } finally {app.close();}
+  }
+  const app = appHarness();
+  try {
+    await pause(10); app.context.open = () => null;
+    app.evaluate("state.xAuth.host_browser = true; openSettings = async () => true;");
+    app.response(() => json({...state(), pairing_url:valid}));
+    await app.evaluate('connectX()');
+    assert.equal(app.get('#x-pairing-link').hidden, false);
+    assert.equal(app.get('#x-pairing-link').href, valid);
+  } finally {app.close();}
+});
+
+test('Pixiv uses the adapter once and respects the backend opened flag', async () => {
+  for (const opened of [false, true]) {
+    const app = appHarness(), h = desktopHarness();
+    try {
+      await pause(10); app.context.open = h.browser.open;
+      app.evaluate('state.xAuth.host_browser = true;');
+      app.response(url => url.includes('/api/auth/pixiv/begin') ? json({opened, expires_in:600,
+        pairing_url:'http://127.0.0.1:8765/pixiv-connect#ticket=' + 'B'.repeat(43)}) : json(state()));
+      await app.get('#pixiv-begin').fire('click');
+      assert.equal(h.tabs.length, 1);
+      assert.equal(h.tabs[0].closed, opened);
+      assert.equal(Boolean(h.tabs[0].destination), !opened);
+    } finally {app.close();}
+  }
+});
+
+test('disposing Pixiv closes the reserved page before its late HTTP response', async () => {
+  const app = appHarness(), h = desktopHarness();
+  try {
+    await pause(10); app.context.open = h.browser.open;
+    app.evaluate('state.xAuth.host_browser = true;');
+    let reply;
+    app.response(() => new Promise(resolve => {reply = resolve;}));
+    const loading = app.get('#pixiv-begin').fire('click');
+    assert.equal(h.tabs.length, 1);
+    app.evaluate('pixivLogin.dispose()');
+    assert.equal(h.tabs[0].closed, true);
+    reply(json({opened:false, expires_in:600, pairing_url:'http://127.0.0.1:8765/pixiv-connect#ticket=' + 'A'.repeat(43)}));
+    await loading;
+    assert.equal(h.tabs[0].destination, null);
+  } finally {app.close();}
 });
 
 test('Pixiv author titles include display names from metadata and matching historical folders', async () => {

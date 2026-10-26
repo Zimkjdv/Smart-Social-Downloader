@@ -1,5 +1,7 @@
 const $ = (selector) => document.querySelector(selector);
 const { t, text: uiText } = window.I18n;
+const desktop = SSDLDesktop.createBrowser({ browser: window, document });
+window.addEventListener('pagehide', (event) => { if (!event.persisted) desktop.dispose(); });
 uiText($('#service-origin'), t('ui.local_service_origin_use_the_same_port', { origin: location.origin }));
 let extensionReady = false;
 let connecting = false;
@@ -50,7 +52,11 @@ $('#open-extensions').addEventListener('click', async () => {
   finally { button.disabled = false; }
 });
 $('#copy-path').addEventListener('click', async () => {
-  try { await navigator.clipboard.writeText($('#extension-path').value); uiText($('#setup-message'), 'ui.path_copied_paste_it_into_the_folder'); }
+  try {
+    const result = await desktop.copyText($('#extension-path').value);
+    if (result.status !== 'completed') throw new Error(result.status);
+    uiText($('#setup-message'), 'ui.path_copied_paste_it_into_the_folder');
+  }
   catch { $('#extension-path').select(); uiText($('#setup-message'), 'ui.press_ctrl_c_to_copy_the_selected'); }
 });
 $('#reload-page').addEventListener('click', () => location.reload());

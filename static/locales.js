@@ -1,5 +1,8 @@
 /* Stable message keys: edit copy here without renaming keys. */
 window.SSDLMessages = {
+  "ui.desktop_open_failed": {"zh-Hant": "無法開啟頁面，請允許彈出視窗後再試。", "en": "Unable to open the page. Allow popups and try again."},
+  "ui.desktop_export_failed": {"zh-Hant": "無法匯出診斷檔，請確認瀏覽器允許下載後再試。", "en": "Unable to export diagnostics. Allow downloads and try again."},
+  "ui.pixiv_use_link": {"zh-Hant": "請點選授權連結繼續 Pixiv 連接。", "en": "Use the authorization link to continue connecting Pixiv."},
   "ui.x_session_ready": {"zh-Hant": "可下載帳號可存取的媒體；失敗的 X 項目會自動重試。", "en": "Ready to download accessible media. Failed X jobs are retried automatically."},
   "ui.x_cookie_session": {"zh-Hant": "已設定 X Cookie 登入", "en": "X cookie sign-in configured"},
   "ui.x_cookie_session_ready": {"zh-Hant": "下載時使用進階設定中的 Cookie 檔案。", "en": "Downloads use the cookie file in advanced settings."},

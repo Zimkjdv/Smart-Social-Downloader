@@ -2,9 +2,10 @@
 (() => {
   'use strict';
   window.SSDLPixivLogin = {
-    create({ api, refresh, state, $, t, uiText }) {
+    create({ api, refresh, state, $, t, uiText, desktop }) {
       const scope = window.SSDLControllerLifecycle.create(window);
       let busy = false;
+      let pendingPairing = null;
       let attemptPhase = 'idle';
       function message(key, error = false) {
         if (['ui.pixiv_connected', 'ui.pixiv_disconnected'].includes(key)) key = '';
@@ -45,9 +46,7 @@
       async function perform(action, values = {}) {
         if (busy || !scope.active) return;
         busy = true;
-        const pairingTab = action === 'begin' && state.xAuth.host_browser ? window.open('about:blank', '_blank') : null;
-        if (pairingTab) pairingTab.opener = null;
-        let navigated = false;
+        const pairingTab = pendingPairing = action === 'begin' && state.xAuth.host_browser ? desktop.reserveExternal() : null;
         render();
         message('ui.pixiv_working');
         try {
@@ -67,9 +66,10 @@
             const link = $('#pixiv-auth-link');
             link.href = url.href;
             link.classList.remove('hidden');
-            if (!result.opened && pairingTab && !pairingTab.closed) {
-              pairingTab.location.replace(url.href); navigated = true;
-            } else if (!result.opened) window.open(url.href, '_blank', 'noopener,noreferrer');
+            if (!result.opened) {
+              const opened = pairingTab ? await pairingTab.open(url.href) : await desktop.openExternal(url.href);
+              if (opened.status !== 'completed') { message('ui.pixiv_use_link'); await refresh(); return; }
+            }
             message(automatic ? 'ui.pixiv_automatic_opened' : 'ui.pixiv_opened');
             await refresh();
           } else {
@@ -82,7 +82,8 @@
         } catch (error) {
           if (scope.active) message(error.message, true);
         } finally {
-          if (pairingTab && !pairingTab.closed && !navigated) pairingTab.close();
+          pairingTab?.cancel();
+          pendingPairing = null;
           busy = false;
           render();
         }
@@ -111,6 +112,7 @@
         });
       }
       return { init: scope.init, render, dispose() {
+        pendingPairing?.cancel();
         $('#pixiv-code').value = $('#pixiv-token').value = '';
         scope.dispose();
       } };

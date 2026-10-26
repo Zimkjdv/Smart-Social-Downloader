@@ -20,6 +20,7 @@ from .http_server import DeadlineReader, READ_SECONDS, WRITE_SECONDS
 from .database_maintenance import MaintenanceError
 from .local_media import serve_job_media
 from .session_storage import host_browser_required
+from . import platform_actions
 
 
 class RequestFormatError(ValueError):
@@ -625,9 +626,9 @@ class ApiHandler(BaseHTTPRequestHandler):
                 directory = self.app.state.download_dir
             try:
                 directory.mkdir(parents=True, exist_ok=True)
-                if os.name != "nt":
-                    return self._json(400, {"error": "目前僅支援在 Windows 開啟資料夾"})
-                os.startfile(str(directory))
+                platform_actions.open_path(directory)
+            except platform_actions.UnsupportedPlatformError:
+                return self._json(400, {"error": "目前僅支援在 Windows 開啟資料夾"})
             except OSError as exc:
                 return self._json(400, {"error": f"無法開啟下載資料夾：{exc}"})
             return self._json(200, {"opened": True})
@@ -741,9 +742,9 @@ class ApiHandler(BaseHTTPRequestHandler):
                         return self._json(400, {"error": "請使用網頁中的工作檔案清單；容器無法開啟主機檔案總管。"})
                     return self._json(200, {"opened": True, "browser": True,
                         "url": f"/api/jobs/{job_id}/content?file_index={index}&filename=" + quote(files[index], safe="")})
-                if os.name != "nt":
-                    return self._json(400, {"error": "目前僅支援在 Windows 開啟檔案與資料夾"})
-                os.startfile(str(target if action == "open-file" else target.parent))
+                platform_actions.open_path(target if action == "open-file" else target.parent)
+            except platform_actions.UnsupportedPlatformError:
+                return self._json(400, {"error": "目前僅支援在 Windows 開啟檔案與資料夾"})
             except (OSError, ValueError, TypeError, RuntimeError):
                 return self._json(400, {"error": "無法開啟檔案或資料夾，請確認檔案存在且已設定預設開啟程式"})
             return self._json(200, {"opened": True})

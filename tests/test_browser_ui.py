@@ -309,6 +309,39 @@ class BrowserUITests(unittest.TestCase):
         self.assertEqual(result['missing'], [])
         self.assert_no_errors()
 
+    def test_desktop_adapter_exports_diagnostics_as_a_real_browser_download(self):
+        self.load(); page = self.page
+        report = {"format_version": 1, "created_at": 1, "counts": {}, "jobs": [], "environment": environment()}
+        page.route("**/api/diagnostics*", lambda route: route.fulfill(
+            content_type="application/json", body=json.dumps(report)))
+        page.locator("#settings-open").click()
+        page.locator("#settings-tab-diagnostics").click()
+        with page.expect_download() as downloading:
+            page.locator("#diagnostics-export").click()
+        download = downloading.value
+        self.assertEqual(download.suggested_filename, "ssdl-diagnostics.json")
+        self.assertEqual(json.loads(Path(download.path()).read_text(encoding="utf-8")), report)
+        self.assert_no_errors()
+
+    def test_browser_media_uses_detached_tab_without_native_action_post(self):
+        filename = "web/中文 synthetic.png"
+        self.jobs.append({"id": "preview", "title": "Synthetic preview", "url": "https://example.org/album",
+                          "platform": "Web", "status": "completed", "created_at": 1, "files": [filename]})
+        self.load(); page = self.page
+        page.evaluate("state.fileActions = 'browser'")
+        self.context.route("**/api/jobs/preview/content?*", lambda route: route.fulfill(
+            content_type="text/html", body="<title>Synthetic preview</title>"))
+        with page.expect_popup() as opened:
+            page.locator('.row-icon-button[data-open-media="preview"]').click()
+        popup = opened.value
+        popup.wait_for_url("**/api/jobs/preview/content?*")
+        self.assertIsNone(popup.evaluate("window.opener"))
+        query = parse_qs(urlparse(popup.url).query)
+        self.assertEqual(query, {"file_index": ["0"], "filename": [filename]})
+        self.assertFalse([path for path, _ in self.writes if path.endswith("/open-file")])
+        popup.close()
+        self.assert_no_errors()
+
     def test_database_confirmation_nested_in_settings_cancels_and_submits_once(self):
         type(self).paused = True
         self.load(); page = self.page

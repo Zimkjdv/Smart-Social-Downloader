@@ -1,6 +1,6 @@
 # Roadmap
 
-更新：2026-10-25。此檔是**未完成工作與最新審查發現的唯一總清單**；完成紀錄移至 [CHANGELOG](CHANGELOG.md)。目前基準為 Windows／Python 3.12，沒有 Python 3.10 驗收工作。下列核取方塊均尚未完成，不代表已修正或已發布。N01～N08 已完成並移到 [CHANGELOG](CHANGELOG.md#unreleased)，回歸結果見 [TESTING](docs/TESTING.md)。N07 的索引評估已記錄，實際索引／游標儲存列為後續選配，尚未實作。
+更新：2026-10-26。此檔是**未完成工作與最新審查發現的唯一總清單**；完成紀錄移至 [CHANGELOG](CHANGELOG.md)。目前基準為 Windows／Python 3.12，沒有 Python 3.10 驗收工作。下列核取方塊均尚未完成，不代表已修正或已發布。N01～N08 已完成並移到 [CHANGELOG](CHANGELOG.md#unreleased)，回歸結果見 [TESTING](docs/TESTING.md)。N07 的索引評估已記錄，實際索引／游標儲存列為後續選配，尚未實作。
 
 ## 本輪整體審查
 
@@ -15,6 +15,86 @@ N01～N08 已移至 [CHANGELOG](CHANGELOG.md#unreleased)。本輪列出的修正
 目前根目錄入口＋`ssdl/`／`static/`／`chrome-extension/`／`tools/`／`docs/`／`tests/` 的分層保留。AppContext 與共用測試 fixture 已實作，runtime 位置保持相容；完整樹見 [ARCHITECTURE](docs/ARCHITECTURE.md)。
 
 每次只改一個責任邊界，維持入口、API、資料路徑及 Chrome extension ID 相容；共用鎖與關閉順序已列於架構文件。
+
+## Windows 桌面版：先 pywebview，保留 Electron 遷移路線
+
+2026-10-26 規劃，D01 已完成並記錄於 CHANGELOG；D02～D06 為後續工作。決策依據為使用者指定的「先做 pywebview，業務功能走標準 API，桌面專屬功能集中封裝」，並參考 [Python WebUI 轉 Windows GUI 對話](chatgpt-conversation://6ade3c59-7034-83e8-843b-79c106709fe9)。目標是瀏覽器版與桌面版共用同一份 Web UI／Python 後端，日後替換外殼時保留業務程式與資料。
+
+### 現況判斷與必要前置
+
+**現有前後端已具備可沿用的分離，不需要先重寫或拆成兩個 repository。** `static/` 提供 HTML／CSS／JavaScript，`static/api.js` 集中 HTTP／JSON 請求與回應檢查，`ssdl/http_api.py` 提供路由，`AppContext`／scheduler／repository 處理工作與保存。先補齊桌面差異的 Interface 與生命週期，再接 pywebview；不把改用 FastAPI、React、TypeScript、bundler 或 WebSocket 列為前置。
+
+| 現有位置 | 已有能力／目前耦合 | 本輪需要的調整 | 時機 |
+| --- | --- | --- | --- |
+| `static/api.js`、各 controller | 已透過 HTTP 操作工作、設定、登入及診斷；API client 有期限、取消、schema 與不確定寫入結果處理 | 整理共用業務契約；controller 不直接使用外殼 bridge | D01，GUI 前 |
+| `static/jobs_controller.js`、`diagnostics_controller.js`、登入腳本 | 分散使用 `window.open`、Blob 匯出、剪貼簿及 browser／desktop 檔案操作分支 | 以集中式 `DesktopInterface` 與 Browser／Pywebview Adapter 承接實際差異 | D01／D03 |
+| `ssdl/http_api.py` | 開資料夾／開檔路由內直接呼叫 `os.startfile` | 路徑與工作檔案驗證留在後端；Windows 分派集中至平台 Module | D01，GUI 前 |
+| `ssdl/desktop_service.py`、`tools/manage.py`、`ssdl/app.py` | 已有 Windows 互斥鎖、ready／stop／done、日誌及正常關閉；啟動成功會直接開瀏覽器 | 分離「確保服務可用」與「顯示介面」，形成可供不同外殼使用的控制 Interface | D02，GUI 前 |
+| `AppContext.ROOT`、`desktop_service.ROOT`、`job_runtime.py` | 靜態資源、狀態／登入／SQLite、cache 及預設 downloads 依賴專案 root；子程序使用 `sys.executable -m ...` | 開發版保留現有位置；安裝版前分開資源與可寫資料，定義 frozen EXE 的 backend／worker 入口 | D05，安裝版前；不阻塞來源版原型 |
+
+### 共用架構與責任
+
+```text
+共用 static/ Web UI
+  ├─ SSDLApi → 同源 HTTP／JSON → Python 工作／設定／登入／媒體／保存
+  └─ DesktopInterface → Browser Adapter 或 Pywebview Adapter
+                                      └─ 未來 Electron preload／IPC Adapter
+
+桌面外殼 → BackendSupervisor 的控制 Interface → 獨立 Python 後端程序
+```
+
+`DesktopInterface` 是放置可替換實作的 Seam；Browser 與 Pywebview 是第一批實際 Adapter，Electron 先記錄對應方式，不建立沒有使用者的空實作。外殼只處理視窗、原生互動與後端程序管理，不能擁有第二份佇列、下載狀態、資料庫、登入憑證或下載引擎。
+
+建議落點為 `static/desktop.js`（Interface／組裝與 Browser Adapter）、`static/desktop_pywebview.js`（唯一直接接觸 pywebview bridge 的前端 Adapter）、`ssdl/platform_actions.py`（後端 OS 分派）、`ssdl/desktop_control.py`（Supervisor／薄控制入口）及 `desktop/pywebview_app.py`（GUI 啟動與視窗）。現有 `desktop_service.py` 的 Windows 控制實作繼續沿用；名稱與檔案數於實作時依責任調整，不先建立空檔案。未來 Electron 的主程序／preload／打包設定再放入獨立外殼目錄。
+
+| Interface | 職責與契約 |
+| --- | --- |
+| `SSDLApi` | 工作加入／暫停／停止／重試、設定、X／Pixiv 授權狀態、診斷、檔案清單及媒體內容一律使用共用 HTTP API；保留相對 `/api/...`、現有輪詢與錯誤語意。只有實際需求與量測支持時才增加 SSE／WebSocket。 |
+| `DesktopInterface` | 由組裝入口注入 controller；集中原生選擇資料夾、開外部連結、診斷匯出及必要的視窗操作。動作方法使用 Promise、可序列化資料及一致的取消／不支援／錯誤結果；保留點擊手勢的分頁預留及 dispose 是同步的本機生命週期操作，不跨 bridge；先訂版本與能力清單，能力缺少時保留瀏覽器替代操作，不依 user-agent 猜測。 |
+| 工作檔案與 OS 操作 | 前端以工作 ID、檔案索引與既有檔名核對欄位提出開檔／顯示位置需求。後端保留檔案範圍、存在性、類型及過期選取驗證，再交平台 Module 執行 OS 分派；不讓 renderer 以任意路徑或 shell command 繞過驗證。現有 HTTP 開檔路由維持相容。 |
+| `BackendSupervisor` | 集中啟動／附接、就緒、身分與版本核對、服務擁有權、正常停止及錯誤處理。pywebview 呼叫共用 Python 實作；為未來 Electron 保留薄的控制 CLI／私有程序通道與 JSON 結果／退出碼，不在 JavaScript 重寫服務管理。控制協定與業務 HTTP 分開，不新增無保護的 HTTP 關機入口。 |
+
+一般 controller 不直接存取 `window.pywebview.api`、`ipcRenderer`、Node／Python 物件或框架型別；框架偵測、bridge ready 時序及轉換只在 Adapter／組裝入口。bridge 僅暴露必要桌面方法，不能把整個 AppContext 或任意 method／IPC channel dispatcher 交給網頁。若新增本機驗證憑證，使用外殼無關的協定，不能把業務 HTTP 契約綁到 `pywebview.token`。
+
+### D01：共用契約與平台操作（已完成）
+
+2026-10-26 完成，實作／測試範圍見 [共用契約](docs/API_CONTRACT.md) 及 [CHANGELOG](CHANGELOG.md#unreleased)。業務 API 保留；Browser Adapter 已承接開頁、配對分頁預留、診斷下載、剪貼簿與取消清理，Windows 開檔分派集中於平台 Module。未宣稱 pywebview／WebView2 已驗收。
+
+### D02：抽出可重用的後端與視窗生命週期
+
+- [ ] 把 `desktop_service.start()` 的服務啟動／附接結果與 `open_page()` 分開；保留目前 `start.bat`／`stop.bat` 及 console／Docker 行為。兩種外殼共用服務控制，使用獨立 backend 程序，GUI 主執行緒不承擔 HTTP／下載工作。
+- [ ] 定義有版本的啟動結果，包含實際 origin、執行個體識別、版本／契約相容資訊及附接／擁有狀態；結合既有專案互斥鎖／控制通道核對身分，不能因任意 port 回 200 或 PID 相同就附接。處理重複／同時啟動、其他專案／其他軟體占埠、啟動失敗／逾時與 backend 異常退出。預設保留 8765 與明確設定的 port，不因占埠偷偷更換 Chrome 連接器目的地。
+- [ ] 分開「正確服務及 UI／API 已就緒」與「所有下載依賴健康」。目前 `/api/health` 將依賴健康納入總狀態；缺引擎時仍應讓使用者看到環境診斷，不能永遠卡在 GUI loading。一般操作繼續使用共用 API，不以視窗 bridge 另建工作操作路線。
+- [ ] 第一版關閉視窗只關閉介面、背景下載繼續；清楚顯示此行為，提供明確停止入口。正常停止沿用 AppContext／worker／writer 的保存順序；僅停止具有相應擁有權的本程式服務，附接既有服務或 renderer 崩潰時不誤停它。重複開 GUI 應喚回同一資料 scope 的既有視窗，不另建共寫服務；托盤、自動啟動另列選配。
+
+### D03：接上第一個 pywebview／WebView2 桌面版本
+
+- [ ] 新增獨立 GUI 入口與選配桌面依賴鎖定，透過既有服務載入同源 `http://127.0.0.1:<port>/`。保留同一份 HTML／CSS／JS，不使用 `file://` 或第二個內建 HTTP server 重建業務 API；pywebview 在主執行緒跑 GUI loop，服務等待與耗時操作不阻塞介面。
+- [ ] Windows 明確選用 WebView2，缺少 Runtime 時提供清楚的修復方式，不靜默退回舊 IE renderer。使用原生視窗框架、合理的最小尺寸與縮放；第一版先完成單視窗，不增加自訂無邊框標題列、多視窗或自動更新。
+- [ ] Pywebview Adapter 實作集中式桌面能力、bridge-ready 與失敗處理；GUI 成功／失敗狀態透過共用 API 更新。設定專用且穩定的 WebView profile／儲存位置，明確決定語言、頁數等 UI 偏好如何跨啟動保存；不可假設預設 private mode 會保留偏好，亦不共用／匯入個人 Chrome Cookie。登入秘密仍由 Python 的既有 DPAPI 保存。
+- [ ] 只讓可信的本機 UI 使用 bridge；限制主視窗導航與彈出視窗，外部內容不帶原生能力。沿用並驗證 loopback 綁定、Host／Origin／跨站檢查及媒體 sandbox；不以放行所有 CORS、`Origin: null` 或停用網頁安全解決相容問題。外部連結、`target=_blank`、Blob 診斷匯出、下載與剪貼簿逐項決定處理方式。
+- [ ] X／Pixiv 授權沿用一般 Chrome 與既有連接器，不在內嵌視窗另做登入或讀取 Chrome profile。統一授權開頁的責任，保留後端 `opened`／連結 fallback 語意，避免後端與 Adapter 各開一次。驗證外部 Chrome callback 成功後，桌面 UI 能更新；保留 extension ID、配對時限、自訂 port 與秘密不進入一般 snapshot／日誌的規則。
+
+### D04：共用介面與實際 Windows GUI 驗收
+
+- [ ] 以同一組 Interface 契約驗證 Browser／Pywebview Adapter，包括能力缺少、bridge 尚未就緒、取消、拒絕、逾時及視窗已關閉；業務測試跨 HTTP 執行，不為每個外殼複製下載引擎／佇列測試。確認核心匯入、一般 Web／Docker 與既有 CI 不依賴安裝 GUI 套件。
+- [ ] 在暫存資料與專用 profile 驗收真實 WebView2：啟動、既有／重複／同時啟動、埠衝突、後端退出、關窗續抓、明確停止與重啟恢復；未安裝 Runtime 的結果要明確報告。分開自動化 fixture 與人工操作證據，不能用 headless Chrome 通過取代 pywebview GUI 驗收。
+- [ ] 對照瀏覽器版與桌面版的工作／設定／錯誤／語系／媒體頁：鍵盤與焦點、捲動、100／125／150／200% DPI、中文及空白路徑、資料夾選擇取消、開檔／顯示位置、圖片及影片 Range／播放、Blob 匯出、剪貼簿、外部頁與一般 Chrome 授權回接。以相同 viewport 截圖比較；訂明可接受的原生視窗／字型差異，不宣稱不同引擎逐像素相同。
+
+### D05：可散布的 Windows 安裝版（在來源版 GUI 通過後）
+
+- [ ] 在打包前區分唯讀程式資源、使用者資料／登入／SQLite、cache／WebView profile 與使用者選擇的媒體目錄。開發版預設保持既有路徑；安裝版使用可寫使用者目錄並提供有備份與回退的明確遷移，不把資料寫進 Program Files 或 onefile 解壓暫存目錄，不因切換外殼就另建一份歷史／登入。服務／視窗互斥與擁有權識別須對齊同一資料 scope，不能因版本安裝位置不同而允許兩個 backend 共寫。需跨外殼保存的語言／清單偏好採有版本的中立資料格式或共用 API，不以複製 WebView2 profile 到 Electron 作為遷移機制。
+- [ ] 處理 `desktop_service` 與 `job_runtime` 目前依賴 `sys.executable -m ...` 的 frozen 相容性：定義 GUI／backend／下載 worker 的明確程序角色與啟動方式，避免 EXE 子程序遞迴開 GUI；驗證 FFmpeg／Node／下載引擎、靜態資源、Chrome 連接器、DLL 與 WebView2 Runtime 的定位、日誌與正常關閉。先做可檢查的資料夾型發行包，再評估單一 EXE。
+- [ ] 補上選配依賴與授權清單、來源封裝 allowlist／排除規則、Windows 打包 CI，以及 README／架構／安裝／回復文件。在沒有預裝 Python／Node 的乾淨 Windows 10／11 驗收安裝、更新保留資料、回退與解除安裝行為；自動更新、簽章、托盤與開機啟動按需求另估，不併入第一個 GUI 原型。
+
+### D06：Electron 遷移保留與成本控制
+
+- [ ] 在 Browser／Pywebview 兩個 Adapter 通過後記錄 Electron 對應表：同一份 `static/` 與標準 HTTP API、同一個 Python backend／資料格式／授權流程，替換的部分是主程序、視窗生命週期、桌面 Adapter、後端啟動入口與打包。先保留設計與契約，待使用者決定再實作 Electron。
+- [ ] 未來 Electron 以 preload／`contextBridge` 暴露相同 `DesktopInterface`；renderer 不直接拿 Node、檔案系統或任意 IPC。逐方法驗證參數、來源／frame 與能力，維持 `contextIsolation`／sandbox，透過同一個 Supervisor 控制協定管理 Python 子程序。重跑 Adapter 契約及真實外殼驗收；不承諾只改啟動檔即可零成本遷移。
+
+實作順序為 **D01 → D02 → D03 → D04 → D05**；D06 是將來替換外殼的保留規劃。先交付可在現有 Python 環境執行的單視窗版本，再處理免裝 Python 的安裝包。每一步以獨立 diff／明確通過條件收斂，不為桌面化順帶重寫後端、導入前端框架或實作選配索引；所需時間與 token 在第一個 WebView2 原型驗證後再細估，避免把打包／真人授權排錯算成幾行外殼程式的成本。
+
+技術依據：[pywebview 架構](https://pywebview.flowrl.com/guide/architecture)支援直接載入既有 HTTP 服務；[pywebview 官方文件](https://pywebview.flowrl.com/api/)說明 GUI 主執行緒、bridge 與 profile 設定；[Electron context isolation](https://www.electronjs.org/docs/latest/tutorial/context-isolation)及[安全建議](https://www.electronjs.org/docs/latest/tutorial/security)作為未來 preload／IPC 設計依據。上述後續階段為依本專案現況提出的工程規劃，官方文件不代表此專案已完成整合驗收。
 
 ## 安裝、真實使用與 GitHub 發布驗收
 

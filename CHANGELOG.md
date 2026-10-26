@@ -6,6 +6,10 @@ Application changes are recorded here. Download engine and Chrome connector vers
 
 No GitHub release or tag has been created.
 
+### Added
+
+- D01 shared desktop seam (2026-10-26): document HTTP API, response/error/deadline and compatibility contracts; inject a versioned Browser Adapter for external pages, synchronous pairing-tab reservation, diagnostics downloads and clipboard fallback. Centralize validated native file dispatch while retaining Chrome login and Docker media previews. Cover permission failures, cancellation/resource cleanup, stale login responses and backend path/origin refusals. See [contracts](docs/API_CONTRACT.md).
+
 ### Fixed
 
 - Native Chrome pairing acceptance (2026-10-25): complete operator-assisted X cancellation/re-pair, actual 600-second expiry/re-pair, offline recovery, real Pixiv claim/callback and automatic return, native DPAPI/backend restore, and new pairing after an actual Chrome restart. Record a successful fresh extension exchange after the operator-reported unavailable worker display; retain in-flight OAuth suspension as separate work. Restore connector port 8765 and verify temporary-session cleanup. Keep receipts private and distinguish UI observations from HTTP evidence. See [acceptance scope](docs/CHROME_PAIRING_ACCEPTANCE.md#follow-up-evidence--2026-10-25).

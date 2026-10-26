@@ -1,5 +1,6 @@
 /* Dashboard composition, ordered snapshot publishing and refresh scheduling. */
-const controllerDependencies = { document, browser: window, $, state, I18n, t, uiMessage, uiText,
+const desktop = SSDLDesktop.createBrowser({ browser: window, document });
+const controllerDependencies = { document, browser: window, desktop, $, state, I18n, t, uiMessage, uiText,
   api, render, toast, refresh, getSnapshot: () => lastResponse, isOffline: () => connectionOffline };
 const diagnosticsController = SSDLDiagnosticsController.create({ ...controllerDependencies, scheduleStatusRefresh, timeLabel, fileSize });
 const jobsController = SSDLJobsController.create({ ...controllerDependencies, rows, pendingJobActions, jobPageSizes, jobPageSizeKey,
@@ -7,7 +8,7 @@ const jobsController = SSDLJobsController.create({ ...controllerDependencies, ro
   invalidateView: () => { viewRefreshPending = true; } });
 const settingsController = SSDLSettingsController.create({ ...controllerDependencies, renderOffline,
   loadEnvironment: (...args) => diagnosticsController.load(...args) });
-const pixivLogin = SSDLPixivLogin.create({ api, refresh, state, $, t, uiText });
+const pixivLogin = SSDLPixivLogin.create({ api, refresh, state, $, t, uiText, desktop });
 diagnosticsController.init(); jobsController.init(); settingsController.init(); pixivLogin.init();
 let dashboardDisposed = false;
 function disposeDashboard() {
@@ -15,6 +16,7 @@ function disposeDashboard() {
   dashboardDisposed = true;
   clearTimeout(refreshTimer);
   pixivLogin.dispose(); settingsController.dispose(); jobsController.dispose(); diagnosticsController.dispose();
+  desktop.dispose();
 }
 window.addEventListener('pagehide', (event) => { if (!event.persisted) disposeDashboard(); });
 function openSettings(...args) { return settingsController.open(...args); }

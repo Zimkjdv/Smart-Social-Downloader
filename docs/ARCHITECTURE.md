@@ -1,5 +1,7 @@
 # 專案結構與維護
 
+D01 已加入 [共用 HTTP／桌面契約](API_CONTRACT.md)：`static/desktop.js` 集中 Browser Adapter 的外部開頁、彈窗預留、診斷下載及剪貼簿，由 `app.js` 注入 controller。業務功能仍使用 `static/api.js`；`ssdl/platform_actions.py` 承接驗證後的 Windows 開檔分派，路徑與來源檢查留在 HTTP。pywebview Adapter／服務生命週期依 [Roadmap](../ROADMAP.md) 後續實作。
+
 後端模組集中到 `ssdl/`。根目錄 `app.py` 是簡單入口，`python app.py`、`start.bat` 及既有瀏覽器網址仍可使用。
 
 `ssdl` 是 **Smart Social Downloader** 的縮寫，作為 Python 套件名稱，方便使用 `from ssdl import media` 等匯入。它不代表下載媒體的分類資料夾；平台分類仍使用 `youtube/`、`twitter/` 等名稱。中英文 README 均提供目錄結構及用途。
