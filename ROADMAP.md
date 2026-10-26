@@ -22,11 +22,10 @@ Windows 背景啟停的 7 項原生隔離驗收已於 2026-10-24 通過並移至
 
 - [ ] **一般桌面 Windows／互動驗收**：全新一般 Windows 的 Python／Node／Chrome 安裝、實際雙擊 start.bat／stop.bat、預設瀏覽器視窗／作業系統關聯、鍵盤／終端批次提示及授權 X 登入仍待驗收。新來源／新 venv 安裝、離線重啟、自動修復、更新／基準恢復，以及獨立控制台真正 Ctrl+C 的閒置／下載中關閉、程序清理及待辦恢復已自動化並移至 [CHANGELOG](CHANGELOG.md#unreleased)，見 [安裝驗收](docs/INSTALLATION_ACCEPTANCE.md) 與 [控制台驗收](docs/CONSOLE_ACCEPTANCE.md)。這些隔離副本／程式產生的事件不等於出廠桌面或人手按鍵；沒有 Python 3.10 工作。
 
-一般 Chrome 配對的已完成部分（2026-10-25）：使用者確認重新載入 connector 1.2.0，觀察 8877／8765 埠不一致提示，實際 Chrome X prepare／submission 均成功且 extension Origin／ID 符合；正常 Windows 使用者環境 DPAPI 保存與後端重啟恢復成功。未修改期限的 X 配對在 616.6 秒觀察到逾時，原本有效登入仍保留。新增隔離驗收工具與來源包驗收，完成部分移至 [CHANGELOG](CHANGELOG.md#unreleased)，範圍見 [Chrome 驗收](docs/CHROME_PAIRING_ACCEPTANCE.md)。
+依使用者要求先處理 CI；路徑別名修正已在 GitHub 通過。後續介面測試補強連線容量與必要腳本失敗診斷，紀錄見 [TESTING](docs/TESTING.md#browser-ui-ci-fixture-capacity-and-diagnostics--2026-10-25)。最新 `d22c9a8` 的 GitHub Actions 三個工作（Windows、全新安裝、Docker）已全部通過，見 [CI 確認](docs/TESTING.md#hosted-ci-confirmation--2026-10-25)。Chrome 真實配對的獨立實測結果如下。
 
-依使用者要求先處理 CI；路徑別名修正已在 GitHub 通過。後續介面測試補強連線容量與必要腳本失敗診斷，紀錄見 [TESTING](docs/TESTING.md#browser-ui-ci-fixture-capacity-and-diagnostics--2026-10-25)。此項合成測試維護不代表下列真實配對待辦完成。
+一般 Chrome 原生配對主流程已於 2026-10-25 完成實機驗收：取消後重配、真實 600 秒票證逾時後重配、離線失敗／上線重試、Pixiv 真實 claim／callback 自動回接、原生 DPAPI 保存及自訂 port 的後端重啟恢復、真正 Chrome 重啟後重配，以及使用者觀察 worker 無法使用後的真實重連。驗收紀錄區分人工操作、實際 HTTP 與內部狀態；專門的 OAuth 進行中 worker 休眠不在這個主流程結論內，仍列於下方授權剩餘環境。完成紀錄見 [CHANGELOG](CHANGELOG.md#unreleased) 及 [Chrome 驗收](docs/CHROME_PAIRING_ACCEPTANCE.md#follow-up-evidence--2026-10-25)。
 
-- [ ] **一般 Chrome 剩餘真實配對**：取消後重配、逾時後重配、服務離線／失敗後重試、Pixiv 真實 claim／callback、自訂 port 下的 Pixiv 重啟恢復，以及真正 worker 休眠／Chrome 重啟後重配。這次 Pixiv 只收到 begin，未收到 claim／callback，不能算自動回接成功。Codex 的 Browser 與 Chrome 管理頁均顯示 8877 瀏覽允許，但工具仍因 saved permission／managed policy 拒絕存取，重啟 Codex 後仍被拒絕。依使用者指示先保留待辦，待工具存取異常（設定已允許但工具仍拒絕，原因未確認）排除後繼續；未繞過限制。正常 Windows 使用者 DPAPI 已證實可用，這項工具存取異常不能當成 DPAPI 失效。
 - [ ] **線上平台抽樣**：實際 Best／指定畫質、登入失效、限流與恢復、帳號媒體掃描、缺檔補抓；先取得適合的測試素材。104＋10 合成測試不代表所有平台即時相容。
 - [ ] **GitHub 設定與發布**：啟用並確認私人漏洞回報入口，核對 tag、版本、來源 ZIP、release notes 後發布 preview。repo 已公開、Windows／Python 3.12 CI 已通過，目前沒有 tag／Release。
 - [ ] **後續依賴更新提案驗收**：首輪 Python 提案審查與 pycryptodomex 3.24.1 修補驗收已完成，移至 [CHANGELOG](CHANGELOG.md#unreleased)；[審查紀錄](docs/DEPENDENCY_ACCEPTANCE.md)記錄 PR #1／#2 的版本、相容性及恢復驗證。目前尚未收到 Actions 更新提案；收到後仍須核對官方版本／完整 SHA 與兩個 Windows CI 工作。pyee 14 與目前 Playwright 1.63.0 的 `pyee>=13,<14` 要求不相容，延後至相容的 Playwright／瀏覽器更新一起驗收；不能因 Python 3.12 支援就單獨強裝。後續提案不自動合併，也未宣稱完成 CVE 掃描。
@@ -39,7 +38,7 @@ Windows／一般 Chrome 授權主流程，以及 Hoshirapu（82728784）的 22 �
 
 Pixiv 授權生命週期的自動化部分已於 2026-10-25 完成並移至 [CHANGELOG](CHANGELOG.md#unreleased)：16 個 manager／實際 loopback API 案例與四個 connector 腳本案例，驗證 PKCE、取消／過期、來源與錯誤 port 拒絕、模擬 worker 重載、加密／記憶體保存與失效登入恢復，並修正失效憑證重啟再現與 :0 回呼判定。範圍見 [授權驗收](docs/PIXIV_AUTH_ACCEPTANCE.md)。
 
-- [ ] **其他授權的剩餘真實環境**：一般 Chrome／Docker 真實 OAuth 自動回接、連接器舊版升級與權限批准、真實 service worker 休眠／瀏覽器重啟與分頁關閉、外部 code 過期／取消、原生 DPAPI／Docker secret 登入恢復，以及儲存權限故障的真人處置。模擬 Chrome API、固定時鐘及自建 AES 金鑰不代表這些環境已完成。
+- [ ] **其他授權的剩餘真實環境**：Docker 真實 OAuth 自動回接、全新連接器安裝／權限提示、OAuth 進行中的 worker 休眠或 Chrome 重啟與授權分頁關閉、外部 code 過期／取消、Docker secret 登入恢復，以及儲存權限故障的真人處置。一般 Chrome 的正常 OAuth 回接、原生 DPAPI／後端恢復與重啟後新配對已完成主流程驗收；未對 OAuth 進行中休眠／跨重啟延續作出完成聲明。模擬 Chrome API、固定時鐘及自建 AES 金鑰不代表這些剩餘環境已完成。
 Pixiv 新增內容與故障恢復的自動化部分已於 2026-10-25 完成並移至 [CHANGELOG](CHANGELOG.md#unreleased)。[16 項合成故障驗收](docs/PIXIV_RECOVERY_ACCEPTANCE.md)涵蓋新增／不可存取作品、掃描不完整、頁碼缺口與重複、限流、停止／傳輸中斷、已完成頁面保留、只補缺頁及登入敏感資料遮蔽，並修正完整性與錯誤恢復問題。
 
 - [ ] **內容與故障的剩餘真實驗收**：作者在平台新增作品後同步、Pixiv 實際不可存取／刪除／私密回應、真實平台限流與傳輸故障恢復，以及 Ugoira 原始影格完整數量／解碼。合成 API／傳輸案例與此次 22 作品／24 檔案不代表以上真人平台情境已完成。

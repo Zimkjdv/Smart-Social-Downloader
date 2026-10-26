@@ -60,9 +60,11 @@ host/secret acceptance covers the fixed secret mount. These tests therefore do
 not establish actual Pixiv login or a real Chrome extension installation.
 
 Mocked Chrome worker reload is not proof of Chrome suspension/browser restart
-behavior. Native Windows DPAPI with a real account, fresh Chrome permission
-prompts, external OAuth expiration and real Docker callback/login remain manual
-work in [ROADMAP](../ROADMAP.md).
+behavior. The separate [ordinary Chrome acceptance](CHROME_PAIRING_ACCEPTANCE.md)
+records real native-DPAPI login, connector claim/callback, automatic return and
+browser/backend lifecycle observations. Fresh permission prompts, external
+OAuth expiration, in-flight worker suspension and real Docker callback/login
+remain separate work in [ROADMAP](../ROADMAP.md).
 
 If both expired-marker writing and file removal are denied, no process can
 guarantee durable invalidation without writable storage. The current process

@@ -24,6 +24,8 @@ Installer/launcher changes also require [fresh Windows installation acceptance](
 
 ## Pull requests
 
+The default branch is protected by the active [Protect main ruleset](https://github.com/Zimkjdv/Smart-Social-Downloader/rules/25801940). Push changes to a working branch and open a pull request. Before merging, resolve review conversations, update the branch against `main`, and pass all three GitHub Actions checks: `windows`, `install-windows` and `docker-runtime`. No approving review is required for this single-maintainer repository. Direct pushes, force pushes and deletion of `main` are blocked; the ruleset has no bypass actors.
+
 Dependency updates follow the [maintenance review gate](docs/MAINTENANCE.md#dependency-updates-and-action-pins). Retain complete Action SHAs and release comments; run `python tools/check_workflows.py` before proposing a CI change. New Action identities require review of the explicit allowlist. Dependabot PRs need the same regression/source-distribution checks as other changes.
 
 Include the problem, relevant Issue, change summary, validation results or pending checks, and any compatibility impact on API/state/connector behavior. A successful syntax check is not a passing regression suite. Add a concise entry under **Unreleased** in [CHANGELOG.md](CHANGELOG.md) for notable changes; the maintainer assigns release versions.
