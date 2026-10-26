@@ -1,5 +1,7 @@
 # Windows background lifecycle acceptance
 
+D02 adds native supervisor identity/ownership and second-process window-focus events to this gate. It also exercises deliberate exit of an owned fixture tree, stale-record recovery and instance-specific stop refusal. Actual GUI presentation/focus/close belongs to D03/D04; see [control contract](DESKTOP_CONTROL.md).
+
 `tools/check_desktop.py` runs the shipped `setup.bat`, `start.bat` and `stop.bat`
 in a newly extracted, receipt-owned Windows/Python 3.12 installation. It never
 stops the ordinary project or uses its saved sessions, history or media.

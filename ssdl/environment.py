@@ -18,6 +18,8 @@ import threading
 import time
 
 from .config import configured_port
+from .runtime_paths import paths, frozen
+import json
 from .x_auth import AuthError, _dpapi, chrome_executable
 from .session_storage import SessionStorage, host_browser_required
 
@@ -73,6 +75,15 @@ def _runtime_check() -> dict:
 
 
 def _pip_check() -> dict:
+    if frozen():
+        try:
+            manifest = json.loads((paths().resources / 'bundle-manifest.json').read_text(encoding='utf-8'))
+            valid = manifest.get('schema') == 1 and bool(manifest.get('packages')) and all(
+                importlib.metadata.version(name) == version for name, version in manifest['packages'].items())
+        except (OSError, ValueError, importlib.metadata.PackageNotFoundError):
+            valid = False
+        return _check('dependencies', '套件相依性', 'ok' if valid else 'error',
+                      '安裝包版本與建置清單一致。' if valid else '安裝包不完整，請重新安裝。', required=True)
     output = _command([sys.executable, "-m", "pip", "check"], timeout=8)
     return _check("dependencies", "套件相依性", "ok" if output is not None else "error",
                   "套件相依性一致。" if output is not None else "相依性檢查失敗或逾時。",
@@ -100,9 +111,9 @@ def inspect_environment(root: Path, *, port: int | None = None) -> dict:
     with ThreadPoolExecutor(max_workers=3) as executor:
         checks.extend(executor.map(lambda check: check(), (_ffmpeg_check, _runtime_check, _pip_check)))
     is_venv = Path(sys.prefix).resolve() == (root / ".venv").resolve()
-    checks.append(_check("venv", "專案虛擬環境", "ok" if is_venv else "warning",
-                         "使用專案 .venv。" if is_venv else "目前未使用專案 .venv。",
-                         hint="" if is_venv else "請使用 setup.bat 與 start.bat，避免使用其他 Python 環境。"))
+    checks.append(_check("venv", "專案虛擬環境", "ok" if is_venv or frozen() else "warning",
+                         "使用內附 Python 執行環境。" if frozen() else "使用專案 .venv。" if is_venv else "目前未使用專案 .venv。",
+                         hint="" if is_venv or frozen() else "請使用 setup.bat 與 start.bat，避免使用其他 Python 環境。"))
     chrome = chrome_executable() is not None
     try:
         browser_version = importlib.metadata.version("playwright")

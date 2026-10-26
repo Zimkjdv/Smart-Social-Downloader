@@ -94,6 +94,12 @@ def accept(root, token, workspace, inherited):
                 raise AcceptanceError("Repeated start replaced the running service")
             check_pages([url, url])
             phase("repeat-start-keeps-original-port-and-process")
+            batch("supervisor-attached")
+            verify_scope(request(port, "/api/summary"), media)
+            if not all(json.loads((root / "data/supervisor-attached.json").read_text()).values()):
+                raise AcceptanceError("Attached supervisor evidence is incomplete")
+            check_pages([url, url])
+            phase("supervisor-identity-attached-stop-refusal-and-window-focus")
 
             # A separate source root has distinct native controls. Share only
             # dependency imports through a fixture venv, never mutable app data.
@@ -188,12 +194,27 @@ def accept(root, token, workspace, inherited):
             if foreground.poll() is not None:
                 raise AcceptanceError("Background stop terminated a foreground service")
             verify_scope(request(port, "/api/summary"), media)
-            if "OSError" not in (root / "data/background.log").read_text(encoding="utf-8"):
-                raise AcceptanceError("Occupied-port failure did not produce a diagnostic log")
+            # D05's data writer lease refuses this same-scope foreground
+            # instance before socket binding. Require that specific diagnostic.
+            if "Another backend or data migration already uses this data directory." not in (root / "data/background.log").read_text(encoding="utf-8"):
+                raise AcceptanceError("Foreground data-scope conflict did not produce the writer-lease diagnostic")
         assert_port_closed(port)
         if fingerprint(root / "data/state.json") != before:
             raise AcceptanceError("Failed background launch changed durable state")
-        phase("foreground-port-conflict-log-and-no-foreign-stop")
+        phase("foreground-data-scope-conflict-log-and-no-foreign-stop")
+
+        # Kill only a deliberately owned fixture tree by closing its Job Object,
+        # then require cold startup to reject the retired record/identity.
+        with command(root, token, "supervisor-crash", env, workspace / "supervisor-crash.log") as owned:
+            wait_success(owned, "owned abrupt-exit setup", timeout=75)
+            verify_scope(request(port, "/api/summary"), media)
+        assert_port_closed(port)
+        batch("supervisor-cold")
+        stopped(root, port)
+        check_pages([url] * 4)
+        if not all(json.loads((root / "data/supervisor-cold.json").read_text()).values()):
+            raise AcceptanceError("Cold supervisor evidence is incomplete")
+        phase("supervisor-abrupt-exit-restart-and-owned-instance-stop")
 
     return {"passed": True, "phases": phases, "scope": "receipt-owned-native-windows-source-copies",
             "transport": "synthetic-owned-worker-tree", "browser": "recorded-webbrowser-open-dispatch",

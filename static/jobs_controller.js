@@ -2,7 +2,7 @@
 (() => {
   'use strict';
   function create(dependencies) {
-    const { document, browser, $, state, I18n, t, uiMessage, api, getSnapshot } = dependencies;
+    const { document, browser, desktop, $, state, I18n, t, uiMessage, api, getSnapshot } = dependencies;
     const scope = window.SSDLControllerLifecycle.create(browser);
     const render = scope.effect(dependencies.render);
     const toast = scope.effect(dependencies.toast);
@@ -229,7 +229,8 @@
       try {
         if (state.fileActions === 'browser' && mode === 'open-file') {
           const query = new URLSearchParams({ file_index: String(index), filename: job.files[index] });
-          window.open(`/api/jobs/${encodeURIComponent(job.id)}/content?${query}`, '_blank', 'noopener');
+          const result = await desktop.openExternal(`/api/jobs/${encodeURIComponent(job.id)}/content?${query}`);
+          if (result.status !== 'completed' && scope.active) throw new Error(t('ui.desktop_open_failed'));
           return;
         }
         await api(`/api/jobs/${encodeURIComponent(job.id)}/${mode}`, { method: 'POST', body: JSON.stringify({ file_index: index, filename: job.files[index] }) });

@@ -44,6 +44,7 @@ assets/docs/tools and recursive **code-only** boundaries:
 | Boundary | Allowed files |
 | --- | --- |
 | `ssdl/` | Python modules, including subpackages |
+| `desktop/` | Optional shell Python modules, including subpackages; no binaries/profile data |
 | `tests/` | `__init__.py`, `test_*.py`, `*.test.cjs` |
 | `tests/helpers/` | Python helper modules, including subpackages |
 | Other source folders | Only the explicit `SOURCE_GLOBS` entries |
@@ -123,3 +124,16 @@ closure case while keeping other intermittent transport observations pending.
 Fresh dependency installation is now checked by a separate Windows job/tool;
 the extraction regression above intentionally uses current dependencies. See
 [Installation acceptance](INSTALLATION_ACCEPTANCE.md).
+
+The optional Windows GUI gate is separate from core/source/Docker acceptance:
+`python tools/check_desktop_gui.py --matrix` opens actual WebView2 sessions with
+isolated sources/data/profile and compares the shared UI with fresh Chrome.
+Neither GUI dependencies nor an interactive desktop are required by normal CI.
+See [D04 GUI acceptance](DESKTOP_GUI_ACCEPTANCE.md) for artifacts, startup-only
+reproduction, completed manual baseline and remaining environment limits.
+
+D05 release tooling and packaging recipes are included in source allowlists;
+compiled executables, vendor downloads, build venvs and acceptance data are not.
+Windows executable/installer acceptance is a separate opt-in lane documented in
+[Windows distribution](WINDOWS_DISTRIBUTION.md); it does not add GUI dependencies
+to the core/source or Docker gates.

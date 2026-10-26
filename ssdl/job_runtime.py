@@ -15,14 +15,16 @@ from .media import DownloadError
 from .process_group import ProcessGroup
 from .ipc import read_message, write_message, ProtocolError, MessageTooLarge, MAX_FRAME_BYTES, CAPACITY_ERROR
 
+from .runtime_paths import paths, module_command
+
 NO_PROGRESS_SECONDS = 300
 MAX_MESSAGE = MAX_FRAME_BYTES  # Compatibility name: maximum wire frame, not logical message.
 
 
 def run_job(payload, emit, gate, cancelled, policy, health=lambda value: None, *,
             no_progress_timeout=NO_PROGRESS_SECONDS, command=None):
-    root = Path(__file__).resolve().parents[1]
-    process = subprocess.Popen(command or [sys.executable, "-X", "utf8", "-u", "-m", "ssdl.job_runner"],
+    root = paths().home
+    process = subprocess.Popen(command or module_command('ssdl.job_runner'),
         cwd=root, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
         bufsize=65536,
         creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0), start_new_session=os.name != "nt")

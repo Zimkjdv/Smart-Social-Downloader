@@ -56,6 +56,20 @@ def play_video(page):
     wait_element(page, "video", "v => v.ended === true")
 
 
+def check_missing_media(context, page, origin):
+    # A reserved about:blank document has already loaded. Wait for the actual
+    # media navigation before examining its source or issuing the 404 probe.
+    page.wait_for_url(lambda url: local_request(url, origin, "GET") and
+                      re.fullmatch(r"/api/jobs/[^/]+/content", urlsplit(url).path) is not None,
+                      wait_until="domcontentloaded")
+    require(local_request(page.url, origin, "GET"), "browser_error_navigation_escaped")
+    response = context.request.get(page.url)
+    try:
+        require(response.status == 404, "browser_missing_original_served")
+    finally:
+        response.dispose()
+
+
 def exercise_browser(browser, project, move_media, report):
     """Drive shipped UI and native media documents; retain categorical evidence only."""
     origin = f"http://127.0.0.1:{project['port']}"
@@ -136,11 +150,7 @@ def exercise_browser(browser, project, move_media, report):
             missing.click()
         missing_page = popup.value
         # Chrome may render a native HTTP error page. Inspect only categorical status.
-        missing_page.wait_for_load_state("domcontentloaded")
-        require(local_request(missing_page.url, origin, "GET"), "browser_error_navigation_escaped")
-        response = context.request.get(missing_page.url)
-        require(response.status == 404, "browser_missing_original_served")
-        response.dispose()
+        check_missing_media(context, missing_page, origin)
         missing_page.close()
         passed()
         current = STAGES[6]

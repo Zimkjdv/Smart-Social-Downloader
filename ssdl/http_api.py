@@ -20,6 +20,7 @@ from .http_server import DeadlineReader, READ_SECONDS, WRITE_SECONDS
 from .database_maintenance import MaintenanceError
 from .local_media import serve_job_media
 from .session_storage import host_browser_required
+from . import platform_actions
 
 
 class RequestFormatError(ValueError):
@@ -205,6 +206,14 @@ class ApiHandler(BaseHTTPRequestHandler):
         if path == "/api/health":
             health = self.app.health()
             return self._json(200 if health["status"] == "healthy" else 503, health)
+        if path == '/api/ui-preferences':
+            try:
+                return self._json(200, {'preferences': self.app.UI_PREFERENCES.read()})
+            except (OSError, ValueError, TypeError):
+                return self._json(500, {'error': '無法讀取介面偏好，原檔已保留。'})
+        if path == "/api/identity":
+            identity = self.app.identity()
+            return self._json(200 if identity["api_ready"] and identity["ui_ready"] else 503, identity)
         if path.startswith("/api/jobs/") and path.endswith("/thumbnail"):
             job_id = path.removeprefix("/api/jobs/").removesuffix("/thumbnail")
             with self.app.lock:
@@ -266,7 +275,7 @@ class ApiHandler(BaseHTTPRequestHandler):
         if path == "/api/auth/x/connector":
             buffer = io.BytesIO()
             try:
-                base = self.app.ROOT / "chrome-extension"
+                base = self.app.RESOURCES / "chrome-extension"
                 if base.resolve() != base or base.is_symlink():
                     raise ValueError("linked source")
                 with zipfile.ZipFile(buffer, "w", compression=zipfile.ZIP_DEFLATED) as archive:
@@ -343,6 +352,16 @@ class ApiHandler(BaseHTTPRequestHandler):
             return self._json(400, {"error": str(exc)})
         except (ValueError, UnicodeError, RecursionError):
             return self._json(400, {"error": "請求格式不正確"})
+
+        if path == '/api/ui-preferences':
+            try:
+                with self._mutation():
+                    value = self.app.UI_PREFERENCES.save(data)
+                return self._json(200, {'preferences': value})
+            except (TypeError, ValueError):
+                return self._json(400, {'error': '介面偏好格式不正確。'})
+            except OSError:
+                return self._json(500, {'error': '無法保存介面偏好，原檔已保留。'})
 
         if path.startswith("/api/auth/pixiv/"):
             if path in {"/api/auth/pixiv/claim", "/api/auth/pixiv/callback"}:
@@ -625,9 +644,9 @@ class ApiHandler(BaseHTTPRequestHandler):
                 directory = self.app.state.download_dir
             try:
                 directory.mkdir(parents=True, exist_ok=True)
-                if os.name != "nt":
-                    return self._json(400, {"error": "目前僅支援在 Windows 開啟資料夾"})
-                os.startfile(str(directory))
+                platform_actions.open_path(directory)
+            except platform_actions.UnsupportedPlatformError:
+                return self._json(400, {"error": "目前僅支援在 Windows 開啟資料夾"})
             except OSError as exc:
                 return self._json(400, {"error": f"無法開啟下載資料夾：{exc}"})
             return self._json(200, {"opened": True})
@@ -741,9 +760,9 @@ class ApiHandler(BaseHTTPRequestHandler):
                         return self._json(400, {"error": "請使用網頁中的工作檔案清單；容器無法開啟主機檔案總管。"})
                     return self._json(200, {"opened": True, "browser": True,
                         "url": f"/api/jobs/{job_id}/content?file_index={index}&filename=" + quote(files[index], safe="")})
-                if os.name != "nt":
-                    return self._json(400, {"error": "目前僅支援在 Windows 開啟檔案與資料夾"})
-                os.startfile(str(target if action == "open-file" else target.parent))
+                platform_actions.open_path(target if action == "open-file" else target.parent)
+            except platform_actions.UnsupportedPlatformError:
+                return self._json(400, {"error": "目前僅支援在 Windows 開啟檔案與資料夾"})
             except (OSError, ValueError, TypeError, RuntimeError):
                 return self._json(400, {"error": "無法開啟檔案或資料夾，請確認檔案存在且已設定預設開啟程式"})
             return self._json(200, {"opened": True})

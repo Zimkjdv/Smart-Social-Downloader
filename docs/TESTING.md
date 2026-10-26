@@ -895,3 +895,279 @@ hit a GBK encoding error while echoing Unicode Node checkmarks. Reading its
 UTF-8 log confirms the successful child result, separately from that console
 summary failure. Private extracted output is ignored
 `data/browser-ui-ci-source.log`.
+
+
+## Hosted CI confirmation — 2026-10-25
+
+[Run 40143826641](https://github.com/Zimkjdv/Smart-Social-Downloader/actions/runs/40143826641)
+for `d22c9a8` completed successfully at 07:50 Taipei time. All three jobs
+(`windows`, `install-windows`, `docker-runtime`) and their acceptance steps
+passed, including extracted-source tests. The earlier failed runs remain
+historical failures; this successful push validates the path normalization and
+browser fixture repairs on hosted runners. Real-account Chrome pairing remains
+a separate acceptance procedure.
+
+
+## Default branch protection — 2026-10-25
+
+The repository initially had no branch rules or rulesets. After the owner
+completed GitHub account verification, the UI confirmed `Ruleset created` and
+`Protect main Active`, applying to `main`. The read-only ruleset API confirms
+[rule 25801940](https://github.com/Zimkjdv/Smart-Social-Downloader/rules/25801940)
+has active enforcement, deletion/non-fast-forward restrictions, pull requests
+with zero required approvals and resolved review threads, and strict required
+checks `windows`, `install-windows`, `docker-runtime`, each bound to GitHub
+Actions integration 15368. The bypass list is empty. No destructive push or
+branch deletion was attempted to verify these settings. These are live GitHub
+repository settings, not settings installed by a source checkout.
+
+
+## Follow-up source verification — 2026-10-25
+
+A tracked-file export excluded the deferred comparison document and all private
+runtime data. The 238-file source ZIP passed byte/CRC/allowlist verification,
+then the extracted source passed **424 Python tests in 108.471 seconds**, **28
+Node tests**, and **116 dependency-fault tests in 71.156 seconds**, with zero
+failures/errors/skips. The dependency probe observed only the previously
+reviewed urllib3 SSL-options deprecation. Eight reviewed Action pins and the
+CRLF-aware whitespace check also pass. No runtime source or dependency versions
+changed; the final acceptance documentation is byte-verified in the reviewed
+source archive. Private output is ignored `data/main-protection-source.log`.
+
+
+## Completed native Chrome main flow — 2026-10-25
+
+Follow-up ordinary Chrome 155 / connector 1.2.0 at port 8877 used the real
+Windows user, native DPAPI and actual auth handlers. Observed outcomes:
+
+- Cancel returned 200 and phase idle; a fresh real connector exchange connected.
+- Offline Connect displayed service-unavailable; online retry connected using
+  fresh real prepare/submission requests.
+- An unchanged 600-second X ticket was waiting at 544.2 seconds and failed at
+  601.5 seconds while the existing login remained connected. Re-pairing after
+  the operator's Chrome restart succeeded and status was connected at 625.2
+  seconds.
+- Pixiv begin/claim/callback all returned 200, with matching extension Origin/ID
+  on claim/callback; the browser automatically returned to the local connected
+  page. A new backend AppContext restored both DPAPI-encrypted sessions with
+  no additional callback or manual token entry.
+- After the operator reported `Service Worker (無法使用)`, another real X
+  prepare/submission returned 200. The receipt contains four successful X
+  pairs in total. This is assisted recovery evidence, not a worker-termination
+  trace or an in-flight OAuth suspension test.
+- The saved connector destination returned to 8765, observed through the 8877
+  mismatch message. The runner exited 0 and removed its temporary scope. The
+  normal 8765 background service was started after a connection-refused probe;
+  the same HTTP probe then returned 200.
+
+The final report has `closed: true` and `temporary_scope_removed: true`.
+Receipts/screenshots stay under ignored `data/`; no Cookie, code, token, browser
+profile or login file enters the commit/archive. The full procedure and broader
+remaining scope are in [Chrome acceptance](CHROME_PAIRING_ACCEPTANCE.md).
+
+## D01 shared API and Browser Adapter — 2026-10-26
+
+D01 adds a versioned platform seam without changing business routes or importing
+GUI packages. Checkout regression passed 428 Python cases; two additional real
+headless Chrome cases then passed for a diagnostics download and detached media
+preview. The final reviewed source ZIP contained 241 files and passed all 430
+Python cases, 36 Node frontend cases and 116 dependency-fault cases. All eight
+pinned Action references passed policy checks. The known urllib3 SSL-options
+deprecation remained a reviewed dependency observation.
+
+Fixtures cover popup blocking/closure, unsafe destinations, cancellation and
+export cleanup, X disconnect invalidation, Pixiv backend-open ownership and
+late disposal. Local HTTP tests preserve native/container dispatch and reject
+stale/deleted files, traversal, non-media and foreign origins before OS launch.
+The two Chrome tests use a fresh temporary context and synthetic HTTP content;
+they do not establish pywebview/WebView2 or real-account login acceptance.
+Runtime output stays in ignored data. The unrelated untracked comparison note
+was excluded from the tracked-source export. See [contracts](API_CONTRACT.md).
+
+### D01 hosted Docker gate follow-up
+
+At `6c81b3a`, hosted Windows and installation jobs passed; Docker reached renamed
+file rejection after successful image decoding, keyboard selection, H.264
+playback/seek and reload checks, then failed. A reserved about:blank tab had
+already fired DOMContentLoaded, allowing the gate's URL check to run before the
+actual media navigation committed. A real Chrome test with delayed 404 headers
+reproduced `browser_error_navigation_escaped` before the fix and passed after it.
+The gate now waits for the exact local-origin job/content destination and then
+checks 404. Origin restrictions and missing-file validation remain enforced.
+
+## D02 supervisor control — 2026-10-26
+
+The final 245-file reviewed source ZIP passed 442 Python cases, 36 frontend
+cases and 116 dependency-fault cases. A new disposable Windows source/venv
+passed the full installation gate including optional browser installation,
+updates/restored pins, hidden console Ctrl+C, and nine native background phases.
+New native cases verify attached identity/stop refusal, a second real process
+requesting window focus, closing window controls without stopping work, deliberate
+receipt-owned Job Object exit, cold recovery, and refusal to stop a replacement.
+No PID-based termination or ordinary project state was used.
+
+D01's hosted follow-up at a437206 passed windows, install-windows and
+docker-runtime. Local Docker runtime plus all seven real browser stages and 55
+Pixiv cases passed as a focused check. The local full Docker sequence separately
+stopped at host_bind_contract_failed under Windows Docker Desktop/Compose; it did
+not reach its browser stage. That host-bind result is not reported as a full
+local Docker pass. Linux hosted Docker completed the full sequence successfully.
+D03 real WebView2 presentation remains separate from these control fixtures.
+
+## D03 native WebView2 source shell — 2026-10-26
+
+The final 255-file reviewed source ZIP passed 450 Python cases, 41 frontend
+cases and 116 dependency-fault cases. The complete fresh Windows source/venv
+installation with browser dependencies and all nine background-control phases
+also passed. The eight pinned Action references passed policy checks; pip check
+reported no broken requirements after the optional desktop pins were installed.
+
+An opt-in native WebView2 gate then opened two receipt-owned temporary GUI
+sessions with separate application data and a dedicated persistent profile. Both
+verified the six-method bridge allowlist, the real dashboard, shared HTTP writes,
+repeat launch/focus, refused navigation followed by a successful new bridge call,
+closing the window while backend stayed reachable and explicit owned shutdown.
+Language/page preferences survived the second session. The observed device pixel
+ratio was 2; the synthetic screenshot was visually inspected. No ordinary Chrome
+profile, real account, user history or production media was used. Temporary
+receipts/PNG remain in ignored data, not the source ZIP.
+
+The first navigation refusal exposed a pywebview WinForms cache detail: cancelling
+kept the actual trusted document but cached the attempted URI. The host now
+preserves the committed CoreWebView2 Source and existing readiness after that
+cancelled navigation. Native regression checks this behavior and bridge reuse.
+Portable fixtures additionally test permissions/cancel/timeout, late handshakes,
+settings draft epochs, native export/cancel, popup/frame/message origin guards
+and ordinary Chrome selection for pairing fallback.
+
+This is current-runtime source-GUI smoke, not a fresh Windows OS, all DPI values,
+actual native picker/clipboard permissions or real-account Chrome callbacks.
+Those remain D04. No D05 frozen EXE/installer work was performed. Commands and
+scope: [desktop guide](DESKTOP_GUI.md).
+
+## D04 shared contracts and native GUI matrix — 2026-10-26
+
+The 260-file reviewed source export passed 455 Python cases, 57 frontend cases
+and 116 dependency-fault cases. All eight pinned Action references passed policy
+checks. Core HTTP was additionally served in a fresh interpreter that rejects
+all pywebview/.NET imports. GUI packages remain optional; core/Docker CI has no
+new GUI installation. The reviewed urllib3 SSL-options warning remains the same
+dependency observation documented above.
+
+Real receipt-owned WebView2 sessions passed the expanded GUI matrix on this
+Windows/Python 3.12.10 host, WebView2 155.0.4283.62 and Chrome 155.0.8059.86.
+The renderer's initial devicePixelRatio was 2; this does not measure OS settings.
+Matching 1280×800 CSS viewport captures
+of settings/errors in Chinese and English were visually inspected. The desktop
+picker, banner, font rendering and scrollbar differences are expected; no pixel
+identity is asserted. Four CDP scale captures are renderer emulation, not four
+actual Windows display settings.
+
+The matrix passed shared HTTP/UI flows, scripted focus/scroll, actual clipboard
+write/readback with previous data restored, injected picker cancel/selection and
+UTF-8 export, validated/intercepted file/folder/external dispatch, PNG/H.264 decode,
+advancing frames, seek, HTTP 206 and Chrome Blob/native-media export/playback.
+Two sessions verified profile preferences, attached-stop refusal, backend-exit
+offline UI, history/pending-queue/partial recovery, active synthetic work after
+programmatic window close and graceful owned shutdown. Concurrent gated GUI
+processes produced one primary window and backend. A foreign listener survived
+failed startup and its native error message was captured. Final fixture cleanup
+was reported separately from acceptance. Reports/PNGs are ignored local data.
+
+Red/green regressions found two bridge-wait cancellation issues (closed host
+reported unsupported; abort waited for handshake timeout) and a startup error
+rendering failure. Actual WebView2 NavigationStarting represented NavigateToString
+as a data URI, which the guard rejected; initialization could also overwrite an
+early error load. The host now registers exact generated HTML bytes, grants no
+native powers to those documents, keeps arbitrary data navigation blocked and
+waits for initialization before showing the error. The native conflict gate
+failed before this fix and passed after it. Temporary diagnostic tracing was
+removed.
+
+The user-assisted follow-up passed the current Windows host's manual baseline:
+actual folder/Save As dialogs, cancel/overwrite/read-only refusal, physical
+keyboard/focus/scroll, actual OS scales 100/125/150/200%, PNG/MP4/folder/external
+applications, native close/stop prompts and desktop-initiated ordinary Chrome
+X/Pixiv callback/clear/reconnect. A genuinely reopened second window restored
+both DPAPI sessions; its close left the backend reachable before isolated login
+cleanup and owned stop. Connector port 8765 was restored; production stayed
+available. A PermissionError in the auxiliary polling loop made some first-round
+live samples incomplete, so they are not used to infer DPI transitions or closure.
+
+The follow-up also found an invalid PNG IDAT CRC in the synthetic fixture:
+permissive browser decoding had accepted it. A strict chunk-CRC regression failed
+before correction and passed after it. The application media path did not change.
+The 455-case source run includes this regression. A GUI matrix attempted during
+human desktop operations failed with gui_clipboard_write_failed and remains a
+failed attempt; its cause is not established. The final matrix, run alone after
+the operator finished, passed all six shared/native/media groups, both GUI
+sessions, concurrent startup and foreign-port conflict with strict checks
+unchanged. Its report states passed=true, 260 source files and normal workspace
+removal. This does not prove the earlier clipboard failure cannot recur.
+
+Hosted push and PR workflows at the initial D04 commit 3b8b72c both passed all
+three jobs: Windows regression, fresh Windows installation and Docker runtime.
+The follow-up commit requires its own hosted checks after pushing.
+
+Fresh-process startup at every scale, mixed-DPI monitors, actual clipboard
+permission refusal and physically runtime-free Windows remain untested. The
+runtime failure notification is injected. Exact commands, human reports and
+evidence boundaries are in [D04 acceptance](DESKTOP_GUI_ACCEPTANCE.md). D05 was
+not started.
+
+
+## D05 Windows distribution — 2026-10-26
+
+The directory bundle and per-user Inno Setup installer were built on the current
+Windows 10 build 19045 host with Python 3.12.10. They include separate windowless
+GUI and console/pipe runtime executables, Node 22.23.4 and a separately built
+LGPL FFmpeg 8.1.3 with zlib 1.3.2. Download hashes, Microsoft/Inno publisher
+signatures, exact dependency versions and pip check passed. Bundled licenses,
+corresponding sources, build recipe and source ZIP hash accompany the runtime.
+The source wheel's unrelated FFmpeg binary is excluded.
+
+The extracted source suite passed 468 Python, 59 frontend and 116 dependency-fault
+cases. Both workflows and all 15 pinned Action references passed policy checks.
+The final session-size and external-home corrections passed all 13 distribution cases.
+
+The reviewed 282-file source export passed the real WebView2/Chrome matrix:
+both GUI sessions, shared UI/media/clipboard groups and concurrent/conflicting
+startup. Profile and HTTP-backed preferences survived restart. The matrix's
+physical dialogs/keys, scale changes and external application dispatch remain
+injected or emulated as documented in D04; no new human observations are inferred.
+
+Receipt-owned frozen acceptance passed actual WebView2/UI/bridge/preferences,
+close with backend alive, framed worker and invalid Pixiv exchange, PNG-to-JPEG
+thumbnail decoding, HTTPS protocol discovery, HTTP UI and synthetic DPAPI restore.
+External Python/Node were removed from child PATH. Different installation paths
+attached to the same data-scope owner; attached-stop was refused. Graceful stop
+and restart preserved history, login, preferences and original media. Real silent
+installers with a unique test AppId refused an update while the backend ran,
+then allowed update and installer rollback after stop. Uninstall removed program
+files and retained user data/media. The two installer versions contain the same
+current application/data schema, not an arbitrary future downgrade test.
+
+Regressions exposed and corrected Windows SQLite connections left open during
+directory swap, legacy cp950 output corrupting JSON pipes, and a migration bound
+smaller than the encrypted-session store's canonical limit. The final migration
+regression imports actual DPAPI ciphertext larger than 16 KiB and verifies exact
+bytes, source/media preservation and rollback. Migration also refuses active
+foreground writers, newer state, linked inputs and failed destination replacement;
+a prepared backup supports recovery after an interrupted swap. A source child with a separate data home resolves the reviewed code through an explicit
+role entry, rather than searching that data directory for Python modules. Native folder
+selection runs on an STA thread. No production data was imported.
+
+Clean Windows 10/11 acceptance remains unchecked. The host has no Windows
+Sandbox and the user confirmed no other clean machine/VM. PATH isolation and
+hosted runners are not substitutes. Actual missing-Runtime bootstrap/repair,
+installed shortcuts/native prompts and real-account Chrome callbacks in that
+clean environment remain gates in ROADMAP and WINDOWS_DISTRIBUTION. No tag,
+public Release, automatic updater, signing, tray or startup registration was added.
+
+The first hosted D05 source runs exposed a stale native acceptance assertion:
+the new writer lease refused a same-scope foreground conflict before socket bind,
+but the fixture still required an OSError log. It now requires the specific
+writer-lease diagnostic and retains its foreground-survival, unchanged-state and
+normal-stop checks. No production refusal or shutdown behavior was weakened.
+The corrected receipt-owned native source acceptance passed all nine phases locally,
+including that conflict and abrupt-exit recovery, before the follow-up push.

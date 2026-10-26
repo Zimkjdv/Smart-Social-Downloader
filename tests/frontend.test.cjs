@@ -19,6 +19,39 @@ const state = (jobs = []) => ({
 const job = (status = 'completed', id = 'one') => ({id, status, url:'https://example.org/media', platform:'Web', created_at:1, title:'Fixture', files:['web/media.png']});
 const json = (body, status = 200) => ({ok:status < 400, status, headers:{get:() => 'application/json'}, json:async () => body});
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+function preferences(dependencies) {
+  const context = vm.createContext({window:{}, AbortController});
+  vm.runInContext(source('static/preferences.js'), context);
+  return context.window.SSDLPreferences.create(dependencies);
+}
+test('shared preferences hydrate a new host and seed legacy choices only once', async () => {
+  let applied, writes = [];
+  const value = {schema:1, language:'en', page_size:50};
+  const host = preferences({api:async () => ({preferences:value}), read:() => value,
+    apply:v => {applied=v; host.changed();}, onError:error => {throw error;}});
+  await host.start(); assert.equal(applied, value);
+  const legacy = preferences({api:async (_, options) => {
+    if (options.method) writes.push(JSON.parse(options.body));
+    return {preferences:null};
+  }, read:() => value, apply:() => assert.fail('no saved preferences'), onError:error => {throw error;}});
+  await legacy.start(); assert.deepEqual(writes, [value]);
+  host.dispose(); legacy.dispose();
+});
+test('late preference hydration cannot overwrite input and writes keep order without retries', async () => {
+  let resolveRead, current = {schema:1, language:'en', page_size:10}, calls = [], errors = [];
+  const host = preferences({api:(_, options) => {
+    if (!options.method) return new Promise(resolve => {resolveRead=resolve;});
+    calls.push(JSON.parse(options.body));
+    return calls.length === 1 ? Promise.reject(new Error('lost response')) : Promise.resolve({});
+  }, read:() => ({...current}), apply:() => assert.fail('stale hydration'), onError:error => errors.push(error)});
+  const pending=host.start();
+  const first=host.changed(); current.page_size=50; const second=host.changed();
+  resolveRead({preferences:{schema:1, language:'zh-Hant', page_size:20}});
+  await pending; await first; await second;
+  assert.deepEqual(calls.map(v => v.page_size), [10,50]); assert.equal(errors.length,1);
+  host.dispose(); await host.changed(); assert.equal(calls.length,2);
+});
 function apiContext(fetch) {
   const context = vm.createContext({window:{}, fetch, AbortController, setTimeout, clearTimeout});
   vm.runInContext(source('static/api.js'), context);
@@ -81,7 +114,7 @@ class Element {
   focus() {}
   reportValidity() { return true; }
 }
-function appHarness() {
+function appHarness({desktop:injectedDesktop} = {}) {
   const elements = new Map(), scheduled = new Map(), realTimers = new Set(), calls = [];
   const document = new Element();
   document.querySelector = key => { if (!elements.has(key)) elements.set(key, new Element(key)); return elements.get(key); };
@@ -93,7 +126,7 @@ function appHarness() {
   const context = vm.createContext({
     document, NodeFilter:{SHOW_TEXT:4}, CustomEvent:class {constructor(type) {this.type = type;}},
     localStorage:{getItem:key => store.get(key) ?? null, setItem:(key, value) => store.set(key, value)},
-    AbortController, URL, Blob, Intl, console,
+    AbortController, URL, URLSearchParams, Blob, Intl, console, location:new URL('http://127.0.0.1:8765/'),
     fetch:async (url, options) => { calls.push({url, method:options.method || 'GET'}); return response(url, options); },
     setTimeout:(fn, delay) => { const id = nextTimer++; if (delay <= 50) { const timer = setTimeout(() => {realTimers.delete(timer); fn();}, delay); realTimers.add(timer); } else scheduled.set(id, {fn, delay}); return id; },
     clearTimeout:id => scheduled.delete(id),
@@ -103,6 +136,8 @@ function appHarness() {
   vm.runInContext(source('static/locales.js'), context);
   vm.runInContext(source('static/i18n.js'), context);
   vm.runInContext(source('static/api.js'), context);
+  vm.runInContext(source('static/desktop.js'), context);
+  if (injectedDesktop) context.SSDLDesktop = {createBrowser:() => injectedDesktop};
   const request = context.SSDLApi.request;
   context.SSDLApi.request = (url, options) => request(url, {...options, timeoutMs:20});
   for (const name of ['ui_state.js', 'job_presentation.js', 'x_login.js', 'media_selection.js', 'controller_lifecycle.js', 'database_controller.js', 'diagnostics_controller.js', 'jobs_controller.js', 'settings_controller.js', 'pixiv_login.js', 'app.js']) {
@@ -121,6 +156,334 @@ test('controller modules load without DOM access or application globals', () => 
   assert.equal(typeof context.window.SSDLSettingsController.create, 'function');
   assert.equal(typeof context.window.SSDLJobsController.create, 'function');
   assert.equal(typeof context.window.SSDLDiagnosticsController.create, 'function');
+});
+
+function desktopHarness({ blocked = false, clipboard = true, saveFails = false } = {}) {
+  const tabs = [], timers = new Map(), revoked = [], downloads = [], copied = [];
+  const browser = {
+    location:new URL('http://127.0.0.1:8765/'), Blob,
+    URL:{createObjectURL:() => 'blob:fixture-' + downloads.length, revokeObjectURL:url => revoked.push(url)},
+    setTimeout:fn => { const id = timers.size + 1; timers.set(id, fn); return id; }, clearTimeout:id => timers.delete(id),
+    open() {
+      if (blocked) return null;
+      const tab = {closed:false, opener:browser, destination:null, close() {this.closed = true;}};
+      tab.location = {replace:url => {tab.destination = url;}};
+      tabs.push(tab); return tab;
+    },
+    navigator:clipboard ? {clipboard:{writeText:async text => {copied.push(text);}}} : {},
+  };
+  const document = {createElement() {return {click() {if (saveFails) throw new Error('download denied'); downloads.push({href:this.href, filename:this.download});}};}};
+  const context = vm.createContext({window:{}, URL});
+  vm.runInContext(source('static/desktop.js'), context);
+  return {adapter:context.window.SSDLDesktop.createBrowser({browser, document}), browser, tabs, timers, revoked, downloads, copied};
+}
+
+test('Browser Adapter has a versioned capability contract and reserves popups synchronously', async () => {
+  const h = desktopHarness(), d = h.adapter;
+  assert.equal(d.version, 1); assert.equal(d.kind, 'browser');
+  assert.equal(d.capabilities.pickDirectory, false);
+  assert.equal((await d.pickDirectory()).status, 'unsupported');
+  const reservation = d.reserveExternal();
+  assert.equal(h.tabs.length, 1); assert.equal(h.tabs[0].opener, null);
+  assert.equal(h.tabs[0].destination, null);
+  assert.equal('location' in reservation, false);
+  assert.equal((await reservation.open('/chrome-connect#token=' + 'A'.repeat(43) + '&connect=1')).status, 'completed');
+  reservation.cancel(); d.dispose();
+  assert.equal(h.tabs[0].closed, false); // A successful page belongs to the user.
+  assert.match(h.tabs[0].destination, /^http:\/\/127\.0\.0\.1:8765\/chrome-connect#/);
+  assert.equal((await d.openExternal('https://x.com/home')).status, 'cancelled');
+});
+
+test('Browser Adapter rejects unsafe destinations and distinguishes denied, cancelled and closed operations', async () => {
+  const h = desktopHarness();
+  for (const url of ['javascript:alert(1)', 'file:///C:/private', 'data:text/html,fixture', 'https://user:secret@example.org/']) {
+    assert.equal((await h.adapter.openExternal(url)).status, 'error');
+  }
+  assert.equal(h.tabs.length, 0);
+  assert.equal((await desktopHarness({blocked:true}).adapter.openExternal('https://x.com/home')).status, 'blocked');
+  const closed = h.adapter.reserveExternal(); h.tabs.at(-1).closed = true;
+  assert.equal((await closed.open('https://x.com/home')).status, 'cancelled');
+  const pending = h.adapter.reserveExternal(); h.adapter.dispose();
+  assert.equal(h.tabs.at(-1).closed, true);
+  assert.equal((await pending.open('https://x.com/home')).status, 'cancelled');
+});
+
+test('Browser Adapter owns download URL cleanup for completion, cancellation, failure and disposal', async () => {
+  for (const finish of ['timer', 'abort', 'dispose', 'failure']) {
+    const h = desktopHarness({saveFails:finish === 'failure'}), signal = new AbortController();
+    const result = await h.adapter.saveText({filename:'診斷 report.json', text:'{"synthetic":true}', mimeType:'application/json'}, {signal:signal.signal});
+    assert.equal(result.status, finish === 'failure' ? 'error' : 'completed');
+    if (finish === 'timer') [...h.timers.values()][0]();
+    if (finish === 'abort') signal.abort();
+    h.adapter.dispose();
+    assert.equal(h.revoked.length, 1); assert.equal(h.timers.size, 0);
+  }
+  const h = desktopHarness(), signal = new AbortController(); signal.abort();
+  assert.equal((await h.adapter.saveText({filename:'report.json', text:'{}'}, {signal:signal.signal})).status, 'cancelled');
+  assert.equal((await h.adapter.saveText({filename:'../private.json', text:'{}'})).status, 'error');
+  assert.equal(h.downloads.length, 0);
+});
+
+test('Browser Adapter clipboard capabilities preserve the manual-copy fallback', async () => {
+  const h = desktopHarness();
+  assert.equal((await h.adapter.copyText('C:\\中文 Downloads')).status, 'completed');
+  assert.deepEqual(h.copied, ['C:\\中文 Downloads']);
+  const unavailable = desktopHarness({clipboard:false}).adapter;
+  assert.equal(unavailable.capabilities.copyText, false);
+  assert.equal((await unavailable.copyText('fixture')).status, 'unsupported');
+  h.browser.navigator.clipboard.writeText = async () => {throw new Error('permission denied');};
+  assert.equal((await h.adapter.copyText('fixture')).status, 'error');
+});
+
+function pywebviewHarness(api = null, options = {}) {
+  const listeners = new Map(), document = new Element();
+  const browser = {setTimeout, clearTimeout, location:new URL('http://127.0.0.1:8765/?shell=pywebview'),
+    addEventListener:(type, fn) => listeners.set(type, fn), removeEventListener:type => listeners.delete(type)};
+  if (api) browser.pywebview = {api};
+  const context = vm.createContext({window:{}, URL});
+  vm.runInContext(source('static/desktop_pywebview.js'), context);
+  return {browser, document, connect(api) {browser.pywebview={api}; listeners.get('pywebviewready')?.();},
+    adapter:context.window.SSDLDesktopPywebview.create({browser, document, readyTimeoutMs:25, timeoutMs:25, ...options})};
+}
+const nativeDescription = () => ({version:1, kind:'pywebview', ownership:'started', capabilities:{
+  openExternal:true, saveText:true, copyText:true, pickDirectory:true, stopBackend:true}});
+
+function contractHarness(kind, {clipboard = true, blocked = false, denyCopy = false} = {}) {
+  if (kind === 'browser') {
+    const h = desktopHarness({clipboard, blocked});
+    if (denyCopy) h.browser.navigator.clipboard.writeText = async () => {throw new Error('permission denied');};
+    return h;
+  }
+  return pywebviewHarness({
+    describe:async () => ({...nativeDescription(), capabilities:{...nativeDescription().capabilities, copyText:clipboard}}),
+    open_external:async () => ({status:blocked ? 'blocked' : 'completed'}),
+    save_text:async () => ({status:'completed'}),
+    copy_text:async () => {if (denyCopy) throw new Error('permission denied'); return {status:'completed'};},
+    pick_directory:async () => ({status:'cancelled'}),
+  });
+}
+
+// One public Interface suite, with only OS/browser boundaries replaced per host.
+for (const kind of ['browser', 'pywebview']) {
+  test(`${kind} DesktopInterface: immutable version and boolean capabilities`, async () => {
+    const d = contractHarness(kind).adapter;
+    try {
+      if (d.ready) await d.ready;
+      assert.equal(d.version, 1); assert.equal(d.kind, kind);
+      assert.equal(Object.isFrozen(d.capabilities), true);
+      for (const key of ['openExternal','saveText','copyText','pickDirectory']) assert.equal(typeof d.capabilities[key], 'boolean');
+      for (const key of ['openExternal','reserveExternal','saveText','copyText','pickDirectory','dispose']) assert.equal(typeof d[key], 'function');
+    } finally {d.dispose();}
+  });
+  test(`${kind} DesktopInterface: successful actions return completion data`, async () => {
+    const d = contractHarness(kind).adapter;
+    try {
+      assert.equal((await d.openExternal('https://example.org/')).status, 'completed');
+      assert.equal((await d.copyText('中文 synthetic')).status, 'completed');
+      assert.equal((await d.saveText({filename:'診斷 report.json',text:'{}',mimeType:'application/json'})).status, 'completed');
+    } finally {d.dispose();}
+  });
+  test(`${kind} DesktopInterface: reservation cancellation and one-use ownership`, async () => {
+    const d = contractHarness(kind).adapter;
+    try {
+      const cancelled = d.reserveExternal(); cancelled.cancel(); cancelled.cancel();
+      assert.equal((await cancelled.open('https://example.org/')).status, 'cancelled');
+      const used = d.reserveExternal();
+      assert.equal((await used.open('https://example.org/')).status, 'completed');
+      assert.equal((await used.open('https://example.org/again')).status, 'cancelled');
+    } finally {d.dispose();}
+  });
+  test(`${kind} DesktopInterface: pre-aborted export is cancelled`, async () => {
+    const d = contractHarness(kind).adapter, controller = new AbortController(); controller.abort();
+    try {assert.equal((await d.saveText({filename:'report.json',text:'{}'}, {signal:controller.signal})).status, 'cancelled');}
+    finally {d.dispose();}
+  });
+  test(`${kind} DesktopInterface: disposed host cancels every shared operation`, async () => {
+    const d = contractHarness(kind).adapter, reservation = d.reserveExternal(); d.dispose(); d.dispose();
+    for (const action of [() => d.openExternal('https://example.org/'), () => d.copyText('synthetic'),
+      () => d.saveText({filename:'report.json',text:'{}'}), () => d.pickDirectory(), () => reservation.open('https://example.org/')]) {
+      assert.equal((await action()).status, 'cancelled');
+    }
+  });
+  test(`${kind} DesktopInterface: unavailable clipboard preserves manual fallback`, async () => {
+    const d = contractHarness(kind, {clipboard:false}).adapter;
+    try {assert.equal((await d.copyText('synthetic')).status, 'unsupported'); assert.equal(d.capabilities.copyText, false);}
+    finally {d.dispose();}
+  });
+  test(`${kind} DesktopInterface: permission refusal and rejected calls are data`, async () => {
+    const d = contractHarness(kind, {blocked:true, denyCopy:true}).adapter;
+    try {
+      assert.equal((await d.openExternal('https://example.org/')).status, 'blocked');
+      assert.equal((await d.copyText('synthetic')).status, 'error');
+    } finally {d.dispose();}
+  });
+}
+
+test('closing an adapter cancels an action still waiting for its bridge', async () => {
+  const h = pywebviewHarness();
+  const action = h.adapter.copyText('synthetic');
+  h.adapter.dispose();
+  assert.equal((await action).status, 'cancelled');
+});
+
+test('aborting before bridge readiness finishes without waiting for the handshake deadline', async () => {
+  const h = pywebviewHarness(null, {readyTimeoutMs:5000}), controller = new AbortController();
+  try {
+    const action = h.adapter.saveText({filename:'report.json', text:'{}'}, {signal:controller.signal});
+    controller.abort();
+    const value = await Promise.race([action, pause(100).then(() => ({status:'still-waiting'}))]);
+    assert.equal(value.status, 'cancelled');
+  } finally {h.adapter.dispose();}
+});
+
+test('Pywebview Adapter waits for bridge-ready and maps native data without business dispatch', async () => {
+  const calls = [], h = pywebviewHarness();
+  const picking = h.adapter.pickDirectory('synthetic');
+  assert.equal(h.adapter.capabilities.pickDirectory, false);
+  h.connect({describe:async () => nativeDescription(), pick_directory:async path => {calls.push(path); return {status:'completed',path:'chosen'};}});
+  assert.equal(await h.adapter.ready, true);
+  assert.deepEqual(JSON.parse(JSON.stringify(await picking)), {status:'completed', path:'chosen'});
+  assert.deepEqual(calls, ['synthetic']);
+  assert.equal(Object.isFrozen(h.adapter.capabilities), true);
+  h.adapter.dispose();
+});
+
+test('Pywebview Adapter rejects incompatible metadata and never accepts a late handshake after deadline', async () => {
+  for (const describe of [async () => ({...nativeDescription(), version:2}), async () => {throw new Error('offline');}]) {
+    const h = pywebviewHarness({describe});
+    assert.equal(await h.adapter.ready, false);
+    assert.equal((await h.adapter.copyText('fixture')).status, 'unsupported');
+    h.adapter.dispose();
+  }
+  let reply;
+  const h = pywebviewHarness({describe:() => new Promise(resolve => {reply=resolve;})});
+  assert.equal(await h.adapter.ready, false);
+  reply(nativeDescription()); await pause(0);
+  assert.equal(h.adapter.capabilities.pickDirectory, false);
+  h.adapter.dispose();
+});
+
+test('Pywebview Adapter bounds operations, preserves cancellation and discards late native results', async () => {
+  let reply;
+  const h = pywebviewHarness({describe:async () => nativeDescription(),
+    pick_directory:() => new Promise(resolve => {reply=resolve;}), save_text:async () => ({status:'cancelled'})});
+  await h.adapter.ready;
+  assert.equal((await h.adapter.saveText({filename:'report.json',text:'{}'})).status, 'cancelled');
+  assert.equal((await h.adapter.pickDirectory()).code, 'timeout');
+  const pending = h.adapter.pickDirectory(); await pause(0);
+  h.adapter.dispose();
+  assert.equal((await pending).status, 'cancelled');
+  reply({status:'completed',path:'late'}); await pause(0);
+  assert.equal((await h.adapter.pickDirectory()).status, 'cancelled');
+});
+
+test('native directory picker edits only the active settings draft and cancellation preserves it', async () => {
+  for (const status of ['completed','cancelled']) {
+    const desktop = {kind:'browser', ready:Promise.resolve(true), capabilities:{pickDirectory:true}, dispose() {},
+      pickDirectory:async () => ({status,path:'chosen folder'})};
+    const app = appHarness({desktop});
+    try {
+      await pause(10); await app.evaluate('settingsController.open()');
+      app.get('#download-dir').value = 'original draft';
+      await app.get('#download-dir-pick').fire('click');
+      assert.equal(app.get('#download-dir').value, status === 'completed' ? 'chosen folder' : 'original draft');
+      assert.equal(app.calls.some(call => call.method === 'POST'), false);
+    } finally {app.close();}
+  }
+});
+
+test('directory result cannot overwrite a closed and reopened settings draft', async () => {
+  let reply;
+  const desktop = {kind:'browser', ready:Promise.resolve(true), capabilities:{pickDirectory:true}, dispose() {},
+    pickDirectory:() => new Promise(resolve => {reply=resolve;})};
+  const app = appHarness({desktop});
+  try {
+    await pause(10); await app.evaluate('settingsController.open()');
+    const picking = app.get('#download-dir-pick').fire('click');
+    app.evaluate('settingsController.close()');
+    await app.evaluate('settingsController.open()');
+    app.get('#download-dir').value = 'new draft';
+    reply({status:'completed',path:'stale selection'}); await picking;
+    assert.equal(app.get('#download-dir').value, 'new draft');
+    assert.equal(app.calls.some(call => call.method === 'POST'), false);
+  } finally {app.close();}
+});
+
+test('X pairing reserves before HTTP and discards a response invalidated by disconnect', async () => {
+  const app = appHarness(), h = desktopHarness();
+  try {
+    await pause(10);
+    app.context.open = h.browser.open;
+    app.evaluate("state.xAuth.host_browser = true; openSettings = async () => true;");
+    let reply;
+    app.response((url) => url.includes('/api/auth/x/connect') ? new Promise(resolve => {reply = resolve;}) : json(state()));
+    const connecting = app.evaluate('connectX()');
+    assert.equal(h.tabs.length, 1); assert.equal(h.tabs[0].opener, null);
+    await pause(0);
+    await app.get('#x-disconnect').fire('click');
+    reply(json({...state(), pairing_url:'http://127.0.0.1:8765/chrome-connect#token=' + 'A'.repeat(43) + '&connect=1'}));
+    await connecting;
+    assert.equal(h.tabs[0].closed, true); assert.equal(h.tabs[0].destination, null);
+    assert.equal(app.get('#x-pairing-link').getAttribute('href'), null);
+  } finally {app.close();}
+});
+
+test('X validates pairing destination before adapter navigation and keeps a blocked-popup link', async () => {
+  const valid = 'http://127.0.0.1:8765/chrome-connect#token=' + 'A'.repeat(43) + '&connect=1';
+  for (const url of [valid, valid.replace(':8765', ':8877'), valid.replace('/chrome-connect', '/other'),
+    valid.replace('127.0.0.1', 'user:secret@127.0.0.1')]) {
+    const app = appHarness(), h = desktopHarness();
+    try {
+      await pause(10); app.context.open = h.browser.open;
+      app.evaluate("state.xAuth.host_browser = true; openSettings = async () => true;");
+      app.response(path => json(path.includes('/api/auth/x/connect') ? {...state(), pairing_url:url} : state()));
+      await app.evaluate('connectX()');
+      assert.equal(h.tabs[0].destination, url === valid ? valid : null);
+      assert.equal(h.tabs[0].closed, url !== valid);
+    } finally {app.close();}
+  }
+  const app = appHarness();
+  try {
+    await pause(10); app.context.open = () => null;
+    app.evaluate("state.xAuth.host_browser = true; openSettings = async () => true;");
+    app.response(() => json({...state(), pairing_url:valid}));
+    await app.evaluate('connectX()');
+    assert.equal(app.get('#x-pairing-link').hidden, false);
+    assert.equal(app.get('#x-pairing-link').href, valid);
+  } finally {app.close();}
+});
+
+test('Pixiv uses the adapter once and respects the backend opened flag', async () => {
+  for (const opened of [false, true]) {
+    const app = appHarness(), h = desktopHarness();
+    try {
+      await pause(10); app.context.open = h.browser.open;
+      app.evaluate('state.xAuth.host_browser = true;');
+      app.response(url => url.includes('/api/auth/pixiv/begin') ? json({opened, expires_in:600,
+        pairing_url:'http://127.0.0.1:8765/pixiv-connect#ticket=' + 'B'.repeat(43)}) : json(state()));
+      await app.get('#pixiv-begin').fire('click');
+      assert.equal(h.tabs.length, 1);
+      assert.equal(h.tabs[0].closed, opened);
+      assert.equal(Boolean(h.tabs[0].destination), !opened);
+    } finally {app.close();}
+  }
+});
+
+test('disposing Pixiv closes the reserved page before its late HTTP response', async () => {
+  const app = appHarness(), h = desktopHarness();
+  try {
+    await pause(10); app.context.open = h.browser.open;
+    app.evaluate('state.xAuth.host_browser = true;');
+    let reply;
+    app.response(() => new Promise(resolve => {reply = resolve;}));
+    const loading = app.get('#pixiv-begin').fire('click');
+    assert.equal(h.tabs.length, 1);
+    app.evaluate('pixivLogin.dispose()');
+    assert.equal(h.tabs[0].closed, true);
+    reply(json({opened:false, expires_in:600, pairing_url:'http://127.0.0.1:8765/pixiv-connect#ticket=' + 'A'.repeat(43)}));
+    await loading;
+    assert.equal(h.tabs[0].destination, null);
+  } finally {app.close();}
 });
 
 test('Pixiv author titles include display names from metadata and matching historical folders', async () => {

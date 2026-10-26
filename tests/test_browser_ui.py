@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 import socket
 import threading
+import time
 import unittest
 from urllib.parse import parse_qs, urlparse
 
@@ -59,6 +60,9 @@ class BrowserUITests(unittest.TestCase):
                     "app_version": "fixture", "thumbnail_cache": {"ready": True}}
             def do_GET(self):
                 path = urlparse(self.path).path
+                if path == "/api/jobs/missing/content":
+                    time.sleep(.25)
+                    return self.send_json({"error": "synthetic missing file"}, 404)
                 if path == "/api/environment": return self.send_json(environment())
                 if path == "/api/databases": return self.send_json(cls.database_report)
                 if path.startswith("/api/jobs/") and path.endswith("/files"):
@@ -307,6 +311,54 @@ class BrowserUITests(unittest.TestCase):
         self.assertGreater(result['count'], 610)
         self.assertEqual(result['invalid'], [])
         self.assertEqual(result['missing'], [])
+        self.assert_no_errors()
+
+    def test_missing_media_gate_waits_for_navigation_from_reserved_blank_page(self):
+        from tools.docker_browser_acceptance import check_missing_media
+        self.jobs.append({"id": "missing", "title": "Synthetic missing file", "url": "https://example.org/album",
+                          "platform": "Web", "status": "completed", "created_at": 1, "files": ["missing.png"]})
+        self.load(); page = self.page
+        page.evaluate("state.fileActions = 'browser'")
+        with page.expect_popup() as opened:
+            page.locator('.row-icon-button[data-open-media="missing"]').click()
+        popup = opened.value
+        try:
+            check_missing_media(self.context, popup, f"http://127.0.0.1:{self.server.server_port}")
+        finally:
+            popup.close()
+        self.assert_no_errors()
+
+    def test_desktop_adapter_exports_diagnostics_as_a_real_browser_download(self):
+        self.load(); page = self.page
+        report = {"format_version": 1, "created_at": 1, "counts": {}, "jobs": [], "environment": environment()}
+        page.route("**/api/diagnostics*", lambda route: route.fulfill(
+            content_type="application/json", body=json.dumps(report)))
+        page.locator("#settings-open").click()
+        page.locator("#settings-tab-diagnostics").click()
+        with page.expect_download() as downloading:
+            page.locator("#diagnostics-export").click()
+        download = downloading.value
+        self.assertEqual(download.suggested_filename, "ssdl-diagnostics.json")
+        self.assertEqual(json.loads(Path(download.path()).read_text(encoding="utf-8")), report)
+        self.assert_no_errors()
+
+    def test_browser_media_uses_detached_tab_without_native_action_post(self):
+        filename = "web/中文 synthetic.png"
+        self.jobs.append({"id": "preview", "title": "Synthetic preview", "url": "https://example.org/album",
+                          "platform": "Web", "status": "completed", "created_at": 1, "files": [filename]})
+        self.load(); page = self.page
+        page.evaluate("state.fileActions = 'browser'")
+        self.context.route("**/api/jobs/preview/content?*", lambda route: route.fulfill(
+            content_type="text/html", body="<title>Synthetic preview</title>"))
+        with page.expect_popup() as opened:
+            page.locator('.row-icon-button[data-open-media="preview"]').click()
+        popup = opened.value
+        popup.wait_for_url("**/api/jobs/preview/content?*")
+        self.assertIsNone(popup.evaluate("window.opener"))
+        query = parse_qs(urlparse(popup.url).query)
+        self.assertEqual(query, {"file_index": ["0"], "filename": [filename]})
+        self.assertFalse([path for path, _ in self.writes if path.endswith("/open-file")])
+        popup.close()
         self.assert_no_errors()
 
     def test_database_confirmation_nested_in_settings_cancels_and_submits_once(self):

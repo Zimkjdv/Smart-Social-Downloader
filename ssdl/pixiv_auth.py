@@ -12,6 +12,7 @@ import threading
 import time
 from urllib.parse import parse_qs, urlencode, urlparse
 
+from .runtime_paths import paths, module_command
 from .session_storage import AuthError, SessionStorage, host_browser_required
 from .x_auth import _dpapi, chrome_executable
 
@@ -170,9 +171,9 @@ class PixivAuthManager:
             self._busy = True
             self._attempt_phase = "exchanging"
         try:
-            result = subprocess.run([sys.executable, "-X", "utf8", "-m", "ssdl.pixiv_auth_exchange"],
+            result = subprocess.run(module_command('ssdl.pixiv_auth_exchange'),
                 input=json.dumps(values).encode(), stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
-                cwd=Path(__file__).resolve().parents[1], timeout=30,
+                cwd=paths().home, timeout=30,
                 creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
             if result.returncode or len(result.stdout) > 16 * 1024:
                 raise AuthError("Pixiv 授權失敗或 code 已過期，請重新授權；既有登入仍保留。")

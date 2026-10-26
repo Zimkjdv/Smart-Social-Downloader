@@ -46,6 +46,12 @@ For Pixiv, use **Settings → Pixiv sign-in**, click **Connect Pixiv** and finis
 
 See [desktop background service](docs/DESKTOP_SERVICE.md) for custom ports, shutdown timeouts and process ownership, and [native acceptance](docs/DESKTOP_ACCEPTANCE.md) for lifecycle checks and their scope.
 
+For shell integrations, `python -m ssdl.desktop_control ensure` starts/attaches without opening a browser and returns versioned JSON; `status` verifies the running instance. See [supervisor contract](docs/DESKTOP_CONTROL.md). After updating an older running service, explicitly stop and restart it to publish the new identity record.
+
+### Optional Windows desktop window
+
+Run **desktop.bat** to install the optional pinned pywebview packages and open the same UI in WebView2. Microsoft Edge WebView2 Runtime is required. Closing the window keeps downloads running; use its confirmed Stop action when it owns the backend, or stop.bat for an existing service. Browser start.bat remains available. This batch entry is the Python source version. D05 also builds an EXE directory bundle and per-user installer with Python/Node/FFmpeg included; clean Windows acceptance remains pending. See [Windows distribution and migration](docs/WINDOWS_DISTRIBUTION.md). See [desktop guide](docs/DESKTOP_GUI.md).
+
 ### Chrome connector: first-time setup
 
 Use the ordinary Chrome profile where you sign into X or Pixiv. Keep the downloader running during setup.
@@ -111,7 +117,14 @@ smart-social-downloader/
 ├── SECURITY.md / CONTRIBUTING.md   Private reporting / contribution guide
 ├── LICENSE / THIRD_PARTY_NOTICES.md
 ├── ROADMAP.md               Pending work, review findings and acceptance
+├── desktop/                       pywebview frame, frozen entry and migration wizard
+├── packaging/windows/             onedir spec, user installer and fixed media build
 ├── ssdl/                          Python backend
+│   ├── runtime_paths.py            Read-only resources and writable data scope
+│   ├── runtime_entry.py            Explicit GUI/backend/control/worker roles
+│   ├── data_access.py              Foreground/background writer lease
+│   ├── data_migration.py           Verified offline import, backup and rollback
+│   ├── ui_preferences.py           Versioned shared HTTP presentation choices
 │   ├── version.py                 Single application version
 │   ├── app.py                     Composition root
 │   ├── desktop_service.py  Windows background ownership / graceful stop
@@ -137,6 +150,7 @@ smart-social-downloader/
 │   ├── browser_media.py           Optional temporary Chrome discovery
 │   └── *.py                       API, scheduling, persistence and downloads
 ├── static/                        Browser UI, styles and locale keys
+│   ├── preferences.js             Shared HTTP preferences; legacy storage seed
 │   ├── app.js                     Composition, state publishing and refresh
 │   ├── settings_controller.js     Settings, drafts, tabs and Rate confirmation
 │   ├── diagnostics_controller.js  Environment, health and cache maintenance
@@ -145,6 +159,9 @@ smart-social-downloader/
 │   └── controller_lifecycle.js    Owned listeners, timers and cleanup
 ├── chrome-extension/              Chrome X session connector
 ├── tools/                         Setup, diagnostics, measurement and packaging
+│   ├── build_windows.py            Pinned onedir/installer and notices
+│   ├── prepare_windows_ffmpeg.py   LGPL cross-build and corresponding sources
+│   ├── check_windows_distribution.py  Real EXE/installer lifecycle acceptance
 │   ├── package_source.py           Reviewed source-only ZIP
 │   ├── check_source_archive.py     Full regression from the extracted ZIP
 │   ├── check_workflows.py          Reviewed Action identity / full SHA check

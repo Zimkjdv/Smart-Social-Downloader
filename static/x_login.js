@@ -2,13 +2,15 @@
 let xConnectEpoch = 0;
 async function connectX(loginOnly = false) {
   if (state.xAuth.busy || connectingXRequest) return;
-  if (state.xAuth.host_browser && loginOnly) { window.open('https://x.com/home', '_blank', 'noopener'); return; }
-  const pairingTab = state.xAuth.host_browser ? window.open('about:blank', '_blank') : null;
+  if (state.xAuth.host_browser && loginOnly) {
+    const result = await desktop.openExternal('https://x.com/home');
+    if (result.status !== 'completed') toast('ui.desktop_open_failed', true);
+    return;
+  }
+  const pairingTab = state.xAuth.host_browser ? desktop.reserveExternal() : null;
   const epoch = ++xConnectEpoch;
   $('#x-pairing-link').hidden = true;
   $('#x-pairing-link').removeAttribute('href');
-  if (pairingTab) pairingTab.opener = null;
-  let navigated = false;
   connectingXRequest = true;
   $('#x-connect').disabled = true;
   $('#x-login-open').disabled = true;
@@ -24,12 +26,12 @@ async function connectX(loginOnly = false) {
           (destination.port || '80') !== (location.port || '80') || destination.pathname !== '/chrome-connect' || destination.search ||
           !/^#token=[A-Za-z0-9_-]{43}&connect=1$/.test(destination.hash)) throw new Error(t('ui.x_invalid_pairing'));
       const link = $('#x-pairing-link'); link.href = destination.href; link.hidden = false;
-      if (pairingTab && !pairingTab.closed) { pairingTab.location.replace(destination.href); navigated = true; }
-      else toast('ui.x_use_pairing_link');
+      const opened = pairingTab ? await pairingTab.open(destination.href) : await desktop.openExternal(destination.href);
+      if (opened.status !== 'completed') toast('ui.x_use_pairing_link');
     }
   } catch (error) { toast(error.message, true); await refresh(); }
   finally {
-    if (pairingTab && !pairingTab.closed && !navigated) pairingTab.close();
+    pairingTab?.cancel();
     connectingXRequest = false;
     $('#x-connect').disabled = Boolean(state.xAuth.busy);
     $('#x-login-open').disabled = Boolean(state.xAuth.busy);

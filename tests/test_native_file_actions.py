@@ -23,7 +23,7 @@ class NativeFileActionTests(unittest.TestCase):
         self.enterContext(patch.object(self.app.Handler, "log_message"))
         self.enterContext(patch("ssdl.http_api.host_browser_required", return_value=False))
         self.launch = Mock()
-        self.enterContext(patch("ssdl.http_api.os", SimpleNamespace(name="nt", startfile=self.launch)))
+        self.enterContext(patch("ssdl.platform_actions.os", SimpleNamespace(name="nt", startfile=self.launch)))
         thread = threading.Thread(target=self.server.serve_forever, daemon=True)
         thread.start()
         def close_server():
@@ -32,12 +32,12 @@ class NativeFileActionTests(unittest.TestCase):
             self.server.server_close()
         self.addCleanup(close_server)
 
-    def request(self, action, filename="original.mp4"):
+    def request(self, action, filename="original.mp4", *, headers=None, path=None):
         connection = http.client.HTTPConnection("127.0.0.1", self.server.server_port, timeout=5)
         try:
-            connection.request("POST", "/api/jobs/fixture/" + action,
+            connection.request("POST", path or "/api/jobs/fixture/" + action,
                                body=json.dumps({"file_index": 0, "filename": filename}),
-                               headers={"Content-Type": "application/json"})
+                               headers={"Content-Type": "application/json", **(headers or {})})
             response = connection.getresponse()
             return response.status, json.loads(response.read())
         finally:
@@ -56,6 +56,41 @@ class NativeFileActionTests(unittest.TestCase):
         self.assertEqual(self.request("open-file")[0], 404)
         self.launch.assert_not_called()
         self.assertEqual(self.app.state.jobs["fixture"]["status"], "completed")
+
+    def test_download_directory_uses_same_dispatch_and_error_translation(self):
+        directory = self.root / "中文 Downloads"
+        self.app.state.download_dir = directory
+        self.assertEqual(self.request("", path="/api/downloads/open"), (200, {"opened": True}))
+        self.launch.assert_called_once_with(str(directory))
+        self.assertTrue(directory.is_dir())
+        self.launch.side_effect = OSError("synthetic association failure")
+        self.assertEqual(self.request("open-file")[0], 400)
+        self.assertEqual(self.request("", path="/api/downloads/open")[0], 400)
+
+    def test_unsupported_host_never_attempts_native_dispatch(self):
+        with patch("ssdl.platform_actions.os", SimpleNamespace(name="posix")):
+            for path in ("/api/jobs/fixture/open-file", "/api/jobs/fixture/open-folder", "/api/downloads/open"):
+                self.assertEqual(self.request("", path=path)[0], 400)
+        self.launch.assert_not_called()
+
+    def test_foreign_origin_traversal_and_non_media_never_launch(self):
+        self.assertEqual(self.request("open-file", headers={"Origin": "https://foreign.example"})[0], 403)
+        self.app.state.jobs["fixture"]["files"] = ["../outside.mp4"]
+        self.assertEqual(self.request("open-file", "../outside.mp4")[0], 403)
+        other = self.root / "script.exe"
+        other.write_bytes(b"synthetic non-media")
+        self.app.state.jobs["fixture"]["files"] = [other.name]
+        self.assertEqual(self.request("open-file", other.name)[0], 400)
+        self.launch.assert_not_called()
+
+    def test_container_returns_browser_content_without_native_dispatch(self):
+        with patch("ssdl.http_api.host_browser_required", return_value=True):
+            code, result = self.request("open-file")
+            self.assertEqual(code, 200)
+            self.assertTrue(result["browser"])
+            self.assertEqual(result["url"], "/api/jobs/fixture/content?file_index=0&filename=original.mp4")
+            self.assertEqual(self.request("open-folder")[0], 400)
+        self.launch.assert_not_called()
 
 
 if __name__ == "__main__":

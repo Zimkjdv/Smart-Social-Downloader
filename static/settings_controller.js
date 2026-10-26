@@ -2,7 +2,7 @@
 (() => {
   'use strict';
   function create(dependencies) {
-    const { document, browser, $, t, uiMessage, uiText, api, getSnapshot, isOffline } = dependencies;
+    const { document, browser, desktop, $, t, uiMessage, uiText, api, getSnapshot, isOffline } = dependencies;
     const scope = window.SSDLControllerLifecycle.create(browser);
     const render = scope.effect(dependencies.render);
     const toast = scope.effect(dependencies.toast);
@@ -12,6 +12,21 @@
     let settingsEpoch = 0;
     let savingSettings = false;
     const modal = $('#settings-modal');
+    let pickingDirectory = false;
+    const picker = $('#download-dir-pick');
+    function renderPicker() { if (scope.active) picker.hidden = !desktop.capabilities.pickDirectory; }
+    if (desktop.ready) desktop.ready.then(renderPicker);
+    scope.listen(picker, 'click', async () => {
+      if (pickingDirectory || savingSettings || !desktop.capabilities.pickDirectory) return;
+      const epoch = settingsEpoch;
+      pickingDirectory = true; picker.disabled = true;
+      try {
+        const result = await desktop.pickDirectory($('#download-dir').value);
+        if (!scope.active || epoch !== settingsEpoch || modal.classList.contains('hidden')) return;
+        if (result.status === 'completed') $('#download-dir').value = result.path;
+        else if (result.status !== 'cancelled') toast('ui.desktop_action_failed', true);
+      } finally { pickingDirectory = false; if (scope.active) picker.disabled = false; }
+    });
 
     let settingsTab = 'general';
 
