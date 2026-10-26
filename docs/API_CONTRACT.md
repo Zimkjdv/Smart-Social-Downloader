@@ -72,6 +72,8 @@ desktop bridge.
 | --- | --- | --- |
 | GET `/api/state`, `/api/jobs` | View query | 200 State |
 | GET `/api/summary` | None | 200 summary State, empty jobs and no jobs_page |
+| GET `/api/ui-preferences` | None | 200 `{preferences:null}` before first save, otherwise `{preferences:{schema:1,language,page_size}}`; shared by browser and desktop shells. |
+| POST `/api/ui-preferences` | Exact object: schema:1, language:en/zh-Hant, page_size:10/20/50 | 200 `{preferences:...}` after atomic save; rejects extra fields, future schemas and invalid values with 400. Uses the same origin guard and mutation uncertainty rules. |
 | POST `/api/jobs` | urls: 1–30 strings; mode urls/x_profile/pixiv_profile; video_quality best/2160/1440/1080/720/480/360/240/144 | 201 `{added,reused,already_pending,rejected,state}`; ID arrays, per-URL rejections. Profiles require best quality; max 200 retained jobs. |
 | POST `/api/pause` | paused: boolean | 200 State; pause scheduling |
 | POST `/api/jobs/{id}/stop` | `{}` | 200 State; request active worker stop, retain files; 409 unless active |

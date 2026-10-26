@@ -89,7 +89,7 @@
     apply();
     document.dispatchEvent(new CustomEvent('ssdl-language-changed', { detail: { language } }));
   }
-  window.I18n = { t, message, text, get language() { return language; }, get locale() { return language === 'en' ? 'en-US' : 'zh-TW'; } };
+  window.I18n = { t, message, text, change, get language() { return language; }, get locale() { return language === 'en' ? 'en-US' : 'zh-TW'; } };
   document.querySelector('#language-toggle')?.addEventListener('click', () => change(language === 'en' ? 'zh-Hant' : 'en'));
   window.addEventListener('storage', (event) => { if (event.key === storageKey) change(event.newValue === 'en' ? 'en' : 'zh-Hant', false); });
   apply();

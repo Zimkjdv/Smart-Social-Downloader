@@ -10,7 +10,7 @@ Console and Docker entry points remain independent. No GUI package is imported.
 `/api/identity` uses the ordinary Host/Origin/cross-site guard. It returns 200
 when application API and shipped index are ready, otherwise 503. It reports
 format_version:1, service:ssdl, instance (random AppContext state-instance ID),
-scope (normalized project-root hash), app_version, api_contract:1, actual origin
+scope (normalized writable-data-home hash), app_version, api_contract:1, actual origin
 and port, and api_ready/ui_ready. No local path, cookie or stop credential is
 included. `/api/health` retains its stricter worker/persistence/dependency health;
 missing engines must not prevent opening diagnostics.
@@ -53,7 +53,7 @@ remain under Ctrl+C. No HTTP shutdown endpoint is added. All stops retain the
 AppContext worker/auth/helper/writer shutdown and durability order; stop timeout
 does not force-kill anything.
 
-`WindowSession` is a separate project-scoped mutex and focus event, acquired and
+`WindowSession` is a separate data-home-scoped mutex and focus event, acquired and
 released on the GUI main thread. A repeated process requests focus and exits;
 the primary can consume the focus event. Closing these window controls does not
 stop the backend. Actual GUI focus, close messaging and explicit stop controls

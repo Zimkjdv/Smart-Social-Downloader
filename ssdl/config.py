@@ -19,7 +19,8 @@ def configured_cache_directory(root: Path) -> Path:
     """Keep native previews compatible; containers can mount a separate cache."""
     value = os.environ.get("SSDL_CACHE_DIR")
     if value is None:
-        return root / "data"
+        from .runtime_paths import paths
+        return paths().cache if root.resolve() == paths().home else root / 'data'
     if not value.strip() or not Path(value).expanduser().is_absolute():
         raise RuntimeError("SSDL_CACHE_DIR must be an absolute directory.")
     # Do not resolve links: ThumbnailCache must still be able to reject them.

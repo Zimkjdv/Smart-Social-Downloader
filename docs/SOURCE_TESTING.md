@@ -131,3 +131,9 @@ isolated sources/data/profile and compares the shared UI with fresh Chrome.
 Neither GUI dependencies nor an interactive desktop are required by normal CI.
 See [D04 GUI acceptance](DESKTOP_GUI_ACCEPTANCE.md) for artifacts, startup-only
 reproduction, completed manual baseline and remaining environment limits.
+
+D05 release tooling and packaging recipes are included in source allowlists;
+compiled executables, vendor downloads, build venvs and acceptance data are not.
+Windows executable/installer acceptance is a separate opt-in lane documented in
+[Windows distribution](WINDOWS_DISTRIBUTION.md); it does not add GUI dependencies
+to the core/source or Docker gates.

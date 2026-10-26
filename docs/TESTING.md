@@ -1114,3 +1114,60 @@ permission refusal and physically runtime-free Windows remain untested. The
 runtime failure notification is injected. Exact commands, human reports and
 evidence boundaries are in [D04 acceptance](DESKTOP_GUI_ACCEPTANCE.md). D05 was
 not started.
+
+
+## D05 Windows distribution — 2026-10-26
+
+The directory bundle and per-user Inno Setup installer were built on the current
+Windows 10 build 19045 host with Python 3.12.10. They include separate windowless
+GUI and console/pipe runtime executables, Node 22.23.4 and a separately built
+LGPL FFmpeg 8.1.3 with zlib 1.3.2. Download hashes, Microsoft/Inno publisher
+signatures, exact dependency versions and pip check passed. Bundled licenses,
+corresponding sources, build recipe and source ZIP hash accompany the runtime.
+The source wheel's unrelated FFmpeg binary is excluded.
+
+The extracted source suite passed 468 Python, 59 frontend and 116 dependency-fault
+cases. Both workflows and all 15 pinned Action references passed policy checks.
+The final session-size and external-home corrections passed all 13 distribution cases.
+
+The reviewed 282-file source export passed the real WebView2/Chrome matrix:
+both GUI sessions, shared UI/media/clipboard groups and concurrent/conflicting
+startup. Profile and HTTP-backed preferences survived restart. The matrix's
+physical dialogs/keys, scale changes and external application dispatch remain
+injected or emulated as documented in D04; no new human observations are inferred.
+
+Receipt-owned frozen acceptance passed actual WebView2/UI/bridge/preferences,
+close with backend alive, framed worker and invalid Pixiv exchange, PNG-to-JPEG
+thumbnail decoding, HTTPS protocol discovery, HTTP UI and synthetic DPAPI restore.
+External Python/Node were removed from child PATH. Different installation paths
+attached to the same data-scope owner; attached-stop was refused. Graceful stop
+and restart preserved history, login, preferences and original media. Real silent
+installers with a unique test AppId refused an update while the backend ran,
+then allowed update and installer rollback after stop. Uninstall removed program
+files and retained user data/media. The two installer versions contain the same
+current application/data schema, not an arbitrary future downgrade test.
+
+Regressions exposed and corrected Windows SQLite connections left open during
+directory swap, legacy cp950 output corrupting JSON pipes, and a migration bound
+smaller than the encrypted-session store's canonical limit. The final migration
+regression imports actual DPAPI ciphertext larger than 16 KiB and verifies exact
+bytes, source/media preservation and rollback. Migration also refuses active
+foreground writers, newer state, linked inputs and failed destination replacement;
+a prepared backup supports recovery after an interrupted swap. A source child with a separate data home resolves the reviewed code through an explicit
+role entry, rather than searching that data directory for Python modules. Native folder
+selection runs on an STA thread. No production data was imported.
+
+Clean Windows 10/11 acceptance remains unchecked. The host has no Windows
+Sandbox and the user confirmed no other clean machine/VM. PATH isolation and
+hosted runners are not substitutes. Actual missing-Runtime bootstrap/repair,
+installed shortcuts/native prompts and real-account Chrome callbacks in that
+clean environment remain gates in ROADMAP and WINDOWS_DISTRIBUTION. No tag,
+public Release, automatic updater, signing, tray or startup registration was added.
+
+The first hosted D05 source runs exposed a stale native acceptance assertion:
+the new writer lease refused a same-scope foreground conflict before socket bind,
+but the fixture still required an OSError log. It now requires the specific
+writer-lease diagnostic and retains its foreground-survival, unchanged-state and
+normal-stop checks. No production refusal or shutdown behavior was weakened.
+The corrected receipt-owned native source acceptance passed all nine phases locally,
+including that conflict and abrupt-exit recovery, before the follow-up push.

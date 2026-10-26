@@ -50,7 +50,7 @@ Pixiv 請使用 **設定 → Pixiv 登入** 按「一鍵連接 Pixiv」，在一
 
 ### 選配 Windows 桌面視窗
 
-執行 **desktop.bat** 安裝鎖定版本的選配 pywebview 套件，並在 WebView2 顯示相同介面。需有 Microsoft Edge WebView2 Runtime。關閉視窗後下載繼續；視窗擁有後端時可確認停止，附接既有服務則用 stop.bat。原本 start.bat 瀏覽器版仍可使用。這是需要 Python 的來源版本，安裝包／EXE 留待後續。詳見 [桌面版指南](docs/DESKTOP_GUI.md)。
+執行 **desktop.bat** 安裝鎖定版本的選配 pywebview 套件，並在 WebView2 顯示相同介面。需有 Microsoft Edge WebView2 Runtime。關閉視窗後下載繼續；視窗擁有後端時可確認停止，附接既有服務則用 stop.bat。原本 start.bat 瀏覽器版仍可使用。這個批次入口是需要 Python 的來源版本。D05 另提供內附 Python／Node／FFmpeg 的資料夾 EXE 與每位使用者安裝程式；乾淨 Windows 驗收仍待環境。請先讀 [Windows 發行與資料遷移](docs/WINDOWS_DISTRIBUTION.md)。詳見 [桌面版指南](docs/DESKTOP_GUI.md)。
 
 ### Chrome 連接器：首次安裝
 
@@ -117,7 +117,14 @@ smart-social-downloader/
 ├── SECURITY.md / CONTRIBUTING.md   私人安全回報／貢獻說明
 ├── LICENSE / THIRD_PARTY_NOTICES.md
 ├── ROADMAP.md               未完成工作與驗收進度
+├── desktop/                       pywebview frame, frozen entry and migration wizard
+├── packaging/windows/             onedir spec, user installer and fixed media build
 ├── ssdl/                          Python 後端套件
+│   ├── runtime_paths.py            Read-only resources and writable data scope
+│   ├── runtime_entry.py            Explicit GUI/backend/control/worker roles
+│   ├── data_access.py              Foreground/background writer lease
+│   ├── data_migration.py           Verified offline import, backup and rollback
+│   ├── ui_preferences.py           Versioned shared HTTP presentation choices
 │   ├── version.py                 唯一應用程式版本來源
 │   ├── app.py                     組裝入口
 │   ├── desktop_service.py  Windows background ownership / graceful stop
@@ -143,6 +150,7 @@ smart-social-downloader/
 │   ├── browser_media.py           選配臨時 Chrome 捕捉
 │   └── *.py                       API、排程、保存及下載模組
 ├── static/                        網頁介面、樣式及語系 key
+│   ├── preferences.js             Shared HTTP preferences; legacy storage seed
 │   ├── app.js                     組裝、狀態發布與刷新排程
 │   ├── settings_controller.js     設定草稿、分頁及 Rate 確認
 │   ├── diagnostics_controller.js  環境診斷、健康與快取維護
@@ -151,6 +159,9 @@ smart-social-downloader/
 │   └── controller_lifecycle.js    事件、計時器與清理
 ├── chrome-extension/              Chrome X 登入連接器
 ├── tools/                         安裝、診斷、量測及原始碼打包
+│   ├── build_windows.py            Pinned onedir/installer and notices
+│   ├── prepare_windows_ffmpeg.py   LGPL cross-build and corresponding sources
+│   ├── check_windows_distribution.py  Real EXE/installer lifecycle acceptance
 │   ├── package_source.py           允許清單原始碼 ZIP
 │   ├── check_source_archive.py     解壓來源包後執行完整回歸
 │   ├── check_workflows.py          已審查 Action 來源／完整 SHA 檢查

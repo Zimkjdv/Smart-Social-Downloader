@@ -1,6 +1,8 @@
 # 專案結構與維護
 
-D03 新增選配 [pywebview／WebView2 來源版本](DESKTOP_GUI.md)：`desktop/pywebview_app.py` 管理 native frame、原生動作及受限 WebView2 事件，`static/desktop_pywebview.js` 處理 bridge 就緒／取消／期限；組裝入口明確選 Adapter，業務 controller 繼續使用 HTTP。預設瀏覽器入口不變；一般 Chrome 承接授權，專用 `data/webview2` 保存 UI 偏好。安裝包與完整 D04 矩陣尚未進行。
+D05 新增 [Windows 發行版](WINDOWS_DISTRIBUTION.md)：`runtime_paths` 分開資源／可寫資料／cache／媒體，`runtime_entry` 將 frozen EXE 分派至明確角色；`data_access` 以資料 scope 保護前景／背景 writer，`data_migration` 提供先驗證備份的離線匯入與回復。`ui_preferences` 與 `/api/ui-preferences` 保存外殼中立偏好；一般業務 API 與下載引擎沿用。PyInstaller onedir 與每位使用者 Inno 安裝版已通過目前主機的 EXE／GUI／安裝生命週期；乾淨 Windows 10／11 待驗收。
+
+D03 新增選配 [pywebview／WebView2 來源版本](DESKTOP_GUI.md)：`desktop/pywebview_app.py` 管理 native frame、原生動作及受限 WebView2 事件，`static/desktop_pywebview.js` 處理 bridge 就緒／取消／期限；組裝入口明確選 Adapter，業務 controller 繼續使用 HTTP。預設瀏覽器入口不變；一般 Chrome 承接授權，專用 `data/webview2` 保存 UI 偏好。D04 目前主機驗收已完成；安裝版與資源路徑見上述 D05。
 
 D02 將 `ensure_backend()` 與 `open_page()` 分開，新增 [Supervisor／JSON 控制契約](DESKTOP_CONTROL.md) 及受本機來源保護的 `/api/identity`。啟動／附接核對控制鎖、執行個體與版本；外殼僅以執行個體專屬事件停止自己啟動的後端。`WindowSession` 管理同 scope 的單視窗／喚回事件，關閉它不停止背景工作。GUI 套件仍不是後端依賴。
 

@@ -36,6 +36,8 @@ from .x_auth import XAuthManager, AuthError, EXTENSION_ID, EXTENSION_ORIGIN
 from .profiles import normalize_account, normalize_pixiv_account, account_from_url, profile_mode, PROFILE_MODES
 from .pixiv_auth import PixivAuthManager
 from .session_storage import host_browser_required
+from .runtime_paths import paths
+from .ui_preferences import UIPreferences
 
 
 @dataclass
@@ -98,9 +100,11 @@ class AppContext:
                  policy: RequestPolicy | None = None, storage: DownloadStats | None = None,
                  auth: XAuthManager | None = None, state_store: StateStore | None = None,
                  environment: EnvironmentDiagnostics | None = None,
-                 thumbnails: ThumbnailCache | None = None):
+                 thumbnails: ThumbnailCache | None = None, resources: Path | None = None):
         self.ROOT = root.resolve()
-        self.STATIC = self.ROOT / "static"
+        self.RESOURCES = (resources if resources is not None else self.ROOT).resolve()
+        self.STATIC = self.RESOURCES / "static"
+        self.UI_PREFERENCES = UIPreferences(self.ROOT / 'data/ui-preferences.json')
         self.DEFAULT_DOWNLOADS = self.ROOT / "downloads"
         self.PORT = configured_port() if port is None else port
         self.MEDIA_ROOT = configured_media_root()
@@ -108,6 +112,8 @@ class AppContext:
         self.STATE_STORE: StateStore = state_store if state_store is not None else StateStore(self.ROOT / "data" / "state.json")
         self.STATE_FILE = self.STATE_STORE.filename
         self.X_AUTH: XAuthManager = auth if auth is not None else XAuthManager(self.ROOT / "data", port=self.PORT, restore=False)
+        if auth is None:
+            self.X_AUTH.extension_directory = self.RESOURCES / 'chrome-extension'
         self.PIXIV_AUTH = PixivAuthManager(self.ROOT / "data", port=self.PORT)
         self.ENVIRONMENT: EnvironmentDiagnostics = environment if environment is not None else EnvironmentDiagnostics(self.ROOT, self.PORT)
         self.THUMBNAILS: ThumbnailCache = thumbnails if thumbnails is not None else ThumbnailCache(self.CACHE_DIRECTORY / "thumbnails", media.ffmpeg_path)

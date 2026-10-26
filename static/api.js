@@ -85,6 +85,9 @@
   }
   function contract(path, method = 'GET') {
     path = path.split('?')[0];
+    if (path === '/api/ui-preferences') return value => object(value) && (value.preferences === null ||
+      object(value.preferences) && value.preferences.schema === 1 && ['en', 'zh-Hant'].includes(value.preferences.language) &&
+      [10, 20, 50].includes(value.preferences.page_size));
     if (path === '/api/databases') return databases;
     if (/^\/api\/jobs\/[^/]+\/select-media$/.test(path)) return state;
     if (/^\/api\/jobs\/[^/]+\/details$/.test(path)) return (value) => job(value) &&

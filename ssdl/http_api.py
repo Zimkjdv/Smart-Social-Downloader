@@ -206,6 +206,11 @@ class ApiHandler(BaseHTTPRequestHandler):
         if path == "/api/health":
             health = self.app.health()
             return self._json(200 if health["status"] == "healthy" else 503, health)
+        if path == '/api/ui-preferences':
+            try:
+                return self._json(200, {'preferences': self.app.UI_PREFERENCES.read()})
+            except (OSError, ValueError, TypeError):
+                return self._json(500, {'error': '無法讀取介面偏好，原檔已保留。'})
         if path == "/api/identity":
             identity = self.app.identity()
             return self._json(200 if identity["api_ready"] and identity["ui_ready"] else 503, identity)
@@ -270,7 +275,7 @@ class ApiHandler(BaseHTTPRequestHandler):
         if path == "/api/auth/x/connector":
             buffer = io.BytesIO()
             try:
-                base = self.app.ROOT / "chrome-extension"
+                base = self.app.RESOURCES / "chrome-extension"
                 if base.resolve() != base or base.is_symlink():
                     raise ValueError("linked source")
                 with zipfile.ZipFile(buffer, "w", compression=zipfile.ZIP_DEFLATED) as archive:
@@ -347,6 +352,16 @@ class ApiHandler(BaseHTTPRequestHandler):
             return self._json(400, {"error": str(exc)})
         except (ValueError, UnicodeError, RecursionError):
             return self._json(400, {"error": "請求格式不正確"})
+
+        if path == '/api/ui-preferences':
+            try:
+                with self._mutation():
+                    value = self.app.UI_PREFERENCES.save(data)
+                return self._json(200, {'preferences': value})
+            except (TypeError, ValueError):
+                return self._json(400, {'error': '介面偏好格式不正確。'})
+            except OSError:
+                return self._json(500, {'error': '無法保存介面偏好，原檔已保留。'})
 
         if path.startswith("/api/auth/pixiv/"):
             if path in {"/api/auth/pixiv/claim", "/api/auth/pixiv/callback"}:

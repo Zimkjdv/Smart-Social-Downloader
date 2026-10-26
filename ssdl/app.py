@@ -5,15 +5,20 @@ from .app_context import AppContext
 from .http_server import BoundedHTTPServer as Server
 from .version import APP_NAME, __version__
 
-ROOT = Path(__file__).resolve().parents[1]
+from .runtime_paths import paths
+
+ROOT = paths().home
 
 
 def create_app(root: Path = ROOT, **services) -> AppContext:
+    if root.resolve() == paths().home:
+        services.setdefault('resources', paths().resources)
     return AppContext(root, **services)
 
 
 def main(*, bind_host: str = "127.0.0.1", stop_requested=None, on_ready=None, on_service_ready=None) -> int:
-    with create_app() as app:
+    from .data_access import writer_lease
+    with writer_lease(ROOT), create_app() as app:
         try:
             with Server((bind_host, app.PORT), app.Handler) as server:
                 app.start()

@@ -14,14 +14,16 @@ from contextlib import contextmanager
 
 from .desktop_control import probe_service, read_record, scope_key, validate_identity
 
-ROOT = Path(__file__).resolve().parents[1]
+from .runtime_paths import paths, module_command
+
+ROOT = paths().home
 DATA = ROOT / "data"
 RECORD = DATA / "background-service.json"
 LOG = DATA / "background.log"
 
 
 class Controls:
-    def __init__(self):
+    def __init__(self, root=None):
         if os.name != "nt":
             raise RuntimeError("Background desktop mode requires Windows. Use python tools/manage.py start here.")
         self.api = ctypes.WinDLL("kernel32", use_last_error=True)
@@ -37,7 +39,7 @@ class Controls:
         ):
             method = getattr(self.api, name)
             method.argtypes, method.restype = args, result
-        self.prefix = "Local\\SSDL.Desktop." + scope_key(ROOT) + "."
+        self.prefix = "Local\\SSDL.Desktop." + scope_key(ROOT if root is None else root) + "."
         self.handles = []
 
     def keep(self, handle):
@@ -152,7 +154,7 @@ def ensure_backend(check_environment=None, *, timeout=60):
                 if LOG.is_file() and LOG.stat().st_size > 2 * 1024 * 1024:
                     LOG.replace(DATA / "background.previous.log")
                 with LOG.open("ab", buffering=0) as output:
-                    process = subprocess.Popen([sys.executable, "-X", "utf8", "-u", "-m", "ssdl.desktop_service"],
+                    process = subprocess.Popen(module_command('ssdl.desktop_service'),
                         cwd=ROOT, stdin=subprocess.DEVNULL, stdout=output, stderr=output,
                         creationflags=subprocess.CREATE_NO_WINDOW | subprocess.CREATE_NEW_PROCESS_GROUP)
             deadline = time.monotonic() + timeout
