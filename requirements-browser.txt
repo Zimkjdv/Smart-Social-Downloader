@@ -1,5 +1,5 @@
 # Optional dynamic capture. Uses existing Google Chrome; no browser download.
-playwright==1.63.0
+playwright==1.64.1
 greenlet==3.5.6
 pyee==13.0.1
 typing-extensions==4.16.0
