@@ -21,6 +21,15 @@ playback/seek, refresh and missing-file recovery. Run `--browser` with host-only
 Playwright and existing Chrome. Physical-host migration is currently deferred;
 human connector/login, other codecs and actual version migration remain pending.
 
+The optional [source upgrade gate](DOCKER_UPGRADE_ACCEPTANCE.md) builds two
+different source snapshots, preserves paused history/media/SQLite/encrypted login
+through upgrade/restart, and checks backup rollback with the old image into fresh
+volumes. Run `--upgrade-from` with a trusted older source directory. Same-version
+preview snapshots are reported separately from application version migrations.
+The storage helper now preserves nanosecond file modification times so restored
+SQLite records can still verify the original files; older archives cannot recover
+precision that was never saved.
+
 ## Build inputs
 
 | File | Responsibility |

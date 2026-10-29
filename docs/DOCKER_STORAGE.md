@@ -117,6 +117,18 @@ docker compose -p ssdl-recovery --profile maintenance run --rm --no-deps storage
 
 Both new data/media volumes must be empty apart from their process lock. The helper verifies SHA-256, stages all files inside the destination volumes, rejects traversal/links/devices/duplicates, ignores archived ownership/modes and creates files privately as UID 10001. It then promotes validated content. Existing installations are never overwritten or automatically erased to make room.
 
+New backups preserve each regular file's exact `st_mtime_ns` in the PAX
+`SSDL.mtime_ns` header. Restore validates the timestamp, applies it before file
+sync/promotion, and refuses destinations that cannot preserve it. This keeps
+file-verified SQLite completion records reusable after recovery. Older archives
+remain readable using their second-resolution header time, but their missing
+nanoseconds cannot be reconstructed and existing records may require a new
+download. Older restore helpers ignore the new timestamp metadata; use the
+fixed helper when creating a recoverable baseline. See the
+[upgrade/rollback gate](DOCKER_UPGRADE_ACCEPTANCE.md) and Python's
+[PAX metadata](https://docs.python.org/3.12/library/tarfile.html#tarfile.TarInfo.pax_headers)
+and [nanosecond timestamp APIs](https://docs.python.org/3.12/library/os.html#os.utime).
+
 **A failed restore is not a successful recovery.** Before promotion, original destinations stay empty; staged files are normally cleaned up. A crash during multi-volume promotion leaves a marker or staging directories that prevent service startup. Keep the backup and failed volumes for inspection, then restore again into another fresh project. Do not remove the marker and start with partial data. Promotion is not an atomic transaction across two volumes.
 
 To restore the pre-upgrade image on the same host, select the retained tag before running the helper and starting the recovery project:

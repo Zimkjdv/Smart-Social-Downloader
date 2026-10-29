@@ -179,6 +179,7 @@ smart-social-downloader/
 │   ├── docker_host_probe.py        Receipt-gated host permissions and backup checks
 │   ├── docker_browser_acceptance.py Host Chrome file UI and actual PNG/H.264 playback
 │   ├── docker_pixiv_acceptance.py Synthetic Pixiv paths/recovery/auth/identity checks in Linux
+│   ├── docker_upgrade_acceptance.py Two-source image upgrade and fresh-volume backup rollback
 │   ├── measure_persistence.py      Isolated synthetic saves and API latency
 │   ├── measure_capacity.py         Account scan, IPC and 64 MiB boundary probes
 │   └── measure_hashing.py          Synthetic content-hash cost assessment

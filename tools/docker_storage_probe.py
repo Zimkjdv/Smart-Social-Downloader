@@ -18,6 +18,28 @@ PARTIAL = b"ssdl synthetic partial bytes\0" * 32
 PRIVATE = b"ssdl invented private history\0"
 
 
+def databases(action):
+    from ssdl.image_history import ImageHistory
+    from ssdl.media_manifest import MediaManifest
+    from ssdl.x_profiles import ProfileArchive
+    result = {"files": ["fixture/original.bin"], "title": "Synthetic upgrade record", "quality": "original"}
+    for kind, filename in ((ImageHistory, "image-history.sqlite3"), (MediaManifest, "media-manifest.sqlite3"),
+                           (ProfileArchive, "x-profiles.sqlite3")):
+        store = kind(DATA / filename, MEDIA, *(["fixture"] if kind is ProfileArchive else []))
+        try:
+            if action == "seed-databases":
+                if kind is ProfileArchive:
+                    store.record("1234567890", result["files"], 1)
+                else:
+                    store.record("https://example.invalid/upgrade", result)
+            found = (store.lookup("1234567890", 1) if kind is ProfileArchive
+                     else store.lookup("https://example.invalid/upgrade"))
+            require(found and store.connection.execute("PRAGMA integrity_check").fetchall() == [("ok",)])
+        finally:
+            store.close()
+    return {"databases_verified": 3}
+
+
 def require(condition):
     if not condition:
         raise RuntimeError("fixture condition failed")
@@ -58,6 +80,7 @@ def seed():
              "video_quality": "best", "progress": 0}]
     require(StateStore(DATA / "state.json").save({"jobs": jobs, "queue": ["fixture-queued"], "paused": True,
             "download_dir": "/downloads", "hourly_job_limit": 73, "x_cookie_file": ""}))
+    databases("seed-databases")
     return verify()
 
 
@@ -69,6 +92,7 @@ def verify():
     require((MEDIA / "fixture/original.bin").read_bytes() == ORIGINAL
             and (MEDIA / "fixture/incomplete.part").read_bytes() == PARTIAL
             and (DATA / "fixture-private.bin").read_bytes() == PRIVATE)
+    databases("verify-databases")
     return {"verified": True, "original_sha256": hashlib.sha256(ORIGINAL).hexdigest()}
 
 
@@ -121,6 +145,8 @@ def main():
         return {"uid": 10001, "modes_verified": True}
     if action in {"seed", "verify", "inventory", "archive-info"}:
         return {"seed": seed, "verify": verify, "inventory": inventory, "archive-info": archive_info}[action]()
+    if action == "verify-databases":
+        return databases(action)
     if action == "cache-empty":
         require(not (CACHE / "excluded-cache.bin").exists())
         return {"cache_excluded": True}

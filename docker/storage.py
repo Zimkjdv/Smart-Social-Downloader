@@ -5,6 +5,7 @@ import argparse
 import hashlib
 import io
 import json
+import math
 import os
 from pathlib import Path, PurePosixPath
 import re
@@ -50,6 +51,23 @@ def digest(stream):
     return checksum.hexdigest()
 
 
+def member_mtime_ns(member):
+    value = member.pax_headers.get("SSDL.mtime_ns")
+    if value is not None:
+        if not isinstance(value, str) or not re.fullmatch(r"-?[0-9]{1,19}", value):
+            raise RuntimeError("Invalid backup file timestamp.")
+        timestamp = int(value)
+    else:
+        # Older archives have only second-resolution header times. Preserve
+        # what they contain; lost nanoseconds cannot safely be reconstructed.
+        if not isinstance(member.mtime, (int, float)) or not math.isfinite(member.mtime):
+            raise RuntimeError("Invalid backup file timestamp.")
+        timestamp = int(member.mtime * 1_000_000_000)
+    if not -(2**63) <= timestamp < 2**63:
+        raise RuntimeError("Unsupported backup file timestamp.")
+    return timestamp
+
+
 def backup():
     name = datetime.now(timezone.utc).strftime("ssdl-%Y%m%dT%H%M%SZ-") + uuid.uuid4().hex[:12] + ".tar"
     destination = BACKUPS / name
@@ -81,6 +99,7 @@ def backup():
                 if (before.st_dev, before.st_ino) != (metadata.st_dev, metadata.st_ino):
                     raise RuntimeError("Storage changed during backup; stop external writers.")
                 entry.size, entry.mode = before.st_size, 0o600
+                entry.pax_headers["SSDL.mtime_ns"] = str(before.st_mtime_ns)
                 archive.addfile(entry, source)
                 archive.members.clear()
                 after = os.fstat(source.fileno())
@@ -171,9 +190,13 @@ def restore(name):
                 if member.isdir():
                     target.mkdir(exist_ok=True, mode=0o700)
                 else:
+                    mtime_ns = member_mtime_ns(member)
                     with archive.extractfile(member) as content, target.open("xb") as output:
                         shutil.copyfileobj(content, output, 1024 * 1024)
                         output.flush()
+                        os.utime(target, ns=(mtime_ns, mtime_ns))
+                        if target.stat().st_mtime_ns != mtime_ns:
+                            raise RuntimeError("Destination cannot preserve the backup file timestamp.")
                         os.fsync(output.fileno())
             if roots != set(VOLUMES):
                 raise RuntimeError("Backup is missing a volume root.")
