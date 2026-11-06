@@ -44,6 +44,14 @@ Pixiv 請使用 **設定 → Pixiv 登入** 按「一鍵連接 Pixiv」，在一
 - 啟動失敗請查看 **`data/background.log`**。若原本有前景服務，請先在原控制台按 **Ctrl+C**，再改用背景模式。
 - 如需顯示控制台，執行 **`.venv\Scripts\python.exe -X utf8 tools\manage.py start`**，並用 Ctrl+C 停止。Docker 啟動方式不變。
 
+如果其他程式佔用了預設連接埠 `8765`，可以改用 `8766` 等可用的連接埠。如果下載工具已在執行，請先用 `stop.bat` 停止服務。在 PowerShell 執行以下指令，將連接埠儲存到目前的 Windows 使用者設定。
+
+```powershell
+[Environment]::SetEnvironmentVariable('SSDL_PORT', '8766', 'User')
+```
+
+從新的終端機視窗執行 `start.bat`，接著開啟 [http://127.0.0.1:8766](http://127.0.0.1:8766)。如果有使用 Chrome 連接器，請在擴充功能的「本機連接設定」填入相同的連接埠。
+
 自訂連接埠、停止逾時與程序管理詳見 [桌面背景服務](docs/DESKTOP_SERVICE.md)，測試情境與限制見 [原生背景啟停驗收](docs/DESKTOP_ACCEPTANCE.md)。
 
 供桌面外殼整合的 `python -m ssdl.desktop_control ensure` 會啟動／附接並回傳有版本的 JSON，不開瀏覽器；`status` 核對執行個體。詳見 [Supervisor 契約](docs/DESKTOP_CONTROL.md)。更新仍在執行的舊版服務後，請明確停止再重啟，以產生新的身分紀錄。
@@ -179,6 +187,7 @@ smart-social-downloader/
 │   ├── docker_host_probe.py        receipt 限定的主機權限與備份檢查
 │   ├── docker_browser_acceptance.py 主機 Chrome 檔案操作、PNG 解碼與 H.264 播放
 │   ├── docker_pixiv_acceptance.py Linux 隔離 Pixiv 目錄／恢復／授權與來源識別驗收
+│   ├── docker_upgrade_acceptance.py 兩份來源映像升級與新 volumes 備份回復驗收
 │   ├── measure_persistence.py      隔離合成保存與 API 延遲量測
 │   ├── measure_capacity.py         帳號掃描、IPC 及 64 MiB 邊界驗收
 │   └── measure_hashing.py          合成檔案內容雜湊成本評估

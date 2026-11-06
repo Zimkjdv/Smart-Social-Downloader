@@ -26,6 +26,11 @@ mounted. Do not reuse the report path for concurrent checks.
 Each successful run must contain the original **nine runtime/context checks** and
 all **14 service stages** below. Fake CLI unit tests do not satisfy this matrix.
 
+The storage fixture also creates real ImageHistory, MediaManifest and X profile
+SQLite records. Restart, fresh-volume restore and rollback must retain database
+integrity and successful file-verified lookups, including exact file modification
+times. This catches restored bytes that no longer satisfy their completion records.
+
 | Stage | Required result |
 | --- | --- |
 | `compose_contract` | Resolve the actual Compose file for default/custom ports; assert loopback publication, matching ports, three named storage mounts, read-only/init settings and network-disabled maintenance with a non-creating backup bind; inspect the built image's 30s/5s/60s/three-retry health configuration |
@@ -75,6 +80,9 @@ between two actual application versions**. Archive transport and recovery use
 independent volumes/projects on the **same engine**. A second physical host,
 different filesystem/architecture, bind-mount sharing or an incompatible future
 application/database migration requires separate acceptance.
+
+For two different application source snapshots instead of this label-only image,
+use the optional [source upgrade/rollback gate](DOCKER_UPGRADE_ACCEPTANCE.md).
 
 The interruption injection streams a probe into a fixture helper, intercepts the
 real restore's directory sync and exits the child process abruptly after data

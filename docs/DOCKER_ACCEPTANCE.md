@@ -17,6 +17,8 @@ python tools/check_docker.py --report data/docker-runtime.json
 Add `--service` to also run the [Compose storage/network/recovery matrix](DOCKER_SERVICE_ACCEPTANCE.md).
 Add `--interaction` to include both that matrix and [login/media HTTP acceptance](DOCKER_INTERACTION_ACCEPTANCE.md).
 Add `--host-storage` to include all of those plus [actual host binds/file secrets](DOCKER_HOST_ACCEPTANCE.md).
+Add `--upgrade-from ../ssdl-before-upgrade` to independently build an older trusted
+source directory and run [upgrade/backup rollback acceptance](DOCKER_UPGRADE_ACCEPTANCE.md).
 That mode uses a local engine, disposable application volumes and invented history
 after these runtime checks pass. The default runtime-only mode still mounts no
 application volumes and starts no application service.

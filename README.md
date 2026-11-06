@@ -44,6 +44,14 @@ For Pixiv, use **Settings → Pixiv sign-in**, click **Connect Pixiv** and finis
 - Startup errors: see **`data/background.log`**. An older foreground instance must be stopped with **Ctrl+C** in its console before switching to background mode.
 - For a visible foreground console, use **`.venv\Scripts\python.exe -X utf8 tools\manage.py start`** and stop with Ctrl+C. Docker startup is unchanged.
 
+If another process is using the default port `8765`, choose an available port such as `8766`. If the downloader is already running, stop it with `stop.bat`. Run this command in PowerShell to save the port for your Windows account.
+
+```powershell
+[Environment]::SetEnvironmentVariable('SSDL_PORT', '8766', 'User')
+```
+
+Run `start.bat` from a new terminal window, then open [http://127.0.0.1:8766](http://127.0.0.1:8766). If you use the Chrome connector, set its **Local connection settings** to the same port.
+
 See [desktop background service](docs/DESKTOP_SERVICE.md) for custom ports, shutdown timeouts and process ownership, and [native acceptance](docs/DESKTOP_ACCEPTANCE.md) for lifecycle checks and their scope.
 
 For shell integrations, `python -m ssdl.desktop_control ensure` starts/attaches without opening a browser and returns versioned JSON; `status` verifies the running instance. See [supervisor contract](docs/DESKTOP_CONTROL.md). After updating an older running service, explicitly stop and restart it to publish the new identity record.
@@ -179,6 +187,7 @@ smart-social-downloader/
 │   ├── docker_host_probe.py        Receipt-gated host permissions and backup checks
 │   ├── docker_browser_acceptance.py Host Chrome file UI and actual PNG/H.264 playback
 │   ├── docker_pixiv_acceptance.py Synthetic Pixiv paths/recovery/auth/identity checks in Linux
+│   ├── docker_upgrade_acceptance.py Two-source image upgrade and fresh-volume backup rollback
 │   ├── measure_persistence.py      Isolated synthetic saves and API latency
 │   ├── measure_capacity.py         Account scan, IPC and 64 MiB boundary probes
 │   └── measure_hashing.py          Synthetic content-hash cost assessment
