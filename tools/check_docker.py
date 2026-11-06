@@ -292,6 +292,7 @@ def main(arguments=None):
     parser.add_argument("--browser", action="store_true", help="Also accept host Chrome file UI and actual PNG/H.264 decoding")
     parser.add_argument("--browser-headed", action="store_true", help="Show the isolated Chrome window (requires --browser)")
     parser.add_argument("--pixiv", action="store_true", help="Also run synthetic Pixiv path/recovery/auth/identity tests without network or host data")
+    parser.add_argument("--upgrade-from", type=Path, help="Also build a trusted older source directory and accept upgrade/backup rollback with invented data")
     parser.add_argument("--report", type=Path, default=ROOT / "data/docker-runtime.json")
     args = parser.parse_args(arguments)
     if args.browser_headed and not args.browser:
@@ -310,7 +311,7 @@ def main(arguments=None):
             if plugins.is_dir():
                 (Path(config) / "config.json").write_text(json.dumps({"cliPluginsExtraDirs": [str(plugins)]}), encoding="utf-8")
             docker = Docker(args.docker, Path(config), args.host)
-            if args.service or args.interaction or args.host_storage or args.browser or args.pixiv:
+            if args.service or args.interaction or args.host_storage or args.browser or args.pixiv or args.upgrade_from:
                 sys.path.insert(0, str(ROOT))
                 # Script and package callers must share the same exception type.
                 sys.modules.setdefault("tools.check_docker", sys.modules[__name__])
@@ -330,6 +331,9 @@ def main(arguments=None):
                     if args.pixiv:
                         from tools.docker_pixiv_acceptance import run_checks as pixiv_checks
                         pixiv_checks(*values)
+                    if args.upgrade_from:
+                        from tools.docker_upgrade_acceptance import run_checks as upgrade_checks
+                        upgrade_checks(*values, baseline_root=args.upgrade_from)
                 report = run_gate(docker, ROOT, report, service_gate=service_gate)
             else:
                 report = run_gate(docker, ROOT, report)

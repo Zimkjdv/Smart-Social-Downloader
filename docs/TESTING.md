@@ -1,5 +1,93 @@
 # Regression and acceptance tests
 
+## Docker source upgrade and timestamp recovery — 2026-10-29
+
+Added the opt-in [two-source upgrade gate](DOCKER_UPGRADE_ACCEPTANCE.md) and
+strengthened the existing service fixture with real ImageHistory, MediaManifest
+and X profile SQLite records. All three must pass integrity and file verification
+after restart and full backup recovery.
+
+The new native real-tar/media/SQLite regression first failed with restored
+`st_mtime_ns = 1793279730454941000` instead of `1700000000123456700`, despite
+identical media bytes. The storage helper had saved only integer seconds and
+never applied the archived time during restoration. The fix writes an exact
+`SSDL.mtime_ns` PAX field, validates it, applies it before fsync/promotion and
+refuses a destination that cannot retain it. The regression now passes; malformed,
+out-of-range and legacy timestamp handling, and refusal before promotion on
+precision loss, are covered too. Legacy archives cannot reconstruct missing
+nanoseconds and may invalidate completion reuse under the existing rules.
+
+Focused native verification passes **88 tests in 7.093 seconds**, zero failures
+or skips. A separately generated, byte-verified **288-file source ZIP** passed
+the same **88 tests in 7.162 seconds** from its isolated extraction with `-E -s`.
+This includes Docker contracts, real local tar/SQLite recovery, packaging and
+database maintenance; it is not a full project/GUI regression. The pre-existing
+untracked research document remains unchanged. Python compilation and the diff
+whitespace check with CRLF allowed also pass.
+
+The historical baseline is commit `d22c9a8fbca149527a6624fdfa1c86d905400aec`.
+It passes both runtime probes and six upgrade stages but correctly fails
+`matching_image_restore`: its original restore helper loses the file times and
+the three SQLite lookups fail. The incomplete receipt is retained as
+`data/docker-upgrade-original-baseline.json`; this is a recorded incompatibility,
+not successful old-version rollback.
+
+A maintained baseline is the same historical source with **only
+`docker/storage.py` replaced by this timestamp correction**. Comparing the
+allowlisted inputs confirms that is its only changed file. No application
+version was changed: both snapshots identify as `0.1.0-preview.2`, and the
+receipt records `version_changed: false`.
+
+| Input | SHA-256 |
+| --- | --- |
+| Unmodified baseline source | `c07d7158eeff95634be48304508e4b42acbdb79487fd87ce210f049049a8340f` |
+| Maintained baseline source | `cff71d6d0f0e07bf501244c0ff68fedbb5bdc16729a6b25dbb843c62e6a4e3bd` |
+| Current runtime source | `6a1c821904d718bfaf2879de7d18b2cd315877f7960f79073654f39a436b9254` |
+| Maintained baseline image | `sha256:e1b45ddd4ca37852de9df3643aa0e9789d80e2dc55b4a05647f580ed5cd6d569` |
+| Current image | `sha256:845bdbb2049236a25e3a6c883fe5b31ce4ec92b9d96d4ecbe7d741eb6676088c` |
+
+The `--pixiv --upgrade-from data/docker-upgrade-maintained-d22c9a8` run completed
+successfully: nine candidate runtime/context checks, nine baseline runtime/context
+checks, all eight source-upgrade/rollback stages and **55 Linux Pixiv cases** with
+zero failures/errors/skips. Receipt: `data/docker-upgrade-maintained.json`.
+The test changes a setting through the new HTTP server, restarts it to verify
+durability, restores the original backup with the maintained old image into fresh
+volumes, then verifies the old setting/login/records while the upgraded volumes
+and backup remain unchanged.
+
+The final combined command also completed successfully:
+
+```powershell
+.\.venv\Scripts\python.exe tools/check_docker.py --host npipe:////./pipe/dockerDesktopLinuxEngine --interaction --pixiv --upgrade-from data/docker-upgrade-maintained-d22c9a8 --report data/docker-upgrade-final.json
+```
+
+That receipt records `passed: true` / `complete: true`, all nine candidate runtime
+checks, 14 service/storage stages, 15 login/media stages, eight source-upgrade
+stages, nine baseline runtime checks and the 55 Linux Pixiv cases. The run took
+133 seconds. Host-file-secret/Chrome acceptance is excluded from this successful
+command and retains the separate failure below.
+
+An attempted combined `--browser --pixiv --upgrade-from ...` run completed all
+14 service/storage stages and all 15 login/media HTTP stages, then failed at
+`host_bind_contract` before the Chrome and upgrade stages. The Docker daemon
+returned `invalid mount config for type "bind"` / `stat ...: input/output error`
+for the newly created private Windows key directory. Independent reproduction
+confirmed Compose path validation passes, but the real mount fails in both
+system TEMP and an isolated project-data scratch directory. The underlying host
+sharing/identity cause is not established; ACL checks were not relaxed and no
+Docker/Windows settings were changed. The incomplete attempt is retained in
+`data/docker-upgrade-host-attempt.json`. The earlier 2026-10-22 host/browser
+results remain historical evidence, not a successful current rerun.
+
+Components in these real Linux runs: Docker Engine **29.8.2**, Compose **5.6.0**,
+Python **3.12.15**, Node **22.23.3**, FFmpeg **5.1.9-0+deb12u1**, yt-dlp
+**2026.8.19**, gallery-dl **1.32.16**, EJS **0.8.0**, imageio-ffmpeg **0.6.0**,
+pycryptodomex **3.24.1**. The native contract runner uses Python **3.12.10**.
+
+Human Chrome/OAuth/login expiry, current host file-secret/browser rerun, distinct
+released application versions and another physical host remain unaccepted.
+The deployment guide stays experimental. No published image or release is created.
+
 ## Pixiv native Windows author checks — 2026-10-24
 
 [Real author acceptance](PIXIV_ACCEPTANCE.md) covers Hoshirapu (82728784):
