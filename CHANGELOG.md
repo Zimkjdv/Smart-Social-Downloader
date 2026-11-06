@@ -4,6 +4,8 @@ Application changes are recorded here. Download engine and Chrome connector vers
 
 ## Unreleased
 
+- Restore the pinned Windows zlib source download through the official GitHub release after the original URL returned HTTP 404.
+
 No GitHub release or tag has been created.
 
 ### Added
