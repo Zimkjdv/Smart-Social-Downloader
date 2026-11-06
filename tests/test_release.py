@@ -76,6 +76,19 @@ class ReleaseTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "Linked source path"):
                 source_files(self.root)
 
+    def test_documentation_categories_ship_without_unreviewed_research_or_nested_exports(self):
+        allowed = ("docs/README.md", "docs/guides/WINDOWS.md", "docs/deployment/DOCKER.md",
+                   "docs/reference/API_CONTRACT.md", "docs/development/TESTING.md",
+                   "docs/development/agents/REQUIREMENTS.md", "docs/testing/README.md",
+                   "docs/history/TEST_RESULTS.md", "docs/research/CONTENT_HASH_ASSESSMENT.md")
+        excluded = ("docs/research/DOWNVID_COMPARISON.md", "docs/research/private-notes.md",
+                    "docs/unreviewed/export.md", "docs/guides/private/export.md",
+                    "docs/development/agents/local-notes.md")
+        for name in (*allowed, *excluded):
+            self.write_source(name)
+        selected = {path.relative_to(self.root).as_posix() for path in source_files(self.root)}
+        self.assertEqual(selected, set(ROOT_FILES) | set(allowed))
+
     def test_extraction_imports_and_discovers_nested_helpers_without_checkout(self):
         for name in ("tests/__init__.py", "tests/helpers/__init__.py", "tests/unit/__init__.py"):
             self.write_source(name, "")
@@ -114,12 +127,13 @@ class ReleaseTests(unittest.TestCase):
     def test_acceptance_commands_use_extracted_cwd_and_stop_after_a_failure(self):
         with patch("tools.check_source_archive.subprocess.run") as run:
             run_checks(self.root)
-        self.assertEqual(run.call_count, 4)
+        self.assertEqual(run.call_count, 5)
         for call in run.call_args_list:
             self.assertEqual(call.kwargs, {"cwd": self.root, "check": True})
         self.assertIn("-E", run.call_args_list[0].args[0])
-        self.assertIn("-t", run.call_args_list[1].args[0])
-        self.assertEqual(run.call_args_list[3].args[0][-1], "tools/check_dependency_faults.py")
+        self.assertEqual(run.call_args_list[1].args[0][-1], "tools/check_docs.py")
+        self.assertIn("-t", run.call_args_list[2].args[0])
+        self.assertEqual(run.call_args_list[4].args[0][-1], "tools/check_dependency_faults.py")
         with patch("tools.check_source_archive.subprocess.run",
                    side_effect=subprocess.CalledProcessError(1, "fixture")) as run:
             with self.assertRaises(subprocess.CalledProcessError):

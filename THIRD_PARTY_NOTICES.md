@@ -41,7 +41,7 @@ FFmpeg 8.1.3 由固定來源及 Debian 快照工具鏈交叉建置，禁用 GPL�
 
 PyInstaller 6.22.3 的 COPYING（含 bootloader 例外）與 proxy-tools 在 wheel 缺漏的上游 BSD 授權文字，均另附於 licenses。PyInstaller 採 GPL 加 bootloader 散布例外；[官方例外](https://pyinstaller.org/en/v6.22.3/license.html)不取代應用程式依賴的授權。Inno Setup 6.7.3 為建置工具，保留[官方使用條款](https://jrsoftware.org/isinfo.php)；不把 compiler 當成應用程式 runtime。Microsoft WebView2 bootstrapper 由官方固定 CDN 下載，校驗 SHA-256 及 Microsoft 簽章，依 [Microsoft 部署說明](https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/distribution)在缺少 Runtime 時下載安裝；SDK／Runtime 適用 Microsoft 條款，Chrome 仍由使用者另行安裝。
 
-每次升級依賴或實際散布形式都必須重新核對建置輸入、附帶聲明及對應來源；目前仍為 unsigned preview，沒有公開正式發行。指令與範圍見 [Windows 發行](docs/WINDOWS_DISTRIBUTION.md)。
+每次升級依賴或實際散布形式都必須重新核對建置輸入、附帶聲明及對應來源；目前仍為 unsigned preview，沒有公開正式發行。指令與範圍見 [Windows 發行](docs/deployment/WINDOWS_DISTRIBUTION.md)。
 
 ## 發布形式（來源 ZIP）
 
@@ -49,16 +49,16 @@ PyInstaller 6.22.3 的 COPYING（含 bootloader 例外）與 proxy-tools 在 whe
 
 動態捕捉的選配版本見 `requirements-browser.txt`。Google Chrome 由使用者另行安裝，適用自己的條款；不下載或散布 Chrome／Chromium 執行檔，也不把 Playwright 的 Node 驅動放進原始碼包。
 
-桌面選配版本見 `requirements-desktop.txt`，這些套件與其 DLL 不包含在本專案來源 ZIP。Microsoft Edge WebView2 Runtime 由使用者另行安裝並適用 Microsoft 條款；來源版不重新散布 Runtime。安裝與範圍見 [桌面指南](docs/DESKTOP_GUI.md)。
+桌面選配版本見 `requirements-desktop.txt`，這些套件與其 DLL 不包含在本專案來源 ZIP。Microsoft Edge WebView2 Runtime 由使用者另行安裝並適用 Microsoft 條款；來源版不重新散布 Runtime。安裝與範圍見 [桌面指南](docs/guides/WINDOWS.md)。
 
 D05 Windows 預覽包的內容與聲明見上節。後續每個二進位版本仍依實際元件保留完整授權文字、版權聲明及對應原始碼／建置資訊。
 
 ## Docker 來源設定
 
-目前新增的是 Dockerfile／Compose 與[建置文件](docs/DOCKER.md)，未發布預建映像。來源 ZIP 仍不含第三方執行檔；使用者依設定建置的映像則會包含 Python、Node、Debian／FFmpeg 及 Python 依賴，保留各元件授權。Dockerfile 保留安裝套件的 metadata／licenses、Debian 版權檔及 Node LICENSE，並記錄實際套件版本。
+目前新增的是 Dockerfile／Compose 與[建置文件](docs/deployment/DOCKER.md)，未發布預建映像。來源 ZIP 仍不含第三方執行檔；使用者依設定建置的映像則會包含 Python、Node、Debian／FFmpeg 及 Python 依賴，保留各元件授權。Dockerfile 保留安裝套件的 metadata／licenses、Debian 版權檔及 Node LICENSE，並記錄實際套件版本。
 
 若日後散布映像，須依其實際內容完成授權、聲明及適用的對應原始碼義務審查；來源基礎設定完成不等於已完成映像散布審查。Python 與 Node 來源及授權可分別見 [Python](https://github.com/python/cpython/blob/3.12/LICENSE)、[Node](https://github.com/nodejs/node/blob/v22.23.3/LICENSE)，Debian 套件聲明位於映像的 `/usr/share/doc/`。
 
 ## Pixiv 功能的設計參考
 
-2026-10-23 的 Pixiv 作者同步沿用 gallery-dl 既有 Pixiv／OAuth 實作及本專案的佇列／保存服務。設計參考 [PixivUtil2](https://github.com/Nandaka/PixivUtil2) 的作者、作品、漫畫頁碼分層與缺檔檢查，參考專案採 [BSD-2-Clause](https://github.com/Nandaka/PixivUtil2/blob/master/LICENSE)。本次沒有新增 PixivUtil2 套件依賴，gallery-dl 的原有 GPL 義務維持。功能與驗收範圍見 [Pixiv 文件](docs/PIXIV.md)。
+2026-10-23 的 Pixiv 作者同步沿用 gallery-dl 既有 Pixiv／OAuth 實作及本專案的佇列／保存服務。設計參考 [PixivUtil2](https://github.com/Nandaka/PixivUtil2) 的作者、作品、漫畫頁碼分層與缺檔檢查，參考專案採 [BSD-2-Clause](https://github.com/Nandaka/PixivUtil2/blob/master/LICENSE)。本次沒有新增 PixivUtil2 套件依賴，gallery-dl 的原有 GPL 義務維持。功能與驗收範圍見 [Pixiv 文件](docs/guides/PIXIV.md)。

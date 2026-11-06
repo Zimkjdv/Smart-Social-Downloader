@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for helping maintain Smart Social Downloader. Read the [README](README.md), [architecture](docs/ARCHITECTURE.md) and [maintenance guide](docs/MAINTENANCE.md) before changing behavior. English and Traditional Chinese reports are welcome.
+Thanks for helping maintain Smart Social Downloader. Read the [README](README.md), [architecture](docs/reference/ARCHITECTURE.md) and [maintenance guide](docs/development/MAINTENANCE.md) before changing behavior. English and Traditional Chinese reports are welcome.
 
 ## Questions, bugs and requests
 
@@ -16,20 +16,20 @@ Review diagnostics and screenshots before sharing. Do not attach cookies, privat
 
 Backend code is in `ssdl/`; browser code is in `static/`. Use the existing component boundaries and fixed locale keys. Update both README languages or both usage guides when a user-facing workflow changes. Do not change the Chrome manifest key casually: it determines the extension identity.
 
-When validating a change, prefer existing temporary-file/local-HTTP fixtures and mocked browser APIs. Do not use another person's account, private cookies or real-platform downloads as an unattended test fixture. Validation commands and their limitations are listed in [the usage guide](docs/USAGE.md#tests-and-source-packages). Report checks you did not perform as pending.
+When validating a change, prefer existing temporary-file/local-HTTP fixtures and mocked browser APIs. Do not use another person's account, private cookies or real-platform downloads as an unattended test fixture. Validation commands and their limitations are listed in [the usage guide](docs/guides/USAGE.md#tests-and-source-packages). Report checks you did not perform as pending.
 
-Use `tests/helpers/` for shared synthetic fixtures and run Python discovery with `-s tests -t .`. Follow the [fixture and source-distribution guide](docs/SOURCE_TESTING.md) when adding subpackages, support modules or tools. Run `python tools/check_source_archive.py` before publishing source changes; it tests the extracted ZIP with the current installed dependencies.
+Use `tests/helpers/` for shared synthetic fixtures and run Python discovery with `-s tests -t .`. Follow the [fixture and source-distribution guide](docs/development/TESTING.md) when adding subpackages, support modules or tools. Run `python tools/check_source_archive.py` before publishing source changes; it tests the extracted ZIP with the current installed dependencies.
 
-Installer/launcher changes also require [fresh Windows installation acceptance](docs/INSTALLATION_ACCEPTANCE.md): `python tools/check_installation.py --browser`. This explicit command downloads packages into an owned new venv; small offline harness tests remain in ordinary discovery. Keep actual desktop/login acceptance separate from fixture evidence.
+Installer/launcher changes also require [fresh Windows installation acceptance](docs/testing/INSTALLATION_ACCEPTANCE.md): `python tools/check_installation.py --browser`. This explicit command downloads packages into an owned new venv; small offline harness tests remain in ordinary discovery. Keep actual desktop/login acceptance separate from fixture evidence.
 
 ## Pull requests
 
 The default branch is protected by the active [Protect main ruleset](https://github.com/Zimkjdv/Smart-Social-Downloader/rules/25801940). Push changes to a working branch and open a pull request. Before merging, resolve review conversations, update the branch against `main`, and pass all three GitHub Actions checks: `windows`, `install-windows` and `docker-runtime`. No approving review is required for this single-maintainer repository. Direct pushes, force pushes and deletion of `main` are blocked; the ruleset has no bypass actors.
 
-Dependency updates follow the [maintenance review gate](docs/MAINTENANCE.md#dependency-updates-and-action-pins). Retain complete Action SHAs and release comments; run `python tools/check_workflows.py` before proposing a CI change. New Action identities require review of the explicit allowlist. Dependabot PRs need the same regression/source-distribution checks as other changes.
+Dependency updates follow the [maintenance review gate](docs/development/MAINTENANCE.md#dependency-updates-and-action-pins). Retain complete Action SHAs and release comments; run `python tools/check_workflows.py` before proposing a CI change. New Action identities require review of the explicit allowlist. Dependabot PRs need the same regression/source-distribution checks as other changes.
 
 Include the problem, relevant Issue, change summary, validation results or pending checks, and any compatibility impact on API/state/connector behavior. A successful syntax check is not a passing regression suite. Add a concise entry under **Unreleased** in [CHANGELOG.md](CHANGELOG.md) for notable changes; the maintainer assigns release versions.
 
-Before committing, inspect your staged files and diff. `.gitignore` does not remove already tracked private data. See [release privacy guidance](docs/RELEASE.md).
+Before committing, inspect your staged files and diff. `.gitignore` does not remove already tracked private data. See [release privacy guidance](docs/development/MAINTENANCE.md).
 
 Contributions to this project's code and documentation are made under its [MIT license](LICENSE). Dependencies retain their own licenses; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
