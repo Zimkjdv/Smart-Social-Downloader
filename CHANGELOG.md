@@ -4,6 +4,7 @@ Application changes are recorded here. Download engine and Chrome connector vers
 
 ## Unreleased
 
+- Review the existing urllib3 SSL-options deprecation for gallery-dl 1.32.19 on Python 3.12 with urllib3 2.8.0; retain rejection of other warning sources and unreviewed versions.
 - Restore the pinned Windows zlib source download through the official GitHub release after the original URL returned HTTP 404.
 
 No GitHub release or tag has been created.
