@@ -30,7 +30,7 @@ jobs:
       - run: python tools/check_workflows.py
       - name: Build fixed LGPL FFmpeg and include corresponding sources
         run: python tools/prepare_windows_ffmpeg.py --output "$RUNNER_TEMP/windows-media"
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: windows-media
           path: ${{ runner.temp }}/windows-media
@@ -58,7 +58,7 @@ jobs:
         run: python tools/build_windows.py --ffmpeg-dir "$env:RUNNER_TEMP/windows-media" --output "$env:RUNNER_TEMP/windows-build"
       - name: Accept real frozen process roles and persistence
         run: python tools/check_windows_distribution.py --bundle "$env:RUNNER_TEMP/windows-build/dist/SmartSocialDownloader" --report "$env:RUNNER_TEMP/windows-build/frozen-acceptance.json" --iscc "$env:GITHUB_WORKSPACE/.release-check/windows-vendor/inno-6.7.3/ISCC.exe"
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: windows-x64-preview
           path: |
