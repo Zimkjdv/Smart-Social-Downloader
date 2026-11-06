@@ -112,7 +112,7 @@ class Collector:
                     else "resource_warning")
         reviewed = (code == "ssl_options_deprecated" and location == "dependency:urllib3/util/ssl_.py"
                     and self.environment.get("python", "").startswith("3.12.")
-                    and self.environment.get("packages", {}).get("gallery-dl") == "1.32.16"
+                    and self.environment.get("packages", {}).get("gallery-dl") in {"1.32.16", "1.32.19"}
                     and self.environment.get("packages", {}).get("urllib3") == "2.8.0")
         self.record(kind="warning", code=code, category=type_name(category), origin=location,
                     line=lineno if type(lineno) is int and 0 <= lineno <= 1_000_000 else 0, reviewed=reviewed)

@@ -30,6 +30,14 @@ class DependencyFaultTests(unittest.TestCase):
         self.assertTrue(collector.passed)
         self.assertEqual(collector.events[0]["code"], "ssl_options_deprecated")
         self.assertTrue(collector.events[0]["reviewed"])
+        collector = self.collector()
+        collector.environment["packages"]["gallery-dl"] = "1.32.19"
+        self.ssl_warning(collector)
+        self.assertTrue(collector.passed)
+        collector.environment["packages"]["urllib3"] = "2.9.0"
+        collector.events.clear()
+        self.ssl_warning(collector)
+        self.assertFalse(collector.passed)
         for change in ("message", "origin", "version", "python"):
             with self.subTest(change=change):
                 collector = self.collector()
