@@ -15,16 +15,13 @@ import subprocess
 import threading
 import time
 import math
+from .session_storage import AuthError, SessionStorage, host_browser_required
 
 
 COOKIE_NAMES = {"auth_token", "ct0", "twid"}
 X_DOMAINS = {"x.com", "twitter.com"}
 EXTENSION_ID = "echfdpjnnbmemndlfcfjgdkdkeklldid"
 EXTENSION_ORIGIN = "chrome-extension://" + EXTENSION_ID
-
-
-class AuthError(RuntimeError):
-    pass
 
 
 def chrome_executable() -> Path | None:
@@ -133,9 +130,10 @@ def _existing_chrome_session() -> tuple[dict, float]:
 
 
 class XAuthManager:
-    def __init__(self, directory: Path, *, port=8765, restore=True):
+    def __init__(self, directory: Path, *, port=8765, restore=True, storage: SessionStorage | None = None):
         self.directory = directory
         self.secret_file = directory / "x-auth.bin"
+        self.storage = storage if storage is not None else SessionStorage(windows_protect=lambda value, **options: _dpapi(value, **options))
         self.origin = f"http://127.0.0.1:{port}"
         self.extension_directory = directory.parent / "chrome-extension"
         self._challenge = ""
@@ -166,10 +164,13 @@ class XAuthManager:
         if not self.secret_file.is_file():
             return
         try:
-            saved = json.loads(_dpapi(self.secret_file.read_bytes(), decrypt=True))
+            saved = json.loads(self.storage.load(self.secret_file))
             values = saved["cookies"]
             expiry = float(saved["expires_at"])
-            if expiry <= time.time() or not values.get("auth_token"):
+            if (not isinstance(values, dict) or not values.get("auth_token")
+                    or any(name not in COOKIE_NAMES or not _valid_cookie_fields({"domain": "x.com", "name": name, "value": value})
+                           for name, value in values.items())
+                    or not math.isfinite(expiry) or not time.time() < expiry <= 253402300799):
                 raise ValueError("expired")
             self._values = {name: value for name, value in values.items() if name in COOKIE_NAMES}
             self._expires = expiry
@@ -186,7 +187,9 @@ class XAuthManager:
             if self._values and self._expires <= time.time():
                 self._values = {}
                 self._state.update(phase="expired", connected=False, message="X 登入已到期，請重新連接。")
-            return {**self._state, "chrome_available": chrome_executable() is not None}
+            return {**self._state, "chrome_available": chrome_executable() is not None,
+                    "host_browser": host_browser_required(), "storage_mode": self.storage.mode,
+                    "persistent": self.storage.persistent}
 
     def cookies(self) -> dict:
         with self._lock:
@@ -199,12 +202,15 @@ class XAuthManager:
                 raise AuthError("登入連接已關閉，請重新啟動下載工具。")
             if self._thread and self._thread.is_alive():
                 return self.status()
+            if host_browser_required():
+                token = self.prepare_extension()
+                return {**self.status(), "pairing_url": self.origin + "/chrome-connect#token=" + token + "&connect=1"}
             if not chrome_executable():
                 raise AuthError("找不到 Google Chrome，請先安裝 Chrome，或使用進階 Cookie 檔案設定。")
             # Detect restricted-process DPAPI failures before requesting cookies
             # or opening another Chrome pairing tab. No session data is used.
             try:
-                _dpapi(b"Smart Social Downloader session storage check")
+                self.storage.check()
             except AuthError as exc:
                 self._challenge = ""
                 self._challenge_expires = 0
@@ -268,7 +274,7 @@ class XAuthManager:
                 self._stop.set()
                 self._stop = threading.Event()
             try:
-                _dpapi(b"Smart Social Downloader session storage check")
+                self.storage.check()
             except AuthError as exc:
                 self._challenge = ""
                 self._state.update(phase="failed", busy=False, message=str(exc))
@@ -307,11 +313,7 @@ class XAuthManager:
                 return False
             expiry = expiry or time.time() + 30 * 86400
             payload = json.dumps({"cookies": values, "expires_at": expiry, "source": source}).encode()
-            encrypted = _dpapi(payload)
-            self.directory.mkdir(parents=True, exist_ok=True)
-            temporary = self.secret_file.with_suffix(".bin.tmp")
-            temporary.write_bytes(encrypted)
-            temporary.replace(self.secret_file)
+            self.storage.save(self.secret_file, payload)
             self._values, self._expires = dict(values), expiry
             self._challenge = ""
             self._state.update(phase="connected", connected=True, busy=False,

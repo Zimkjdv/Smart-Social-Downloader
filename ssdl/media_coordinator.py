@@ -8,7 +8,7 @@ from urllib.error import HTTPError, URLError
 from .media_manifest import MediaManifest
 from .video_quality import validate_video_quality
 from .web_media import WebMediaDiscovery, WebMediaError, MAX_ATTEMPTS, validate_target, diagnostic_error
-from .media_contracts import DownloadError, original_image_url, source_key, _same_output_directory, x_post_id
+from .media_contracts import DownloadError, original_image_url, source_key, source_keys, pixiv_artwork_id, _same_output_directory, x_post_id
 from . import media_engines as engines, video_adapter as video, gallery_adapter as gallery
 from . import image_adapter as images, x_account_media as x_media
 
@@ -86,17 +86,22 @@ def download_web_media(url: str, output_dir: Path, emit, *, force=False, video_q
 
 def _download_source(url: str, output_dir: Path, emit, *, force=False, x_cookie_file="", x_cookies=None,
              image_history_file: Path | None = None, known_jobs=(), video_quality="best", selected_media="",
-             dynamic_capture=False, browser=None) -> dict:
+             dynamic_capture=False, browser=None, pixiv_refresh_token="") -> dict:
     output_dir.mkdir(parents=True, exist_ok=True)
+    artwork = pixiv_artwork_id(url)
+    if artwork:
+        url = "https://www.pixiv.net/artworks/" + artwork
     if original_image_url(url):
         return images.download_image(url, output_dir, emit, force=force, history_file=image_history_file, known_jobs=known_jobs)
+    if (urlparse(url).hostname or "").lower() in {"pixiv.net", "www.pixiv.net"} and not pixiv_refresh_token:
+        raise DownloadError("請先在設定完成 Pixiv 授權。", code="pixiv_login_required")
     if engines.gallery_extractor:
         # gallery-dl holds process-wide configuration; this app serializes downloads.
         with gallery.GALLERY_LOCK:
             # Only load a selected X credential file when this job is for X.
             is_x = (urlparse(url).hostname or "").lower().removeprefix("www.").removeprefix("mobile.") in {"x.com", "twitter.com"}
             gallery.configure_gallery(output_dir, force=force, x_cookie_file=x_cookie_file if is_x else "", x_cookies=x_cookies if is_x else None,
-                              video_quality=video_quality)
+                              video_quality=video_quality, pixiv_refresh_token=pixiv_refresh_token if (urlparse(url).hostname or "").lower() in {"pixiv.net", "www.pixiv.net"} else "")
             post_id = x_post_id(url)
             if post_id and not (x_cookie_file or x_cookies):
                 return x_media.download_x_public(url, post_id, output_dir, emit, video_quality=video_quality)
@@ -120,21 +125,34 @@ def _download_source(url: str, output_dir: Path, emit, *, force=False, x_cookie_
 
 def download(url: str, output_dir: Path, emit, *, force=False, x_cookie_file="", x_cookies=None,
              image_history_file: Path | None = None, known_jobs=(), manifest_file: Path | None = None, video_quality="best", selected_media="",
-             dynamic_capture=False, browser=None) -> dict:
+             dynamic_capture=False, browser=None, pixiv_refresh_token="") -> dict:
     """Skip only a complete verified source manifest; keep expected paths fixed."""
     video_quality = validate_video_quality(video_quality)
     if original_image_url(url):
         video_quality = "best"
     archive, remembered, warnings = None, None, []
-    source = source_key(url) + (f"\nvideo_quality={video_quality}" if video_quality != "best" else "")
+    preference = f"\nvideo_quality={video_quality}" if video_quality != "best" else ""
     if selected_media:
-        source += f"\nselected_media={selected_media}"
+        preference += f"\nselected_media={selected_media}"
+    identities = [key + preference for key in source_keys(url)]
+    source = identities[0]
     try:
         if manifest_file is not None:
             try:
                 archive = MediaManifest(manifest_file, output_dir)
                 remembered = archive.lookup(source, verify=False)
                 cached = archive.lookup(source) if not force else None
+                if not remembered:
+                    for legacy in identities[1:]:
+                        previous = archive.lookup(legacy, verify=False)
+                        if (not previous or previous.get("video_quality", "best") != video_quality
+                                or previous.get("selected_media", "") != selected_media):
+                            continue
+                        remembered = previous
+                        if not force:
+                            cached = archive.promote(source, legacy, video_quality=video_quality,
+                                                     selected_media=selected_media)
+                        break
                 if not remembered and not force:
                     for old in known_jobs:
                         if (not _same_output_directory(old, output_dir) or source_key(str(old.get("url", ""))) != source_key(url)
@@ -170,7 +188,7 @@ def download(url: str, output_dir: Path, emit, *, force=False, x_cookie_file="",
         result = _download_source(url, output_dir, emit, force=actual_force,
             x_cookie_file=x_cookie_file, x_cookies=x_cookies,
             image_history_file=image_history_file, known_jobs=known_jobs, video_quality=video_quality, selected_media=selected_media,
-            dynamic_capture=dynamic_capture, browser=browser)
+            dynamic_capture=dynamic_capture, browser=browser, pixiv_refresh_token=pixiv_refresh_token)
         result["video_quality"] = video_quality
         result["selected_media"] = selected_media
         from .media_manifest import file_entries

@@ -6,6 +6,12 @@ Detailed installation and interface instructions. Paths in commands are relative
 
 ## Features
 
+Windows users can run **desktop.bat** for the optional WebView2 window, including
+folder selection and native diagnostics Save As. Business functions use the same
+HTTP API. Closing it keeps background downloads running; use its confirmed Stop
+button when owned or stop.bat when attached. See [desktop usage](DESKTOP_GUI.md)
+for requirements, profile storage, normal Chrome sign-in and source-version scope.
+
 | Feature | Behavior |
 | --- | --- |
 | Multiple URLs | Paste one URL per line, or separate URLs with spaces or commas. Up to 30 URLs per submission and 200 jobs in the list. |

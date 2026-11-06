@@ -1,5 +1,5 @@
 /* Shared in-page state. Loaded once before the UI feature scripts. */
-const state = { jobs: [], paused: false, ready: false, filter: 'all', platform: 'all', search: '', page: 1, pageSize: 20, xAuth: {}, cookieFile: '', inputMode: 'urls', videoQuality: 'best' };
+const state = { jobs: [], paused: false, ready: false, filter: 'all', platform: 'all', search: '', page: 1, pageSize: 20, xAuth: {}, pixivAuth: {}, cookieFile: '', inputMode: 'urls', videoQuality: 'best' };
 const jobPageSizes = [10, 20, 50];
 const jobPageSizeKey = 'ssdl.jobs.pageSize';
 try {

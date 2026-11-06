@@ -73,15 +73,32 @@ def main():
             last_activity = now
             send("activity")
 
+    def clean(value):
+        credential = payload.get("pixiv_refresh_token")
+        def scrub(item):
+            if isinstance(item, str) and isinstance(credential, str) and credential:
+                return item.replace(credential, "[REDACTED]")
+            if isinstance(item, dict):
+                return {key: scrub(content) for key, content in item.items()}
+            if isinstance(item, list):
+                return [scrub(content) for content in item]
+            return item
+        return redact_fields(scrub(value))
+
     def emit(data):
-        send("progress", data=redact_fields(data))
+        send("progress", data=clean(data))
 
     try:
         with browser_driver(payload.get("dynamic_capture") is True and not payload.get("profile")) as browser, public_network(activity):
             output = Path(payload["output_dir"])
             common = {"x_cookie_file": payload.get("cookie_file", ""), "x_cookies": payload.get("x_cookies", {}),
                       "known_jobs": payload.get("known_jobs", ())}
-            if payload.get("profile"):
+            if payload.get("mode") == "pixiv_profile":
+                result = media.download_pixiv_account(payload["url"], output, emit,
+                    archive_file=Path(payload["archive_file"]), refresh_token=payload.get("pixiv_refresh_token", ""),
+                    previous_files=payload.get("previous_files", ()), known_jobs=payload.get("known_jobs", ()),
+                    before_post=lambda: rpc("before_post"), checkpoint=lambda: rpc("checkpoint"))
+            elif payload.get("profile"):
                 result = media.download_x_account(payload["url"], output, emit, **common,
                     archive_file=Path(payload["archive_file"]), previous_files=payload.get("previous_files", ()),
                     before_post=lambda: rpc("before_post"), checkpoint=lambda: rpc("checkpoint"))
@@ -89,17 +106,23 @@ def main():
                 result = media.download(payload["url"], output, emit, **common, force=payload.get("force", False),
                     image_history_file=Path(payload["image_history_file"]), manifest_file=Path(payload["manifest_file"]),
                     video_quality=payload.get("video_quality", "best"), selected_media=payload.get("selected_media", ""),
-                    dynamic_capture=payload.get("dynamic_capture") is True, browser=browser)
-        send("result", data=redact_fields(result))
+                    dynamic_capture=payload.get("dynamic_capture") is True, browser=browser,
+                    pixiv_refresh_token=payload.get("pixiv_refresh_token", ""))
+        send("result", data=clean(result))
     except SelectionRequired as exc:
         try:
-            send("selection", options=exc.options)
+            send("selection", options=clean(exc.options))
         except MessageTooLarge:
             send_failure(send, {"error": CAPACITY_ERROR, "error_code": "worker_message_too_large"})
     except MessageTooLarge:
         send_failure(send, {"error": CAPACITY_ERROR, "error_code": "worker_message_too_large"})
     except Exception as exc:
-        send_failure(send, {**media.error_info(exc), "files": getattr(exc, "files", [])})
+        failure = media.error_info(exc)
+        credential = payload.get("pixiv_refresh_token")
+        if isinstance(credential, str) and credential:
+            for key in ("error", "error_detail"):
+                failure[key] = str(failure.get(key, "")).replace(credential, "[REDACTED]")
+        send_failure(send, clean({**failure, "files": getattr(exc, "files", [])}))
     return 0
 
 

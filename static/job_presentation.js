@@ -1,10 +1,27 @@
 /* Job formatting and keyed table rendering; actions live in jobs_controller.js. */
 const safe = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
 const statusNames = { queued: '等待中', active: '下載中', completed: '已完成', failed: '失敗', selecting: '待選擇媒體' };
-const jobTitle = (job) => job.mode === 'x_profile' ? t('ui.x_account_media_account', { account: job.account || '' }) : !job.title || job.title === '等待下載' || job.title === '正在下載圖片來源檔' ? t(job.title || 'ui.waiting_to_download') : job.title;
+function pixivAuthorLabel(job) {
+  const account = String(job.account || '');
+  if (!/^[1-9][0-9]{0,19}$/.test(account)) return account;
+  const suffix = `(${account})`;
+  const prefix = 'Pixiv · ';
+  if (typeof job.title === 'string' && job.title.startsWith(prefix) && job.title.endsWith(suffix)) {
+    return job.title.slice(prefix.length);
+  }
+  // Older history already contains the named folder, even before its next sync.
+  for (const filename of job.files || []) {
+    const parts = String(filename).split(/[\\/]/);
+    if (parts.length === 3 && parts[0] === 'pixiv' && parts[1].endsWith(suffix) && parts[1].length > suffix.length) {
+      return parts[1];
+    }
+  }
+  return account;
+}
+const jobTitle = (job) => job.mode === 'pixiv_profile' ? t('ui.pixiv_author_title', { account: pixivAuthorLabel(job) }) : job.mode === 'x_profile' ? t('ui.x_account_media_account', { account: job.account || '' }) : !job.title || job.title === '等待下載' || job.title === '正在下載圖片來源檔' ? t(job.title || 'ui.waiting_to_download') : job.title;
 
 function wasSkipped(job) {
-  return job.status === 'completed' && job.mode !== 'x_profile' &&
+  return job.status === 'completed' && !['x_profile', 'pixiv_profile'].includes(job.mode) &&
     (job.skipped_download || job.status_text === '已略過，檔案已存在');
 }
 
@@ -189,7 +206,7 @@ function renderJobs({ resetScroll = false } = {}) {
     const busy = pendingJobActions.has(job.id);
     const progress = Number.isFinite(job.progress) ? Math.max(0, Math.min(100, job.progress)) : null;
     const isActive = job.status === 'active';
-    const isProfile = job.mode === 'x_profile';
+    const isProfile = ['x_profile', 'pixiv_profile'].includes(job.mode);
     const stopped = job.error_code === 'profile_stopped';
     const skipped = wasSkipped(job);
     const showSkipResult = skipped && recentSkippedJobs.get(job.id) === jobRun(job);
@@ -210,8 +227,8 @@ function renderJobs({ resetScroll = false } = {}) {
     const files = job.files || [];
     const fileCount = job.file_count ?? files.length;
     const viewImage = fileCount > 0 && files.every(isImageFile);
-    const viewTitle = t(!fileCount ? 'ui.no_file_is_available_yet' : fileCount > 1 ? 'ui.choose_a_file_to_play_or_view' : viewImage ? 'ui.view_image_in_the_default_app' : 'ui.play_video_or_audio_in_the_default');
-    const folderTitle = t(!fileCount ? 'ui.no_saved_file_folder_is_available_yet' : fileCount > 1 ? 'ui.choose_a_file_and_open_its_folder' : 'ui.open_this_file_s_folder');
+    const viewTitle = t(!fileCount ? 'ui.no_file_is_available_yet' : state.fileActions === 'browser' ? 'ui.browser_media_view' : fileCount > 1 ? 'ui.choose_a_file_to_play_or_view' : viewImage ? 'ui.view_image_in_the_default_app' : 'ui.play_video_or_audio_in_the_default');
+    const folderTitle = t(!fileCount ? 'ui.no_saved_file_folder_is_available_yet' : state.fileActions === 'browser' ? 'ui.browser_job_files' : fileCount > 1 ? 'ui.choose_a_file_and_open_its_folder' : 'ui.open_this_file_s_folder');
     const requestedQuality = job.video_quality && job.video_quality !== 'best' ? t('ui.quality_limit_height_p', { height: job.video_quality }) : '';
     const retryTitle = t(canRetry && isProfile ? 'ui.sync_account_media_fetch_new_or_unfinished' : canRetry ? 'ui.download_again_and_overwrite_files_with_the' : isActive ? 'ui.download_in_progress_retry_after_it_finishes' : 'ui.this_job_is_already_queued') + (requestedQuality ? ` · ${requestedQuality}` : '');
     const stopTitle = t(job.stop_requested ? 'ui.stopping_keeping_downloaded_files' : 'ui.stop_download_keep_saved_files');

@@ -1,0 +1,6 @@
+#desktop-bar[hidden],#download-dir-pick[hidden]{display:none!important}
+.desktop-bar{display:flex;align-items:center;gap:12px;padding:8px 20px;border-bottom:1px solid #293449;background:#111929;color:#aab8cc;font-size:11px;flex-wrap:wrap}
+.desktop-bar p{margin:0;flex:1}
+.desktop-bar button{white-space:nowrap}
+#desktop-status{color:#d0b47e}
+#download-dir-pick{white-space:nowrap;font-size:10px;padding:6px 8px}

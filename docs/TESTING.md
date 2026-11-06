@@ -1,5 +1,504 @@
 # Regression and acceptance tests
 
+## Docker source upgrade and timestamp recovery — 2026-10-29
+
+Added the opt-in [two-source upgrade gate](DOCKER_UPGRADE_ACCEPTANCE.md) and
+strengthened the existing service fixture with real ImageHistory, MediaManifest
+and X profile SQLite records. All three must pass integrity and file verification
+after restart and full backup recovery.
+
+The new native real-tar/media/SQLite regression first failed with restored
+`st_mtime_ns = 1793279730454941000` instead of `1700000000123456700`, despite
+identical media bytes. The storage helper had saved only integer seconds and
+never applied the archived time during restoration. The fix writes an exact
+`SSDL.mtime_ns` PAX field, validates it, applies it before fsync/promotion and
+refuses a destination that cannot retain it. The regression now passes; malformed,
+out-of-range and legacy timestamp handling, and refusal before promotion on
+precision loss, are covered too. Legacy archives cannot reconstruct missing
+nanoseconds and may invalidate completion reuse under the existing rules.
+
+Focused native verification passes **88 tests in 7.093 seconds**, zero failures
+or skips. A separately generated, byte-verified **288-file source ZIP** passed
+the same **88 tests in 7.162 seconds** from its isolated extraction with `-E -s`.
+This includes Docker contracts, real local tar/SQLite recovery, packaging and
+database maintenance; it is not a full project/GUI regression. The pre-existing
+untracked research document remains unchanged. Python compilation and the diff
+whitespace check with CRLF allowed also pass.
+
+The historical baseline is commit `d22c9a8fbca149527a6624fdfa1c86d905400aec`.
+It passes both runtime probes and six upgrade stages but correctly fails
+`matching_image_restore`: its original restore helper loses the file times and
+the three SQLite lookups fail. The incomplete receipt is retained as
+`data/docker-upgrade-original-baseline.json`; this is a recorded incompatibility,
+not successful old-version rollback.
+
+A maintained baseline is the same historical source with **only
+`docker/storage.py` replaced by this timestamp correction**. Comparing the
+allowlisted inputs confirms that is its only changed file. No application
+version was changed: both snapshots identify as `0.1.0-preview.2`, and the
+receipt records `version_changed: false`.
+
+| Input | SHA-256 |
+| --- | --- |
+| Unmodified baseline source | `c07d7158eeff95634be48304508e4b42acbdb79487fd87ce210f049049a8340f` |
+| Maintained baseline source | `cff71d6d0f0e07bf501244c0ff68fedbb5bdc16729a6b25dbb843c62e6a4e3bd` |
+| Current runtime source | `6a1c821904d718bfaf2879de7d18b2cd315877f7960f79073654f39a436b9254` |
+| Maintained baseline image | `sha256:e1b45ddd4ca37852de9df3643aa0e9789d80e2dc55b4a05647f580ed5cd6d569` |
+| Current image | `sha256:845bdbb2049236a25e3a6c883fe5b31ce4ec92b9d96d4ecbe7d741eb6676088c` |
+
+The `--pixiv --upgrade-from data/docker-upgrade-maintained-d22c9a8` run completed
+successfully: nine candidate runtime/context checks, nine baseline runtime/context
+checks, all eight source-upgrade/rollback stages and **55 Linux Pixiv cases** with
+zero failures/errors/skips. Receipt: `data/docker-upgrade-maintained.json`.
+The test changes a setting through the new HTTP server, restarts it to verify
+durability, restores the original backup with the maintained old image into fresh
+volumes, then verifies the old setting/login/records while the upgraded volumes
+and backup remain unchanged.
+
+The final combined command also completed successfully:
+
+```powershell
+.\.venv\Scripts\python.exe tools/check_docker.py --host npipe:////./pipe/dockerDesktopLinuxEngine --interaction --pixiv --upgrade-from data/docker-upgrade-maintained-d22c9a8 --report data/docker-upgrade-final.json
+```
+
+That receipt records `passed: true` / `complete: true`, all nine candidate runtime
+checks, 14 service/storage stages, 15 login/media stages, eight source-upgrade
+stages, nine baseline runtime checks and the 55 Linux Pixiv cases. The run took
+133 seconds. Host-file-secret/Chrome acceptance is excluded from this successful
+command and retains the separate failure below.
+
+An attempted combined `--browser --pixiv --upgrade-from ...` run completed all
+14 service/storage stages and all 15 login/media HTTP stages, then failed at
+`host_bind_contract` before the Chrome and upgrade stages. The Docker daemon
+returned `invalid mount config for type "bind"` / `stat ...: input/output error`
+for the newly created private Windows key directory. Independent reproduction
+confirmed Compose path validation passes, but the real mount fails in both
+system TEMP and an isolated project-data scratch directory. The underlying host
+sharing/identity cause is not established; ACL checks were not relaxed and no
+Docker/Windows settings were changed. The incomplete attempt is retained in
+`data/docker-upgrade-host-attempt.json`. The earlier 2026-10-22 host/browser
+results remain historical evidence, not a successful current rerun.
+
+Components in these real Linux runs: Docker Engine **29.8.2**, Compose **5.6.0**,
+Python **3.12.15**, Node **22.23.3**, FFmpeg **5.1.9-0+deb12u1**, yt-dlp
+**2026.8.19**, gallery-dl **1.32.16**, EJS **0.8.0**, imageio-ffmpeg **0.6.0**,
+pycryptodomex **3.24.1**. The native contract runner uses Python **3.12.10**.
+
+Human Chrome/OAuth/login expiry, current host file-secret/browser rerun, distinct
+released application versions and another physical host remain unaccepted.
+The deployment guide stays experimental. No published image or release is created.
+
+## Pixiv native Windows author checks — 2026-10-24
+
+[Real author acceptance](PIXIV_ACCEPTANCE.md) covers Hoshirapu (82728784):
+22 works / 24 files, original-image decoding, scan-first totals, pause/stop
+recovery, verified repeat sync, single missing/mtime-changed page recovery,
+normal-user DPAPI/history restart and bilingual named author titles in Chrome.
+The private evidence remains outside the source tree. Other authorization,
+legacy-folder, Ugoira and Linux/Docker cases remain explicitly pending.
+
+The focused Python command in that report passes **40 tests in 13.729 seconds**;
+frontend Node checks pass **24 cases**, zero skips/failures. This is not a claim
+that the complete project suite was rerun locally for this change.
+
+## Settings UI CI contract repair — 2026-10-24
+
+The five pushes from `8c84267` through `5c16a46` failed the Windows Python
+regression step. Their Docker and fresh Windows installation jobs passed.
+The [reported failing run](https://github.com/Zimkjdv/Smart-Social-Downloader/actions/runs/40017372470)
+executed **344 Python tests in 107.026 seconds**, with **one failure and one
+error** in `tests/test_browser_ui.py`:
+
+- `test_settings_draft_language_tabs_keyboard_and_focus_return` expected the
+  X tab after one ArrowRight from General. The current visible order is
+  General → Pixiv → X → Diagnostics; the controller follows that DOM order.
+- `test_advanced_cookie_field_is_reachable_from_summary_with_keyboard` used
+  `#settings-panel-x summary`, which now matches both login help and advanced
+  Cookies. Playwright rejected the ambiguous focus operation in strict mode.
+
+The existing cases now assert the four-tab sequence and target
+`#settings-panel-x .advanced-cookies > summary`. Enter/Tab must still reach the
+Cookie field and Shift+Tab must return to its summary. Tests remain enabled,
+strict mode remains active, and the suite size and production UI are unchanged.
+This is a stale test-contract repair, not evidence of a failed download engine.
+
+The [first repair run](https://github.com/Zimkjdv/Smart-Social-Downloader/actions/runs/40019763517)
+for `c23f745` passed all **344 Python tests in 124.166 seconds**, plus Docker and
+fresh Windows installation. It then reached the previously skipped Node step:
+**7/23 passed, 16 failed**, with two shared fixture startup errors:
+
+- The synthetic dashboard loaded `app.js` without `pixiv_login.js`, causing
+  `SSDLPixivLogin is not defined` across 14 existing DOM cases. Load the real
+  Pixiv controller before application composition, as the shipped HTML does.
+- The Chrome mock lacked `webRequest.onBeforeRequest` and tab/session APIs used
+  by connector 1.2.0. Its single message-listener slot also discarded the X
+  handler when the Pixiv handler registered. Model the required API surface and
+  dispatch messages to all registered listeners, retaining the first response.
+
+These fixture repairs preserve the existing 23 Node cases and X preflight /
+source-rejection assertions. They do not weaken the production connector or
+constitute new Pixiv OAuth/callback acceptance.
+
+Local checks cover Python/JavaScript syntax and diff whitespace only; no local test suite
+or real platform download was run for this repair. Full execution is performed
+by the existing push-triggered workflow. Results must be associated with that
+exact commit/run; a completed older run does not verify these changes.
+
+## Host Chrome UI and actual playback — 2026-10-22
+
+Local `--browser` acceptance passes **9 + 14 + 15 + 8 + 7 = 53** stages,
+`passed: true`, `complete: true`, exit code 0 with owned-resource cleanup.
+Run: **21:59:17–22:01:24 Asia/Taipei**. Docker **29.8.2**, Compose **5.6.0**,
+installed host Google Chrome **155.0.8059.86**, Windows ACL host mode.
+Runtime source SHA-256: `51bb9a8c7201fd5f0a4786351bbeaffcad3d9eb6c4d1ab51c44ce201a6cfcc6a`.
+Image: `sha256:4f4bc4d46afec9348e0d8d345991750f7f28e8df687ed7c483d596e344962faa`.
+Browser-tool/probe SHA-256: `7b5d2daa889a7c990b101e59c32ff788215b5f364d780c78ad9748f78c869bea`.
+
+The initial gate passes actual PNG and keyboard selection but fails H.264
+playback: a native video document's opaque sandbox creates `Origin: null`,
+rejected by the API. A single-header probe restores metadata/Range reads.
+The minimized shipped-handler Chrome regression fails with the old policy;
+a controlled old-header attempt still fails with the corrected driver polling,
+then the fixed handler passes decode, advancing playback, seek and end.
+Native sandbox documents also block Playwright's in-page polling task;
+the acceptance helper polls through bounded driver-side element evaluation.
+No script permission is added. Fixed inert inline MIME types retain origin;
+SVG/unknown media remain attachment/octet-stream under the opaque sandbox,
+HTML is rejected and null/foreign origins remain rejected. See the
+[W3C sandbox directive](https://w3c.github.io/webappsec-csp/#directive-sandbox).
+
+The new seven stages pass against the actual Docker entry/UI and a fresh Chrome
+context, including page reload/refresh, missing-file status and subsequent image
+recovery. All media and sessions are invented. This does not install the real
+connector, log into X, exercise sound/other codecs or launch Explorer/player.
+The user has deferred physical-host migration. See [procedure and limits](DOCKER_BROWSER_ACCEPTANCE.md).
+
+Full local checkout: **344 Python tests in 104.152 seconds / 23 Node**, zero skips.
+The 16 new cases cover native Chrome decode/play/seek, media MIME/sandbox/null
+origin guards, exact browser request origins, dialog/CLI contracts, categorical
+failures and bounded driver polling. The initial 30 focused Docker contracts and
+subsequent 19 playback/browser/API-source cases also pass.
+
+A repeated final gate includes a bounded fire-and-observe play trigger, so a
+stalled `play()` promise cannot hang acceptance. All 53 stages and cleanup pass.
+The final helper also passes 19 focused playback/browser/source-policy cases.
+A Git-index export excludes the deferred comparison document, verifies **201**
+source ZIP members and passes **344 Python tests in 104.323 seconds / 23 Node**,
+then **116** dependency-fault cases in **72.078 seconds** with only the previously
+reviewed SSL warning and zero skips/unexpected faults.
+
+## Actual host binds and file secrets — 2026-10-22
+
+Local `--host-storage` acceptance passes **9 + 14 + 15 + 8 = 46** stages,
+`passed: true`, `complete: true`, exit code 0 and owned-resource cleanup.
+Run: **03:14:04–03:15:58 Asia/Taipei**, Docker **29.8.2**, Compose **5.6.0**,
+Linux amd64 image, Windows host permission mode `windows_acl`. Runtime source
+and image identities match the preceding accepted interaction run. Host-source
+SHA-256: `0f6e378e585f3697eed716cae0d2c34345bfdf94008609df5fb97af91a18eec6`.
+
+The actual Compose maintenance commands generate a host key, reject overwrite,
+create an offline host archive/checksum and restore it into fresh application
+volumes/project. The downloader receives the real file-backed secret as a
+read-only bind, restores invented login after restart and recovers encrypted
+login/settings/original/partial media from the backup. Complete source/restored
+file inventories match before starting the recovery service; the external key
+is excluded from the archive and cache is excluded. No real X cookie, browser
+profile, platform media or production installation is used.
+
+The first Windows permission implementation reproduces module-autoload failure
+under an inherited PowerShell 7 module path, then `Set-Acl` requesting unavailable
+`SeSecurityPrivilege`. Restrict the child Windows PowerShell module path and use
+.NET access-rule-only persistence. A later strict ACL comparison rejects the
+`OWNER RIGHTS` alias after Docker host access. Anonymous checks confirm the
+actual directory owner remains the executor; accept that fixed alias only under
+the owner match, and regress rejection of an Everyone rule on an empty fixture.
+POSIX ownership/mode changes apply only to Linux binds.
+
+Desktop behavior differs from the original no-create expectation: a missing bind
+source becomes a private directory, and a missing file secret can become an
+empty directory. Record `host_missing_bind: desktop_created_private_directory`
+and `host_missing_secret: desktop_directory_key_rejected`; authentication refuses
+the invalid key, the original ciphertext/key/media remain intact, and cleanup
+removes the fixture directory. Document explicit operator path checks. Ordinary
+Linux acceptance requires native missing-source rejection rather than accepting
+this Desktop behavior. This matrix still does not transport a backup between two
+physical hosts or verify actual application-version migration/real browser login.
+
+See [host gate procedure and scope](DOCKER_HOST_ACCEPTANCE.md).
+
+Full local checkout regression passes **328 Python tests in 99.972 seconds**,
+zero skips; **55** focused Docker/release/workflow/native-action contracts pass
+in **4.324 seconds**, and **23 Node tests** pass. The ten new host cases cover
+native private ACLs, owner-alias/Everyone behavior, CLI gate ordering, mount
+contracts, foreign resources, path/receipt rejection and source inclusion.
+
+Git-index source export excludes the deferred comparison document and verifies
+**197** ZIP members. Extracted-source acceptance passes **328 Python tests in
+98.881 seconds / 23 Node tests**, then **116** dependency-fault cases in **71.657
+seconds**, with only the existing reviewed SSL observation and zero skips or
+unexpected faults. **105** Python syntax checks, **460** local documentation
+links and eight pinned Action references pass.
+
+The [first pushed host-gate run](https://github.com/Zimkjdv/Smart-Social-Downloader/actions/runs/39661649472)
+passes all 46 Docker stages on Linux, including POSIX ownership/private modes,
+native missing-bind rejection and missing-secret rejection, plus the fresh
+Windows installation job. Windows full regression fails only the new synthetic
+owner-alias case: it installs an owner-relative ACL without establishing the
+current user as owner, although that is the condition under test. Explicitly set
+the temporary fixture's owner before applying the alias, avoiding dependence on
+the Windows token's default owner. The production ACL owner check is unchanged.
+
+## Docker login and media HTTP — 2026-10-22
+
+The combined `--interaction` gate passes **9 runtime + 14 service + 15 interaction
+stages**, exit code 0, `passed: true`, `complete: true`, including cleanup of all
+owned resources. Local run: **01:45:13–01:46:36 Asia/Taipei**, Docker Engine
+**29.8.2**, Compose **5.6.0**, Linux amd64, Python **3.12.15**, Node **22.23.3**.
+The runtime source fingerprint is
+`b427feb5b549e69d3a2d4713830f1c173ac16a51b97f1003885ccf76e41f52d5`;
+interaction source fingerprint:
+`f8dac53261cb70216954e5c8d43e4866e272c3aeadfa566665d45663fc74943e`.
+
+The real service accepts invented connector sessions, rejects wrong/replayed,
+cancelled and replaced tickets, writes no memory-mode login, and loses that login
+on restart. The shipped generator creates a private 32-byte UID 10001 key and
+refuses overwrite. AES-GCM envelopes use fresh nonces and reject corruption;
+actual service restarts restore with the matching key, preserve ciphertext under
+wrong/missing keys, recover with the original key and remain disconnected after
+Disconnect/restart. No real X session or browser profile is read.
+
+The same container serves paged recorded files and original hash-identical PNG
+and generated MP4 bytes with HEAD/Range/If-Range and security headers. It rejects
+escaping symlinks, stale/traversal selections and untrusted origins. Renaming a
+file leaves the completed job intact. Four unread 16 MiB synthetic responses fill
+the reader slots; another read receives 503 while health stays available. Closing
+the clients releases the slots and restores reads.
+
+Initial local attempt stops at `engine_failed` while Docker Desktop is starting;
+a later full run reaches the new login contract. Actual Compose 5.6.0 resolves
+the short secret target to `/run/secrets/x_session_key`, so the first strict
+basename assertion fails. Accept only the two equivalent normalized target forms,
+add rejection regressions for maintenance-key exposure/other target paths, and
+repeat the full gate successfully. **43 focused tool/release/workflow contracts
+pass in 2.124 seconds**, plus **two native file-action dispatch tests in 1.036
+seconds** using a mocked desktop launcher, including stale/deleted selections.
+
+Full checkout regression before the two native additions: **316 Python tests in
+98.505 seconds**, zero skips. A Git-index export excludes the deferred comparison
+document and verifies **193** source ZIP members; extracted-source acceptance
+passes **318 Python tests in 98.257 seconds / 23 Node tests**, followed by **116**
+dependency-fault checks in **74.156 seconds** with only the existing reviewed SSL
+observation and no unexpected failures. **102** Python syntax checks, **438** local
+documentation links and the eight pinned Action references also pass. The only
+remaining untracked file is the deliberately deferred comparison document.
+
+This gate resolves the real login override but substitutes a receipt-owned
+read-only key volume for the operator's host file-backed secret. Actual host
+secret ownership/sharing, real Chrome installation/default/custom port/ten-minute
+expiry, real X login, browser codec playback, Windows player/Explorer interaction,
+physical-host transport and actual version migration remain unaccepted. Procedure
+and fixture differences: [interaction acceptance](DOCKER_INTERACTION_ACCEPTANCE.md).
+
+
+## Compose v2/v5 acceptance compatibility — 2026-10-21
+
+The [first pushed Docker job](https://github.com/Zimkjdv/Smart-Social-Downloader/actions/runs/39509618385)
+builds the image and passes all nine runtime checks on Docker **28.0.4**, then
+fails `compose_contract` before creating service fixtures. Its
+[runner manifest](https://github.com/actions/runner-images/blob/ubuntu24/20261018.339/images/ubuntu/Ubuntu2404-Readme.md)
+specifies Compose **2.38.2**; local Docker Desktop uses Compose **5.6.0**.
+
+Download the official Compose 2.38.2 Windows executable for a fast daemon-free
+reproduction, verify it against its official SHA-256 sidecar
+(`ba8f09d3873f7a9755b863ed2013a1276b96fcbbc074c69ff3d3cfbce3e0186f`),
+and run the actual `config --format json` output through the service contract.
+It fails in **0.36 seconds** with `KeyError: create_host_path`; a one-field unit
+reproduction fails in **0.001 seconds**. Changing only the source boolean shows
+that false serializes as `bind: {}`, while true remains
+`bind: {create_host_path: true}`. An attempted absent-field variant left an invalid
+empty YAML bind node and is discarded as a different failure.
+
+Read an omitted JSON field as false and continue rejecting explicit true or a
+non-boolean value. The actual official 2.38.2 configuration loop now passes;
+**37 focused tests pass in 1.570 seconds**, including the formerly failing case
+and its unsafe-true rejection. A repeated full local Docker gate passes **9 + 14**
+stages from **06:45:12–06:46:03 Asia/Taipei**, with Compose **5.6.0** recorded in
+the safe receipt. Its service-source SHA-256 is
+`cdbb54bcd3041e4372c27c43ec850fdb069e0e6f97acf5ea5eefa615bc4e71f6`;
+runtime-source/gate/probe/image identities match the preceding accepted run.
+No operator source configuration, application data or bind permission policy is
+changed by this compatibility fix. The downloaded diagnostic binary and captured
+model remain under ignored local data, outside source packages and commits.
+
+Before this one-case addition, the final Git-index source export verifies **188**
+members and passes **309 Python tests in 96.431 seconds / 23 Node tests**, then
+**116** dependency-fault checks in **72.969 seconds**, with only the existing
+reviewed SSL observation. The common Docker fake is shipped under
+`tests/helpers/docker.py`; the deferred comparison document is absent. **98**
+Python syntax checks and **418** local documentation links pass. The added
+regression raises the full suite to **310** cases; remote rerun results are
+verified separately from these local results.
+
+## Docker Compose storage/network and recovery — 2026-10-21
+
+**Real Docker acceptance passes all 9 runtime + 14 service stages**, including a
+repeat after the final ownership/startup-probe checks. The final run started at
+**06:27:53 Asia/Taipei** and finished at **06:28:43**, exit code 0,
+`passed: true`, `complete: true`; default publication used matching host/container
+port **8765**, and a matching free custom port also passed. Docker Engine
+**29.8.2**, Linux amd64, Python **3.12.15**, Node **22.23.3**, FFmpeg
+**5.1.9-0+deb12u1** and the pinned package versions match the runtime record below.
+
+The actual Compose entry starts on fresh volumes, exits cleanly and restarts with
+invented paused history/settings, a completed media file and a partial download.
+The real health probe fails before startup and passes when ready. Revoking data
+write access causes an actual failed save, HTTP 503 and Docker `unhealthy` without
+restarting the process; restoring access/save returns readiness. Foreign
+Host/Origin, cross-site and wrong-port origins are refused, as is an output path
+outside the media root. A running writer excludes maintenance; an unwritable
+existing volume refuses startup and works again after permissions are repaired.
+
+The real offline backup preserves all source data/media bytes and excludes cache
+and lock files. A corrupted archive leaves fresh restore targets empty. An actual
+restore child exits abruptly with code 75 after first-volume promotion; its marker
+and staging state remain, and ordinary startup refuses them. The good archive and
+sidecar are copied through host temporary storage into another backup volume,
+restored into independent fresh volumes and compared with the entire offline file
+inventory. A second restore refuses nonempty destinations. A distinct label-only
+upgrade image starts on the original volumes, then the recovery project starts
+with the exact retained image ID and verified original history/media. All owned
+containers, networks and fixture volumes are cleaned.
+
+| Accepted input/output | SHA-256 |
+| --- | --- |
+| Public runtime source inventory | `b427feb5b549e69d3a2d4713830f1c173ac16a51b97f1003885ccf76e41f52d5` |
+| Host acceptance gate | `358a8f65ad5366ecfbb247cd68dc6ed9b257fe6ea2dc89b1c69c4ff54d384345` |
+| Storage probe + service gate + Compose source | `435349140db8564aedd119351882e4a8adfd0f8397d4cc568b38af209027bb0d` |
+| Resulting test image | `aa9534766ffd28f15e273d4fd5b34a26821b6d1a91b8321e9bd7717749d61466` |
+
+**Complete local regression: 309 Python tests in 97.233 seconds / 23 Node tests,
+zero skips.** The focused 36 gate/release/workflow tests pass in 1.579 seconds,
+including ten new service contracts. The current checkout allowlist validates
+**189 files**, including a deferred untracked comparison document; the Git-index
+source export omits that document. The Action policy validates eight reviewed full-SHA references.
+No installed package or production history/login/media was used or changed.
+
+The first service attempt found that an internal-only fixture bridge produced no
+usable published bindings on this engine, then exposed separate `__main__` and
+package exception identities leaking a traceback. Use the operator recipe's
+ordinary dedicated bridge and unify gate exception identity; unexpected fixture
+errors now retain categorical failed receipts. Helpers/maintenance remain
+network-disabled and the invented queue remains paused. A first unit fixture
+mocked `Path.stat` globally and failed before reaching its intended callback;
+using actual public source with fake Docker responses proves the intended service
+failure path without launching a container.
+
+This proves local named-volume operations and same-engine archive transport to
+independent projects. It does **not** prove another physical host, actual
+cross-version database migration, operator host-bind permissions, real X/Chrome
+pairing, browser playback or active external-platform download shutdown. Those
+remain in [ROADMAP](../ROADMAP.md#docker-化部署). Fixture substitutions and commands
+are in [service acceptance](DOCKER_SERVICE_ACCEPTANCE.md). Remote CI results are
+separate from these local results.
+
+## Docker FFmpeg, JavaScript and context acceptance — 2026-10-21
+
+**Actual Docker acceptance passes all nine checks**, twice: an initial real build
+and a cached repeat with the final gate. Environment: Docker Desktop Engine
+**29.8.2**, Linux amd64; Python **3.12.15**, Node **22.23.3**, FFmpeg
+**5.1.9-0+deb12u1**, yt-dlp **2026.8.19**, gallery-dl **1.32.16**, yt-dlp-ejs
+**0.8.0**, imageio-ffmpeg **0.6.0**, pycryptodomex **3.24.1**. The final repeat
+started at **06:15:09 Asia/Taipei** and finished at **06:15:15**, with exit code 0,
+`passed: true`, `complete: true`. Docker Desktop was installed off PATH; its
+initial `DockerDesktop/Wsl/CommandTimedOut` cleared after startup without changing
+Windows features or restarting WSL/services.
+
+The real build-context audit rejects synthetic private-state inputs; the actual
+runtime probe runs without network, application volumes, real media or sessions.
+It checks UID/read-only isolation, dependency installation/compatibility, the
+yt-dlp Node provider and bundled EJS hashes, stream-copy audio/video packet
+integrity, generated JPEG output, application image contents and the absence of
+Chrome/Playwright in the default image. All nine categorical stages are present
+in the ignored local `data/docker-runtime.json` receipt. Temporary test containers
+and image tags are cleaned; build caches may remain.
+
+| Accepted input/output | SHA-256 |
+| --- | --- |
+| Public runtime source inventory | `b427feb5b549e69d3a2d4713830f1c173ac16a51b97f1003885ccf76e41f52d5` |
+| Host acceptance gate | `442e6661f5c4787b7cca3f708d4a7314af53d27d760e7b98ab966824141f16d8` |
+| Stdin runtime probe | `1b17657347c720b37df43b6dfc3d55a6dde40d2afa8d29e7e37e6fc18415931c` |
+| Resulting test image | `aa9534766ffd28f15e273d4fd5b34a26821b6d1a91b8321e9bd7717749d61466` |
+
+That acceptance ran against uncommitted Docker implementation work; these
+fingerprints identify its inputs, rather than claiming a released Git revision.
+
+**26 focused Python tests pass in 1.158 seconds, zero skips:** 10 new Docker-gate
+contracts, nine source-release cases and seven workflow-policy cases. They cover
+source boundaries/reparse rejection, synthetic context assertions, fixed base
+identities, strict ordered receipts and versions, stale-success replacement,
+engine/build/runtime failures, timeouts, isolation arguments and owned cleanup.
+The earlier focused command had one nonexistent test-module name, then exposed
+the workflow test's old six-reference expectation; correcting the module name
+and updating that expectation to eight leaves the final run green. Fake Docker
+contracts are separate from the actual container evidence above.
+
+The source allowlist validates **184 files**; Python syntax for the new probe and
+the eight-reference Action policy pass. No complete Windows/Node regression or
+extracted-source suite was rerun for this milestone. The new Linux CI workflow is
+prepared locally, **not yet run on GitHub**. No prebuilt image was published.
+
+This is runtime acceptance, **not** a running Compose-service, persistence,
+backup/recovery, network/Origin, real-platform, host-Chrome login or browser
+playback acceptance. Those remain in [ROADMAP](../ROADMAP.md#docker-化部署).
+The native service, installed production packages, history and login were not
+used or changed. Commands and limits are in [Docker acceptance](DOCKER_ACCEPTANCE.md).
+
+## Dependency fault tracking and HTTP-error resource cleanup — 2026-10-21
+
+**289 Python tests pass in 94.336 seconds / 23 Node tests pass; zero skips**, from the verified source ZIP. The same extraction then passes the new **116-case** gate in **69.609 seconds**, retaining only the reviewed SSL observation and no resource warnings/unexpected faults. The allowlist contains **164** source members; exact source bytes/CRC, **84** Python syntax checks, **335** local documentation links, `pip check` and the six-reference workflow policy pass. Deferred Downvid research stays outside the source/export/commit. The pushed revision's two Windows CI jobs are verified separately.
+
+The new gate's first complete run executed **116 cases** with no test failures/skips but correctly failed on **two socket ResourceWarnings** during delegated-HLS missing-fragment cleanup. A one-case forced-GC/tracemalloc reproduction attributed allocations to requests/urllib3; closing the delegated engine alone retained both warnings, while closing released HTTP-error responses removed them. The permanent actual-stream regression failed before the fix and passes afterward, preserving missing-fragment failure and request-count assertions.
+
+The fixed gate passes **116 cases in 70.078 seconds**, including 30 repetitions of each foreign-source/CORS and delayed-body 403/recovery acceptance case. It records one precisely reviewed SSL deprecation, with no ResourceWarnings or unexpected faults. Local environment: Python **3.12.10**, OpenSSL **3.0.16**, yt-dlp **2026.8.19**, gallery-dl **1.32.16**, requests **2.34.2**, urllib3 **2.8.0**, Playwright **1.63.0**, pyee **13.0.1**; the existing local pycryptodomex remains **3.24.0**. No production package update was performed; CI installs the reviewed **3.24.1** pin independently.
+
+**27 focused cases pass**, including 13 tracking contracts, five response/engine-ownership contracts and nine source-release contracts. A real owned unclosed socket proves the gate fails; synthetic wrapped 10053, a later success after a failure, subtest failure, skipped coverage, background/unraisable exceptions, import warnings, overflow, stale-report interruption and hook restoration are covered. A final one-case UserWarning injection exposed nested stream warning capture hiding a new observation; forwarding non-resource categories fixes it and the added real-case regression requires the outer gate to fail. Response tests preserve readable bodies and weak error ownership, close each response/engine once, continue other response cleanup after a close failure, retain rate limiting and leave borrowed sessions open.
+
+The SSL observation remains upstream behavior, not a fixed TLS defect. Numeric 10053 injection verifies classification; complete local exchanges protect the earlier refusal cleanup fix, without claiming all native Windows aborts are fixed. Reports exclude raw messages, URLs/headers, absolute paths and subtest/skip text. No production history/Cookie, real X session or external platform media was used. See [Dependency faults](DEPENDENCY_FAULTS.md) for report/exit rules and upgrade procedure.
+
+## First dependency proposal acceptance — 2026-10-21
+
+**271 Python tests passed in 92.336 seconds / 23 Node tests passed; zero skips.** The full suite ran from a verified source ZIP using the interpreter from the newly installed candidate venv, with pycryptodomex **3.24.1**, Playwright **1.63.0** and pyee **13.0.1**. Existing original-byte, quality-selection, HLS/DASH missing-fragment, deduplication, worker, persistence, API and actual Chrome fixture cases remained enabled. The verified source contains **160** allowlisted members; **81** Python syntax checks, local documentation links, `pip check`, environment diagnostics and the six-reference offline Action policy pass.
+
+The real Windows/Python **3.12.10** fresh-source/venv acceptance passes setup, offline batch startup, graceful restart, missing-marker repair, explicit update, exact-baseline restoration, optional browser installation, real isolated-console Ctrl+C with idle/active/restored queues and invalid-port rejection. Update selected gallery-dl **1.32.17**, then setup restored **1.32.16**; the separate IDNA **3.10 → 3.20** restoration probe also passed. This proves current-machine fresh-source/venv behavior, not a factory Windows desktop or real account/platform acceptance.
+
+Additional one-off probes use only that receipt-gated owned fixture: deliberately install pycryptodomex **3.24.0**, confirm its inventory, run the shipped `update.bat` and require **3.24.1**, then run shipped `setup.bat` and verify every core/browser pin. Saved-state, synthetic original and partial-media hashes remain unchanged. Temporary fixture batch substitutions are restored byte-for-byte before source verification; the running production venv is not updated.
+
+Resolve the exact proposed pyee **14.0.0** browser requirements with pip `--dry-run --ignore-installed --only-binary=:all:`. It fails with `ResolutionImpossible`, identifying Playwright's `pyee>=13,<14` constraint; the complete installed distribution inventory is unchanged. This agrees with proposal #2's original failing Windows job. Proposal #1's original green job predates the new installation/console checks, so the integrated revision requires both current Windows CI jobs after push. Review decisions, upstream sources and future Actions/browser gates are in [Dependency acceptance](DEPENDENCY_ACCEPTANCE.md).
+
+Ignored local logs and JSON reports retain actual versions/results. Deferred Downvid research is excluded from the staged export, source ZIP and commit. No production state, Cookie/profile, live platform download, real X pairing or full CVE scan is part of this acceptance; remaining work stays in [ROADMAP](../ROADMAP.md).
+
+## Windows console shutdown and recovery — 2026-10-21
+
+**271 Python tests passed in 94.018 seconds / 23 Node tests passed from the extracted staged-source ZIP; zero skips.** Thirteen new offline console cases cover empty/overflow/shared console membership, admission before child creation, non-inheritable SIGINT handling, wrong receipts/unknown members, SYNCHRONIZE handle cleanup and PID reuse protection, refused native events, entry-factory restoration, hidden/new-console flags and explicit HTTP 201 expectations. The final focused installation/console run passed 26 cases. An earlier checkout run passed 270 Python tests in 94.311 seconds / 23 Node tests before the final membership-contract case was added; the full extracted run includes that case.
+
+Real installation acceptance from the clean staged source also passed on Windows / Python 3.12.10, with **159** allowlisted source members and a new venv. It generated real CTRL_C_EVENTs in three owned hidden-console launches: idle, active synthetic worker plus pending job, and restored paused queue. The shipped entry, server, AppContext, scheduler, writer and worker supervision remained real; only platform transfer used a synthetic pipe-speaking worker/helper. Normal exit, closed writer/services, reusable port, terminated worker/helper handles, preserved original/partial bytes and exact restored IDs/attempts/pause/hourly limit/one consumed quota slot were checked before fallback outer Job Object cleanup.
+
+The same run retained setup/offline startup, missing-marker repair, update/baseline restoration, optional browser pins and invalid-port rejection. The isolated update selected gallery-dl **1.32.17**, then setup restored the pinned **1.32.16** baseline; the IDNA **3.10 → 3.20** replacement probe also passed. The first sandboxed setup could not reach public PyPI (Windows 10013); the permitted-network rerun and final clean-source run passed. A blocked download was not classified as a missing package release or a passing test. Production packages/state/Cookies were not changed.
+
+The clean source ZIP's member set/source bytes/CRC, 81 Python syntax checks, local documentation links, `pip check` and the six-reference workflow policy passed. Deferred Downvid research stayed outside the staged source/export and commit. This proves automated console-event handling on the current Windows environment, not factory Windows installation, physical keyboard/batch confirmation prompts, repeated interruption during native disk I/O or real account/media compatibility. See [Console acceptance](CONSOLE_ACCEPTANCE.md) and [ROADMAP](../ROADMAP.md).
+
+## Windows installation acceptance and transport follow-up — 2026-10-17
+
+**258 Python tests passed in 92.167 seconds; 23 Node tests passed; zero skips.** The focused HTTP/source/environment/installation run passed 38 cases. Thirteen new small installation cases cover isolated environment/pin parsing, receipt/admission guards, owned group failure/ordering, bounded command errors, foreign-service rejection, exclusive port reuse, setup/update markers and the check-only start route. One environment case requires DEVNULL stdin. Two new HTTP cases bound rejected-body cleanup and forbid draining oversized/ambiguous input; the existing gated late-body test now asserts exact discarded bytes.
+
+An earlier 256-case run failed on the existing foreign-Origin POST with Windows 10053 before reading 403. Keep that failure as evidence; add strict framed/body-budget cleanup after emitting the response rather than suppressing transport errors. The final full run passes. An installed fixture also reproduced `pip check` hanging on inherited control stdin; tracing identified it and DEVNULL fixes the actual environment probe. Initial closed-port probes timed out in this Windows environment, so acceptance now requires successful exclusive rebind instead. Failed development runs are not counted as passing verification.
+
+The real opt-in installer executes shipped batch files in an extracted source and brand-new venv, with independent graceful lifecycle and package restoration probes. This uses synthetic state/media, public dependency downloads, a custom loopback port and ordinary installed runtimes. Production history/Cookie/profile access, service restart, actual X sign-in and live platform media are outside the run. See [Installation acceptance](INSTALLATION_ACCEPTANCE.md) for actual phases, ownership and the fresh-source/venv versus bare-desktop boundary.
+
+The actual installation run passed on Windows / Python 3.12.10 with all 156 source members, every core baseline pin, optional browser pins, offline start, missing-marker repair, settings preservation, graceful installed lifecycle and invalid-port rejection. `update.bat` resolved to the same current core versions as the baseline; the separate IDNA 3.10 → 3.20 probe demonstrated a real package replacement during restoration. Final base-interpreter admission with site startup disabled (`-I -S`) also passed a real batch-child/owned-cleanup smoke check.
+
+The extracted-source gate passed **258 Python tests in 92.433 seconds / 23 Node tests**, zero skips. Thirty repetitions each of the complete foreign-Origin/CORS and delayed-body refusal cases passed (60 checks in 2.072 seconds); this is bounded regression evidence, not a guarantee against every Windows 10053. The final focused rerun passed all 38 cases, `pip check` and the six-reference workflow policy passed, and 79 Python syntax checks/local Markdown links validated. Source ZIP members, source bytes and CRC were verified. Successful installation logs/report remain ignored local evidence rather than source-package contents.
+
 ## Dependency and CI maintenance — 2026-10-17
 
 **242 Python tests passed in 92.931 seconds; 23 Node tests passed; zero skips.** Windows / Python 3.12.10. The source allowlist validates **152 files**. Seven new cases cover reviewed full SHA/quoted scalars; mutable, abbreviated, dynamic, local, Docker and unknown references; flow/multiline/alias syntax; comment/error handling; both workflow extensions and canonical roots; missing workflows/CLI failure; and shipped policy/configuration. The focused policy/release run passed all 16 cases.
@@ -208,3 +707,555 @@ An initial Windows WebSocket `close()` route callback hung; the implementation n
 - Live platform-specific JavaScript players, authenticated/interactive pages and newly changed extractors; support varies and no universal playback capture is claimed.
 
 Existing upstream SSL option deprecation and occasional closed-socket ResourceWarnings remain dependency-maintenance observations; they did not fail the successful suite. Rerun these tests when changing the engine, Playwright or Chrome baseline.
+
+
+## Windows background lifecycle — 2026-10-24
+
+Native Windows / Python 3.12.10: `tools/check_desktop.py` passed all **7 phases**
+using a freshly verified source ZIP and installed venv under spaces/Unicode paths.
+The tool used fresh loopback ports and synthetic media; no ordinary session,
+history, output file or production service was changed. Success evidence is
+stored locally in ignored `data/desktop-acceptance.json` (path-free summary).
+
+- Real background batch launch exited while HTTP remained ready; the service
+  had no console window and dispatched the exact custom-port URL.
+- Repeated start with a changed/invalid port and output environment reopened the
+  original URL/PID. Separate-project stop/start left the first service reachable.
+- Active synthetic worker plus helper exited during real `stop.bat`, before
+  fallback cleanup. The writer closed durably, owned threads joined, partial
+  bytes remained and the service record disappeared; the port could be rebound.
+- Repeated stop preserved saved-state bytes. Two concurrent cold launchers both
+  succeeded, rotated the oversized log once, and recovered exact job IDs,
+  attempts, paused queue, Rate usage and partial bytes before another normal stop.
+- A real owned foreground entry retained HTTP service after background bind
+  rejection and `stop.bat`; the bind error reached the background log and saved
+  state stayed unchanged. Its eventual cleanup used only its admitted Job Object.
+
+The full installation tool also passed all **13 installation/console phases**
+plus the nested **7 desktop phases**, including optional browser dependency
+installation, an actual package update, locked baseline restoration and real
+owned-console Ctrl+C. Its path-free local report is
+`data/desktop-installation-acceptance.json`. Production dependencies were unchanged.
+
+Final extracted-source regression: **220 verified source files, 354 Python tests
+and 24 Node tests passed**; the extracted dependency fault tracker also passed
+116 cases with no errors/failures/skips, and the complete source acceptance exited
+successfully. The new desktop/installation unit subset passed
+21 tests. The standalone native tool passed again with the final fresh-shutdown
+evidence check. The usual upstream SSL-options deprecation remains an observation,
+not a failed assertion. The deferred `DOWNVID_COMPARISON.md` was not included in
+the reviewed export, source ZIP, staging or commit.
+
+The first development run found the fixture hook could be evaluated twice by
+Python's venv site initialization, causing a fixture-only nested factory error.
+Make hook installation idempotent and fail closed instead of allowing site.py
+exception handling to fall back to ordinary media transport. Retain that regression.
+No acceptance assertion was removed to obtain the successful run.
+
+Browser verification records `webbrowser.open` dispatch and does not open a
+personal browser. It is not evidence of Windows default-browser association,
+visible pages, human double-clicks or every upstream engine's cancellation.
+See [complete scope](DESKTOP_ACCEPTANCE.md); those manual checks remain in ROADMAP.
+
+
+## Pixiv directory compatibility — 2026-10-25
+
+- Native Windows / Python 3.12.10: `tests.test_pixiv_paths`, presentation,
+  container receipt, Docker gate and workflow-policy suites passed **29 cases**.
+- Linux Docker / Python 3.12.15 / gallery-dl 1.32.16: `check_docker.py --pixiv`
+  passed all nine path cases, with zero errors/failures/skips, alongside the nine
+  existing runtime/context checks. The final strict receipt probe was rerun.
+- Test real directories and SQLite while replacing remote listings/transport;
+  cover portable names, simulated renames, old complete/partial folders, root
+  changes, relocation and removal during a wait. Retained originals keep their
+  hashes/mtimes; complete reuse makes no quota call.
+- No production path change was needed. Docker has no network, runs as a
+  non-root user and mounts no host media/state. Full boundaries and remaining
+  actual author rename / OS archive migration are in
+  [path acceptance](PIXIV_PATH_ACCEPTANCE.md).
+
+
+## Pixiv incremental and failure recovery — 2026-10-25
+
+- Native Windows / Python 3.12.10: full regression passed **383 Python cases**;
+  Node passed **24 cases**. The focused path/recovery/presentation/receipt suite
+  passed **28 cases**.
+- Initial fault injection reproduced count-only acceptance of gapped ordinals,
+  duplicate ordinals with different extensions, unrelated error-file import,
+  `.part` masking cancellation and duplicate retained-page payloads masking it
+  again. Tests failed before the corresponding production corrections, then
+  passed with assertions retained.
+- Linux / Python 3.12.15: the combined `--pixiv` probe passed **25 cases**
+  (nine paths and 16 recovery), zero errors/failures/skips; its first standalone
+  run also passed the nine existing runtime/context checks.
+- Full CI-shaped Docker integration `check_docker.py --browser --pixiv` passed
+  on the local Linux engine: runtime/context, 14 service, 15 interaction, eight
+  actual host-bind/secret and seven host-Chrome stages, plus both Pixiv groups
+  running 25 tests. Existing PNG/H.264 decode/seek and scoped backup/restore
+  remained successful; receipt is ignored `data/pixiv-roadmap-docker.json`.
+- The reviewed source ZIP (230 files, deferred comparison excluded) passed
+  the complete extracted regression: **383 Python + 24 Node cases**, then
+  **116 dependency-fault cases** with zero errors/failures/skips. Source acceptance
+  exited successfully. The known reviewed urllib3 SSL-options deprecation
+  remained an observation. Private log: `data/pixiv-roadmap-source.log`.
+- The real isolated RequestPolicy closes a synthetic 429 response, retains
+  cooldown and permits a retry after its test clock advances. No real network
+  limit, production queue, original download or login state was changed.
+- [Recovery acceptance](PIXIV_RECOVERY_ACCEPTANCE.md) records cases, failure
+  causes, corrections and the live/Ugoira coverage that remains pending.
+
+
+## Pixiv authorization lifecycle — 2026-10-25
+
+- Full native Windows / Python 3.12.10 regression: **399 Python cases passed**.
+  Node passed **28 cases**, including four new connector-script boundaries.
+- The focused auth module passed **16 cases** (13 manager/parser/storage and
+  three real-loopback API cases). Source archive verification covered **233
+  files**, then 17 auth/receipt cases and all 28 Node cases passed in extraction.
+- Linux Docker / Python 3.12.15 passed **41 Pixiv cases** without failures/errors/
+  skips, alongside the nine existing runtime/context checks; no host state or
+  browser profile was mounted and networking was disabled.
+- Reproduced stale encrypted credentials restoring after invalidation and an
+  explicit port-zero callback being accepted. Preserve both failing regressions;
+  store a token-free encrypted expired marker and require absent callback ports.
+- Private evidence: ignored `data/pixiv-auth-docker.json` and
+  `data/pixiv-auth-regression.log`. Known upstream SSL-options deprecation is an
+  observation. Storage-denial limits, mocked Chrome scope and remaining real
+  login/DPAPI/permission prompts are in [auth acceptance](PIXIV_AUTH_ACCEPTANCE.md).
+
+
+## Pixiv artwork identity and legacy compatibility — 2026-10-25
+
+- Native Windows / Python 3.12.10: complete regression passed **414 cases in
+  108.227 seconds**, zero failures/errors/skips. The final focused identity,
+  manifest, HTTP/P2 and container-receipt command passed **36 cases**. Node passed
+  **28 cases**. The earlier auth commit `ccbb14f` also passed all three
+  [GitHub CI jobs](https://github.com/Zimkjdv/Smart-Social-Downloader/actions/runs/40139113814).
+- Fourteen new identity cases use real temporary originals and SQLite with
+  synthetic transport; one HTTP case verifies pending-row reuse and quality
+  separation. Preserve exact old URL completion evidence and root scope;
+  unanchored old hashes and unknown query semantics are not guessed.
+- Reproduced promotion accepting a file changed after its old lookup when the
+  new record restatted that file. Copy the old size/mtime evidence unchanged,
+  insert without replacing another writer, then verify again. Keep the failing
+  mutation regression and competing-writer/original-missing cases. Two URL
+  boundary subcases also reproduced normalization of an empty port/username;
+  require an exact reviewed authority instead.
+- Linux / Python 3.12.15: final `check_docker.py --browser --pixiv` passed the
+  existing **53 runtime/service/interaction/host/browser stages**, plus **55 Pixiv
+  cases**, zero failures/errors/skips, with `passed: true`, `complete: true` and
+  owned-resource cleanup. Initial integration reached the Pixiv stage without a
+  successful receipt after cases were extended while its image was already
+  built; rebuild/rerun using the fixed final test/source versions passed. The
+  final image source fingerprint is
+  `5d7588331f14340f14ba8a55fb35eb6ddb51801ef332bb67db02f8f08ce2928f`.
+- Verified a **235-file** source ZIP from the reviewed Git-file export, excluding
+  the deferred comparison document and all runtime data. Full extracted-source
+  regression passed **414 Python cases in 107.241 seconds / 28 Node cases**.
+- Extracted dependency-fault acceptance passed **116 cases in 71.719 seconds**,
+  with only the reviewed urllib3 SSL-options deprecation and zero unexpected
+  observations. The current checkout interpreter has pycryptodomex 3.24.0; this
+  run did not reinstall its packages. The source lock and successful Docker
+  runtime use the reviewed 3.24.1 baseline; fresh Windows CI installs that lock.
+- Private logs/receipts are ignored `data/pixiv-identity-regression.log`,
+  `data/pixiv-identity-source.log` and `data/pixiv-identity-docker.json`. No
+  production service, download, queue or login state was changed. Recognized
+  URL forms, legacy limits and remaining live-platform scope are in
+  [source identity](SOURCE_IDENTITY.md).
+
+
+## Ordinary Chrome pairing: partial live acceptance — 2026-10-25
+
+- Operator-assisted ordinary Chrome / connector 1.2.0: observed the explicit
+  8877/8765 mismatch; actual `/api/auth/x/prepare` and `/api/auth/x/extension`
+  both returned 200 with matching extension Origin/ID and reduced Chrome
+  User-Agent 155.0.0.0. No Cookie/code/token was printed or included in reports.
+- Native Windows user DPAPI round-trip passed. The temporary saved X session
+  remained connected after a new backend AppContext restored it. Production
+  service port 8765 was not restarted; the runner loads no production history.
+- The real X ticket was waiting at 597.6 seconds and failed at 616.6 seconds,
+  preserving the existing connected session. No shortened TTL or patched clock.
+  Post-expiry re-pairing is still pending.
+- Two ordinary-browser Pixiv begin requests succeeded; no connector claim or
+  callback reached the service. Pixiv auto-return and restore are not accepted.
+  Cancel/re-pair, offline/retry and actual browser/worker restarts also remain.
+- Both supplied Codex settings screenshots show Browse allowed for 8877,
+  including Chrome management. Nevertheless browser tools still reject that
+  origin under saved permissions/managed policy. Stop UI retries after checking
+  those settings; do not substitute another browser/CDP/proxy to bypass it.
+  This gate failure does not establish a DPAPI or downloader authorization bug.
+- The live temporary service exited 0. The final runner's separate native
+  random-byte DPAPI/start/restart/cleanup probe also passed, with encrypted test
+  scope removal confirmed and no browser connection requested. The operator
+  confirmed returning the connector destination to production port 8765.
+- Full native regression: **420 Python in 105.083 seconds**. Verified **238 source
+  files**, excluding private state and the deferred comparison document; complete
+  extraction passed **420 Python in 107.638 seconds / 28 Node cases**, then
+  **116 dependency-fault cases in 71.000 seconds**, zero failures/errors/skips.
+  Only the previously reviewed urllib3 SSL-options deprecation was observed.
+  The current checkout interpreter remains on pycryptodomex 3.24.0; this run did
+  not install packages or change the reviewed 3.24.1 source baseline.
+- Six new mocked runner contracts cover report/port boundaries, explicit opt-in,
+  secret-free snapshots, fixed operator notes, private real-expiry setup and
+  orderly forced cleanup. They do not count as real Chrome UI coverage.
+- Private ignored evidence: `data/chrome-pairing.json`,
+  `data/chrome-pairing-tool-smoke.json`, `data/chrome-pairing-regression.log` and
+  `data/chrome-pairing-source.log`. Procedure and all remaining scope are in
+  [ordinary Chrome acceptance](CHROME_PAIRING_ACCEPTANCE.md).
+
+
+## Chrome pairing CI path-alias repair — 2026-10-25
+
+The [c21b928 run](https://github.com/Zimkjdv/Smart-Social-Downloader/actions/runs/40141804763)
+passed fresh Windows installation and Docker acceptance. Its Windows regression
+ran 420 cases in 120.629 seconds with one failure, at the first report-path
+assertion in `test_explicit_custom_port_and_report_boundary`. CI supplies TEMP
+through the Windows 8.3 spelling `RUNNER~1`; the validator returns the resolved
+long path. The fixture compared that canonical result with its unresolved path.
+This was a test expectation failure, not a rejected valid report location.
+
+A new deterministic regression invokes the same original boundary case through
+a real temporary directory spelled using an existing component followed by
+`..`. This reproduces equivalent-but-lexically-different paths without requiring
+8.3-name creation. It failed before the fix. Resolve the owned fixture root in
+setUp, then compare paths in the same canonical form. The directory-existence
+check and zero-error assertion ensure the inner case reaches its path checks.
+All original port/path rejection assertions remain active; the production
+validator, auth handlers and workflow configuration are unchanged.
+
+Focused pairing/source tests pass **16 cases**. Complete native regression
+passes **421 Python cases in 107.080 seconds**, zero failures/errors/skips.
+Source verification covers **238 files**, with the deferred comparison document
+and all private state excluded. Complete extracted-source acceptance passed
+**421 Python cases in 105.857 seconds / 28 Node cases**, followed by **116
+dependency-fault cases in 71.672 seconds**, zero failures/errors/skips. Only the
+existing reviewed urllib3 SSL-options deprecation was observed. Private logs are
+ignored `data/chrome-pairing-ci-repair.log` and `data/chrome-ci-repair-source.log`.
+
+A direct Chrome request on resumption still received the saved-permission/
+managed-policy denial, despite the prior Browser/Chrome allow screenshots and
+the local origin rule `access = "allow"`. The actual cause remains unconfirmed;
+no global settings or browser policy were changed. The operator chose to keep
+remaining real pairing work pending while this CI repair completes. This turn
+did not start another live-login service or claim additional real-pairing cases.
+
+
+## Browser UI CI fixture capacity and diagnostics — 2026-10-25
+
+The [e11e4d1 run](https://github.com/Zimkjdv/Smart-Social-Downloader/actions/runs/40142930583)
+confirms both Chrome report-path tests pass. Fresh Windows installation and
+Docker also pass. The Windows regression instead reports one error among 421
+cases in 124.733 seconds: the first UI keyboard case reaches its snapshot wait
+with `ReferenceError: lastResponse is not defined`, before interacting with the
+Cookie field. The old harness did not report failed resource requests, so the
+original runner's exact trigger cannot be established from that log.
+
+Thirty successive local page loads pass. Aborting only `ui_state.js` reproduces
+the exact ReferenceError. Delaying that deferred script still loads normally,
+which does not support an early snapshot wait as the cause. A separate real TCP
+probe stops accepting pending connections at the fixture's default backlog of
+five. Increase the fixture to 64, matching the application's existing listener;
+the production server and frontend behavior are unchanged.
+
+Three regressions fail before this change: eight real pending connections,
+an aborted bootstrap asset, and an HTTP-successful script that throws during
+initialization. After the change all 11 Chrome UI cases pass. The last two
+regressions require an immediate assertion naming the failed resource or script
+error, not the secondary global-variable error. Ordinary loads and reloads now
+check resource failures/HTTP errors and JavaScript errors before waiting for the
+first snapshot. No retries, longer timeouts, disabled tests or swallowed script
+errors were introduced. These synthetic isolated tests do not access the denied
+live pairing origin, a personal browser profile or production login state.
+
+Complete native regression passes **424 Python cases in 105.309 seconds**, zero
+failures/errors/skips. Python syntax checks cover 130 files; the reviewed eight
+Action pins and changed-document local links also pass. Private native output
+is ignored `data/browser-ui-ci-repair.log`.
+
+The reviewed **238-file** source ZIP excludes the deferred comparison document
+and private state. Complete extracted-source acceptance passes **424 Python
+cases in 106.536 seconds / 28 Node cases**, followed by **116 dependency-fault
+cases in 71.094 seconds**, zero failures/errors/skips. Only the existing reviewed
+urllib3 SSL-options deprecation is observed. The checkout interpreter still has
+pycryptodomex 3.24.0; no packages were installed or source-lock versions changed.
+The acceptance child exited zero and logged completion; the local wrapper then
+hit a GBK encoding error while echoing Unicode Node checkmarks. Reading its
+UTF-8 log confirms the successful child result, separately from that console
+summary failure. Private extracted output is ignored
+`data/browser-ui-ci-source.log`.
+
+
+## Hosted CI confirmation — 2026-10-25
+
+[Run 40143826641](https://github.com/Zimkjdv/Smart-Social-Downloader/actions/runs/40143826641)
+for `d22c9a8` completed successfully at 07:50 Taipei time. All three jobs
+(`windows`, `install-windows`, `docker-runtime`) and their acceptance steps
+passed, including extracted-source tests. The earlier failed runs remain
+historical failures; this successful push validates the path normalization and
+browser fixture repairs on hosted runners. Real-account Chrome pairing remains
+a separate acceptance procedure.
+
+
+## Default branch protection — 2026-10-25
+
+The repository initially had no branch rules or rulesets. After the owner
+completed GitHub account verification, the UI confirmed `Ruleset created` and
+`Protect main Active`, applying to `main`. The read-only ruleset API confirms
+[rule 25801940](https://github.com/Zimkjdv/Smart-Social-Downloader/rules/25801940)
+has active enforcement, deletion/non-fast-forward restrictions, pull requests
+with zero required approvals and resolved review threads, and strict required
+checks `windows`, `install-windows`, `docker-runtime`, each bound to GitHub
+Actions integration 15368. The bypass list is empty. No destructive push or
+branch deletion was attempted to verify these settings. These are live GitHub
+repository settings, not settings installed by a source checkout.
+
+
+## Follow-up source verification — 2026-10-25
+
+A tracked-file export excluded the deferred comparison document and all private
+runtime data. The 238-file source ZIP passed byte/CRC/allowlist verification,
+then the extracted source passed **424 Python tests in 108.471 seconds**, **28
+Node tests**, and **116 dependency-fault tests in 71.156 seconds**, with zero
+failures/errors/skips. The dependency probe observed only the previously
+reviewed urllib3 SSL-options deprecation. Eight reviewed Action pins and the
+CRLF-aware whitespace check also pass. No runtime source or dependency versions
+changed; the final acceptance documentation is byte-verified in the reviewed
+source archive. Private output is ignored `data/main-protection-source.log`.
+
+
+## Completed native Chrome main flow — 2026-10-25
+
+Follow-up ordinary Chrome 155 / connector 1.2.0 at port 8877 used the real
+Windows user, native DPAPI and actual auth handlers. Observed outcomes:
+
+- Cancel returned 200 and phase idle; a fresh real connector exchange connected.
+- Offline Connect displayed service-unavailable; online retry connected using
+  fresh real prepare/submission requests.
+- An unchanged 600-second X ticket was waiting at 544.2 seconds and failed at
+  601.5 seconds while the existing login remained connected. Re-pairing after
+  the operator's Chrome restart succeeded and status was connected at 625.2
+  seconds.
+- Pixiv begin/claim/callback all returned 200, with matching extension Origin/ID
+  on claim/callback; the browser automatically returned to the local connected
+  page. A new backend AppContext restored both DPAPI-encrypted sessions with
+  no additional callback or manual token entry.
+- After the operator reported `Service Worker (無法使用)`, another real X
+  prepare/submission returned 200. The receipt contains four successful X
+  pairs in total. This is assisted recovery evidence, not a worker-termination
+  trace or an in-flight OAuth suspension test.
+- The saved connector destination returned to 8765, observed through the 8877
+  mismatch message. The runner exited 0 and removed its temporary scope. The
+  normal 8765 background service was started after a connection-refused probe;
+  the same HTTP probe then returned 200.
+
+The final report has `closed: true` and `temporary_scope_removed: true`.
+Receipts/screenshots stay under ignored `data/`; no Cookie, code, token, browser
+profile or login file enters the commit/archive. The full procedure and broader
+remaining scope are in [Chrome acceptance](CHROME_PAIRING_ACCEPTANCE.md).
+
+## D01 shared API and Browser Adapter — 2026-10-26
+
+D01 adds a versioned platform seam without changing business routes or importing
+GUI packages. Checkout regression passed 428 Python cases; two additional real
+headless Chrome cases then passed for a diagnostics download and detached media
+preview. The final reviewed source ZIP contained 241 files and passed all 430
+Python cases, 36 Node frontend cases and 116 dependency-fault cases. All eight
+pinned Action references passed policy checks. The known urllib3 SSL-options
+deprecation remained a reviewed dependency observation.
+
+Fixtures cover popup blocking/closure, unsafe destinations, cancellation and
+export cleanup, X disconnect invalidation, Pixiv backend-open ownership and
+late disposal. Local HTTP tests preserve native/container dispatch and reject
+stale/deleted files, traversal, non-media and foreign origins before OS launch.
+The two Chrome tests use a fresh temporary context and synthetic HTTP content;
+they do not establish pywebview/WebView2 or real-account login acceptance.
+Runtime output stays in ignored data. The unrelated untracked comparison note
+was excluded from the tracked-source export. See [contracts](API_CONTRACT.md).
+
+### D01 hosted Docker gate follow-up
+
+At `6c81b3a`, hosted Windows and installation jobs passed; Docker reached renamed
+file rejection after successful image decoding, keyboard selection, H.264
+playback/seek and reload checks, then failed. A reserved about:blank tab had
+already fired DOMContentLoaded, allowing the gate's URL check to run before the
+actual media navigation committed. A real Chrome test with delayed 404 headers
+reproduced `browser_error_navigation_escaped` before the fix and passed after it.
+The gate now waits for the exact local-origin job/content destination and then
+checks 404. Origin restrictions and missing-file validation remain enforced.
+
+## D02 supervisor control — 2026-10-26
+
+The final 245-file reviewed source ZIP passed 442 Python cases, 36 frontend
+cases and 116 dependency-fault cases. A new disposable Windows source/venv
+passed the full installation gate including optional browser installation,
+updates/restored pins, hidden console Ctrl+C, and nine native background phases.
+New native cases verify attached identity/stop refusal, a second real process
+requesting window focus, closing window controls without stopping work, deliberate
+receipt-owned Job Object exit, cold recovery, and refusal to stop a replacement.
+No PID-based termination or ordinary project state was used.
+
+D01's hosted follow-up at a437206 passed windows, install-windows and
+docker-runtime. Local Docker runtime plus all seven real browser stages and 55
+Pixiv cases passed as a focused check. The local full Docker sequence separately
+stopped at host_bind_contract_failed under Windows Docker Desktop/Compose; it did
+not reach its browser stage. That host-bind result is not reported as a full
+local Docker pass. Linux hosted Docker completed the full sequence successfully.
+D03 real WebView2 presentation remains separate from these control fixtures.
+
+## D03 native WebView2 source shell — 2026-10-26
+
+The final 255-file reviewed source ZIP passed 450 Python cases, 41 frontend
+cases and 116 dependency-fault cases. The complete fresh Windows source/venv
+installation with browser dependencies and all nine background-control phases
+also passed. The eight pinned Action references passed policy checks; pip check
+reported no broken requirements after the optional desktop pins were installed.
+
+An opt-in native WebView2 gate then opened two receipt-owned temporary GUI
+sessions with separate application data and a dedicated persistent profile. Both
+verified the six-method bridge allowlist, the real dashboard, shared HTTP writes,
+repeat launch/focus, refused navigation followed by a successful new bridge call,
+closing the window while backend stayed reachable and explicit owned shutdown.
+Language/page preferences survived the second session. The observed device pixel
+ratio was 2; the synthetic screenshot was visually inspected. No ordinary Chrome
+profile, real account, user history or production media was used. Temporary
+receipts/PNG remain in ignored data, not the source ZIP.
+
+The first navigation refusal exposed a pywebview WinForms cache detail: cancelling
+kept the actual trusted document but cached the attempted URI. The host now
+preserves the committed CoreWebView2 Source and existing readiness after that
+cancelled navigation. Native regression checks this behavior and bridge reuse.
+Portable fixtures additionally test permissions/cancel/timeout, late handshakes,
+settings draft epochs, native export/cancel, popup/frame/message origin guards
+and ordinary Chrome selection for pairing fallback.
+
+This is current-runtime source-GUI smoke, not a fresh Windows OS, all DPI values,
+actual native picker/clipboard permissions or real-account Chrome callbacks.
+Those remain D04. No D05 frozen EXE/installer work was performed. Commands and
+scope: [desktop guide](DESKTOP_GUI.md).
+
+## D04 shared contracts and native GUI matrix — 2026-10-26
+
+The 260-file reviewed source export passed 455 Python cases, 57 frontend cases
+and 116 dependency-fault cases. All eight pinned Action references passed policy
+checks. Core HTTP was additionally served in a fresh interpreter that rejects
+all pywebview/.NET imports. GUI packages remain optional; core/Docker CI has no
+new GUI installation. The reviewed urllib3 SSL-options warning remains the same
+dependency observation documented above.
+
+Real receipt-owned WebView2 sessions passed the expanded GUI matrix on this
+Windows/Python 3.12.10 host, WebView2 155.0.4283.62 and Chrome 155.0.8059.86.
+The renderer's initial devicePixelRatio was 2; this does not measure OS settings.
+Matching 1280×800 CSS viewport captures
+of settings/errors in Chinese and English were visually inspected. The desktop
+picker, banner, font rendering and scrollbar differences are expected; no pixel
+identity is asserted. Four CDP scale captures are renderer emulation, not four
+actual Windows display settings.
+
+The matrix passed shared HTTP/UI flows, scripted focus/scroll, actual clipboard
+write/readback with previous data restored, injected picker cancel/selection and
+UTF-8 export, validated/intercepted file/folder/external dispatch, PNG/H.264 decode,
+advancing frames, seek, HTTP 206 and Chrome Blob/native-media export/playback.
+Two sessions verified profile preferences, attached-stop refusal, backend-exit
+offline UI, history/pending-queue/partial recovery, active synthetic work after
+programmatic window close and graceful owned shutdown. Concurrent gated GUI
+processes produced one primary window and backend. A foreign listener survived
+failed startup and its native error message was captured. Final fixture cleanup
+was reported separately from acceptance. Reports/PNGs are ignored local data.
+
+Red/green regressions found two bridge-wait cancellation issues (closed host
+reported unsupported; abort waited for handshake timeout) and a startup error
+rendering failure. Actual WebView2 NavigationStarting represented NavigateToString
+as a data URI, which the guard rejected; initialization could also overwrite an
+early error load. The host now registers exact generated HTML bytes, grants no
+native powers to those documents, keeps arbitrary data navigation blocked and
+waits for initialization before showing the error. The native conflict gate
+failed before this fix and passed after it. Temporary diagnostic tracing was
+removed.
+
+The user-assisted follow-up passed the current Windows host's manual baseline:
+actual folder/Save As dialogs, cancel/overwrite/read-only refusal, physical
+keyboard/focus/scroll, actual OS scales 100/125/150/200%, PNG/MP4/folder/external
+applications, native close/stop prompts and desktop-initiated ordinary Chrome
+X/Pixiv callback/clear/reconnect. A genuinely reopened second window restored
+both DPAPI sessions; its close left the backend reachable before isolated login
+cleanup and owned stop. Connector port 8765 was restored; production stayed
+available. A PermissionError in the auxiliary polling loop made some first-round
+live samples incomplete, so they are not used to infer DPI transitions or closure.
+
+The follow-up also found an invalid PNG IDAT CRC in the synthetic fixture:
+permissive browser decoding had accepted it. A strict chunk-CRC regression failed
+before correction and passed after it. The application media path did not change.
+The 455-case source run includes this regression. A GUI matrix attempted during
+human desktop operations failed with gui_clipboard_write_failed and remains a
+failed attempt; its cause is not established. The final matrix, run alone after
+the operator finished, passed all six shared/native/media groups, both GUI
+sessions, concurrent startup and foreign-port conflict with strict checks
+unchanged. Its report states passed=true, 260 source files and normal workspace
+removal. This does not prove the earlier clipboard failure cannot recur.
+
+Hosted push and PR workflows at the initial D04 commit 3b8b72c both passed all
+three jobs: Windows regression, fresh Windows installation and Docker runtime.
+The follow-up commit requires its own hosted checks after pushing.
+
+Fresh-process startup at every scale, mixed-DPI monitors, actual clipboard
+permission refusal and physically runtime-free Windows remain untested. The
+runtime failure notification is injected. Exact commands, human reports and
+evidence boundaries are in [D04 acceptance](DESKTOP_GUI_ACCEPTANCE.md). D05 was
+not started.
+
+
+## D05 Windows distribution — 2026-10-26
+
+The directory bundle and per-user Inno Setup installer were built on the current
+Windows 10 build 19045 host with Python 3.12.10. They include separate windowless
+GUI and console/pipe runtime executables, Node 22.23.4 and a separately built
+LGPL FFmpeg 8.1.3 with zlib 1.3.2. Download hashes, Microsoft/Inno publisher
+signatures, exact dependency versions and pip check passed. Bundled licenses,
+corresponding sources, build recipe and source ZIP hash accompany the runtime.
+The source wheel's unrelated FFmpeg binary is excluded.
+
+The extracted source suite passed 468 Python, 59 frontend and 116 dependency-fault
+cases. Both workflows and all 15 pinned Action references passed policy checks.
+The final session-size and external-home corrections passed all 13 distribution cases.
+
+The reviewed 282-file source export passed the real WebView2/Chrome matrix:
+both GUI sessions, shared UI/media/clipboard groups and concurrent/conflicting
+startup. Profile and HTTP-backed preferences survived restart. The matrix's
+physical dialogs/keys, scale changes and external application dispatch remain
+injected or emulated as documented in D04; no new human observations are inferred.
+
+Receipt-owned frozen acceptance passed actual WebView2/UI/bridge/preferences,
+close with backend alive, framed worker and invalid Pixiv exchange, PNG-to-JPEG
+thumbnail decoding, HTTPS protocol discovery, HTTP UI and synthetic DPAPI restore.
+External Python/Node were removed from child PATH. Different installation paths
+attached to the same data-scope owner; attached-stop was refused. Graceful stop
+and restart preserved history, login, preferences and original media. Real silent
+installers with a unique test AppId refused an update while the backend ran,
+then allowed update and installer rollback after stop. Uninstall removed program
+files and retained user data/media. The two installer versions contain the same
+current application/data schema, not an arbitrary future downgrade test.
+
+Regressions exposed and corrected Windows SQLite connections left open during
+directory swap, legacy cp950 output corrupting JSON pipes, and a migration bound
+smaller than the encrypted-session store's canonical limit. The final migration
+regression imports actual DPAPI ciphertext larger than 16 KiB and verifies exact
+bytes, source/media preservation and rollback. Migration also refuses active
+foreground writers, newer state, linked inputs and failed destination replacement;
+a prepared backup supports recovery after an interrupted swap. A source child with a separate data home resolves the reviewed code through an explicit
+role entry, rather than searching that data directory for Python modules. Native folder
+selection runs on an STA thread. No production data was imported.
+
+Clean Windows 10/11 acceptance remains unchecked. The host has no Windows
+Sandbox and the user confirmed no other clean machine/VM. PATH isolation and
+hosted runners are not substitutes. Actual missing-Runtime bootstrap/repair,
+installed shortcuts/native prompts and real-account Chrome callbacks in that
+clean environment remain gates in ROADMAP and WINDOWS_DISTRIBUTION. No tag,
+public Release, automatic updater, signing, tray or startup registration was added.
+
+The first hosted D05 source runs exposed a stale native acceptance assertion:
+the new writer lease refused a same-scope foreground conflict before socket bind,
+but the fixture still required an OSError log. It now requires the specific
+writer-lease diagnostic and retains its foreground-survival, unchanged-state and
+normal-stop checks. No production refusal or shutdown behavior was weakened.
+The corrected receipt-owned native source acceptance passed all nine phases locally,
+including that conflict and abrupt-exit recovery, before the follow-up push.

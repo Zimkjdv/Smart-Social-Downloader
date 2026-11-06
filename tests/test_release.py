@@ -114,11 +114,12 @@ class ReleaseTests(unittest.TestCase):
     def test_acceptance_commands_use_extracted_cwd_and_stop_after_a_failure(self):
         with patch("tools.check_source_archive.subprocess.run") as run:
             run_checks(self.root)
-        self.assertEqual(run.call_count, 3)
+        self.assertEqual(run.call_count, 4)
         for call in run.call_args_list:
             self.assertEqual(call.kwargs, {"cwd": self.root, "check": True})
         self.assertIn("-E", run.call_args_list[0].args[0])
         self.assertIn("-t", run.call_args_list[1].args[0])
+        self.assertEqual(run.call_args_list[3].args[0][-1], "tools/check_dependency_faults.py")
         with patch("tools.check_source_archive.subprocess.run",
                    side_effect=subprocess.CalledProcessError(1, "fixture")) as run:
             with self.assertRaises(subprocess.CalledProcessError):

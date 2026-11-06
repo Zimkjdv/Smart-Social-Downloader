@@ -21,7 +21,7 @@ Get the installed source version without starting the service:
 python tools/manage.py --version
 ```
 
-`update.bat` updates engine dependencies, not application source or the extension. To update application source, stop the service and update the files in the same project folder while retaining your local runtime data. After an extension update, reload it at `chrome://extensions`. After source updates, restart the backend and refresh the interface so its reported version matches the running code.
+`update.bat` updates engine dependencies, not application source or the extension. To update application source, stop the service and update the files in the same project folder while retaining your local runtime data. If dependency pins changed, run `setup.bat` to apply the reviewed baseline before restarting; copying source or a normal check-only restart does not install new pins. Use `update.bat` for an explicit update within the compatibility ranges instead. After an extension update, reload it at `chrome://extensions`. After source updates, restart the backend and refresh the interface so its reported version matches the running code.
 
 ## Preparing a release
 
@@ -36,6 +36,7 @@ python tools/manage.py --version
 - [ ] Inspect the repository's staged files/diff and confirm no personal data is being submitted.
 - [ ] Enable private vulnerability reporting and verify the channel described in SECURITY.md.
 - [ ] Confirm GitHub CI results. Do not describe configured CI as passing CI.
+- [ ] Require the fresh source/venv installation job, including real isolated-console Ctrl+C shutdown/recovery, as well as regression checks; record remaining desktop/account acceptance from [Installation acceptance](INSTALLATION_ACCEPTANCE.md) and [Console acceptance](CONSOLE_ACCEPTANCE.md).
 - [ ] Create a tag matching the application version and publish a **prerelease** for a preview. Summarize known limitations and pending checks in its notes.
 
 These are maintainer actions, not steps every user must perform. The application works locally before repository publication.
@@ -56,7 +57,7 @@ The demonstration in `docs/images/dashboard-preview.svg` is a hand-built UI illu
 
 ## Dependency updates and Action pins
 
-CI's three direct Action references use full commit SHAs with release comments.
+CI's three direct Action identities use full commit SHAs with release comments.
 These official repository tags/commits were verified on **2026-10-17**:
 
 | Action | Release | Fixed commit |
@@ -107,6 +108,7 @@ and groups follow the [Dependabot options reference](https://docs.github.com/en/
 .\.venv\Scripts\python.exe tools/manage.py check
 .\.venv\Scripts\python.exe -m unittest discover -s tests -t . -v
 node --test tests/frontend.test.cjs
+.\.venv\Scripts\python.exe tools/check_dependency_faults.py --report data/dependency-faults.json
 .\.venv\Scripts\python.exe tools/check_source_archive.py
 ```
 
@@ -118,10 +120,16 @@ source policy is not a general YAML parser: even a shell string containing
 nested Action dependencies, runner images or known vulnerabilities. Its tool,
 regressions and Dependabot configuration ship in the source ZIP.
 
-First update-PR acceptance, repository security settings, SSL deprecations,
-closed-socket ResourceWarnings and intermittent Windows 10053 remain in
-[ROADMAP](../ROADMAP.md). Update proposals/pinning do not constitute a CVE audit
-or establish that these observations are fixed.
+The [first Python proposal review](DEPENDENCY_ACCEPTANCE.md) accepts pycryptodomex
+3.24.1 and adds its minimum to the explicit-update ranges. It defers pyee 14 because
+Playwright 1.63.0 requires pyee below 14; that major needs a compatible browser
+upgrade. The [dependency fault gate](DEPENDENCY_FAULTS.md) tracks reviewed SSL
+deprecations and fails on resource warnings, new warnings or transport failures;
+CI and extracted-source checks run it after upgrades. The reproduced delegated
+HTTP-error response leak is fixed and covered with forced GC; this does not claim
+every native Windows 10053 is fixed. Actions proposal acceptance and repository
+security settings remain in [ROADMAP](../ROADMAP.md). Update proposals/pinning
+do not constitute a CVE audit. Binary releases need separate third-party review.
 
 ## Triage and security
 

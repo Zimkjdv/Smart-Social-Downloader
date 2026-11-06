@@ -4,6 +4,8 @@ from __future__ import annotations
 import math
 import threading
 import time
+import warnings
+import weakref
 from datetime import timezone
 from email.utils import parsedate_to_datetime
 from urllib.parse import urlparse
@@ -179,6 +181,22 @@ class RequestPolicy:
         """Wrap only this engine instance, without changing global library classes."""
         if getattr(downloader, "_ssdl_paced", False):
             return
+        from yt_dlp.networking.exceptions import HTTPError
+        pending = weakref.WeakKeyDictionary()
+
+        def close_response(response):
+            try:
+                response.close()
+            except Exception:
+                # Never expose URLs/headers or replace the original transfer error.
+                warnings.warn("HTTP error response cleanup failed", ResourceWarning, stacklevel=2)
+
+        def close_pending():
+            for finalize in list(pending.values()):
+                finalize()
+            pending.clear()
+
+        downloader.add_close_hook(close_pending)
         original = downloader.urlopen
 
         def urlopen(*args, **kwargs):
@@ -193,6 +211,11 @@ class RequestPolicy:
                     if response is not None:
                         response.close()
                     raise RateLimited(f"HTTP 429: 平台限制請求次數，安全佇列冷卻 {seconds} 秒。") from exc
+                if isinstance(exc, HTTPError) and exc not in pending:
+                    # Extractors may inspect the error body. Keep it readable
+                    # until they release the exception, or the owned engine exits.
+                    # The callback must not capture exc and keep its traceback alive.
+                    pending[exc] = weakref.finalize(exc, close_response, exc.response)
                 raise
 
         downloader.urlopen = urlopen

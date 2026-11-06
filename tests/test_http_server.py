@@ -245,6 +245,13 @@ class HttpServerTests(unittest.TestCase):
 
     def test_rejected_post_with_delayed_body_retains_403(self):
         sent, release = threading.Event(), threading.Event()
+        discarded = []
+        original_discard = self.server.RequestHandlerClass._discard_rejected_body
+        def observed_discard(handler):
+            count = original_discard(handler)
+            discarded.append(count)
+            return count
+        self.server.RequestHandlerClass._discard_rejected_body = observed_discard
         original = self.server.RequestHandlerClass._send
         def gated_send(handler, *args, **kwargs):
             original(handler, *args, **kwargs)
@@ -266,6 +273,7 @@ class HttpServerTests(unittest.TestCase):
         self.assertEqual(self.response(connection)[0], 403)
         self.assertEqual(connection.recv(1), b"")
         self.wait_active(0)
+        self.assertEqual(discarded, [len(payload)])
         self.app._state.assert_not_called()
         self.app._save_locked.assert_not_called()
         self.app.X_AUTH.prepare_extension.assert_not_called()
@@ -303,6 +311,39 @@ class HttpServerTests(unittest.TestCase):
                 self.wait_active(0)
         self.app._save_locked.assert_not_called()
         self.assertEqual(self.normal_request()[0], 200)
+
+    def test_rejected_incomplete_body_has_a_short_cleanup_budget(self):
+        self.server.read_seconds = 10
+        connection = self.connect()
+        headers = self.headers(extra="Content-Length: 100000\r\n").replace(
+            f"Origin: http://127.0.0.1:{self.app.PORT}".encode(), b"Origin: https://untrusted.example")
+        began = time.monotonic()
+        connection.sendall(headers + b"{")
+        self.assertEqual(self.response(connection)[0], 403)
+        self.wait_active(0)
+        self.assertLess(time.monotonic() - began, 1.5)
+        self.app._save_locked.assert_not_called()
+        self.assertEqual(self.normal_request()[0], 200)
+
+    def test_rejected_ambiguous_or_oversized_body_is_never_drained(self):
+        original = self.server.RequestHandlerClass._discard_rejected_body
+        discarded = []
+        def observed(handler):
+            count = original(handler)
+            discarded.append(count)
+            return count
+        self.server.RequestHandlerClass._discard_rejected_body = observed
+        for extra in ("Content-Length: 100001\r\n", "Content-Length: 2\r\nContent-Length: 2\r\n",
+                      "Content-Length: 2\r\nTransfer-Encoding: chunked\r\n"):
+            with self.subTest(extra=extra):
+                connection = self.connect()
+                headers = self.headers(extra=extra).replace(
+                    f"Origin: http://127.0.0.1:{self.app.PORT}".encode(), b"Origin: https://untrusted.example")
+                connection.sendall(headers)
+                self.assertEqual(self.response(connection)[0], 403)
+                self.wait_active(0)
+        self.assertEqual(discarded, [0, 0, 0])
+        self.app._save_locked.assert_not_called()
 
 
 if __name__ == "__main__":

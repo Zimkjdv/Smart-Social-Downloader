@@ -2,7 +2,7 @@
 (() => {
   'use strict';
   function create(dependencies) {
-    const { document, browser, $, state, I18n, t, uiMessage, uiText, api, getSnapshot, isOffline } = dependencies;
+    const { document, browser, desktop, $, state, I18n, t, uiMessage, uiText, api, getSnapshot, isOffline } = dependencies;
     const scope = window.SSDLControllerLifecycle.create(browser);
     const render = scope.effect(dependencies.render);
     const toast = scope.effect(dependencies.toast);
@@ -12,7 +12,7 @@
     let environmentRenderKey = '';
     let environmentRequestBusy = false;
     const busyControls = new Set();
-    const exportUrls = new Set();
+    const exports = new browser.AbortController();
     function renderStorageMaintenance(data = getSnapshot()) {
       if (!scope.active) return;
       const storage = data?.storage || {};
@@ -137,13 +137,9 @@
       try {
         const report = await api('/api/diagnostics');
         if (!scope.active) return;
-        const url = browser.URL.createObjectURL(new browser.Blob([JSON.stringify(report, null, 2)], { type: 'application/json' }));
-        exportUrls.add(url);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = 'ssdl-diagnostics.json';
-        link.click();
-        scope.defer(() => { browser.URL.revokeObjectURL(url); exportUrls.delete(url); }, 1000);
+        const result = await desktop.saveText({ filename: 'ssdl-diagnostics.json',
+          text: JSON.stringify(report, null, 2), mimeType: 'application/json' }, { signal: exports.signal });
+        if (result.status !== 'completed' && result.status !== 'cancelled') throw new Error(t('ui.desktop_export_failed'));
       } catch (error) { toast(error.message, true); }
       finally { if (scope.active) button.disabled = false; }
     });
@@ -172,7 +168,7 @@
         savingIssue ? uiMessage(data.persistence.error || t('ui.history_capacity_warning')) : workerIssue ? t('ui.restart_the_service_or_export_diagnostics_for') : databaseIssue ? t('ui.' + data.databases.error_code) : !state.ready || environmentIssue ? t('ui.open_environment_diagnostics_in_settings_for_repair') : t('ui.image_and_video_engines_ready_original_encoding'),
         savingIssue && !data.persistence.healthy || workerIssue || !state.ready, savingIssue || workerIssue || databaseIssue || !state.ready || environmentIssue);
     }
-    scope.onDispose(() => { for (const url of exportUrls) browser.URL.revokeObjectURL(url); exportUrls.clear(); });
+    scope.onDispose(() => exports.abort());
     scope.onDispose(databases.dispose);
     return Object.freeze({ init() {scope.init(); databases.init();}, dispose: scope.dispose, render: renderSnapshot, renderStorageMaintenance, renderEngineStatus, load: loadEnvironment, get report() { return lastEnvironment; } });
   }

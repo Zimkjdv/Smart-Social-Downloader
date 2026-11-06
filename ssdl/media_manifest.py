@@ -104,5 +104,21 @@ class MediaManifest:
             (self.scope, self.key(source), json.dumps(metadata, ensure_ascii=False)))
         self.connection.commit()
 
+    def promote(self, source, legacy, *, video_quality="best", selected_media=""):
+        """Copy trusted old evidence unchanged, then recheck the original files.
+
+        Restatting into a new record would bless a file modified after the old
+        lookup. Keep the old size/mtime evidence, without replacing a record
+        published by another writer while this source was being checked.
+        """
+        value = self.lookup(legacy)
+        if (not value or value.get("video_quality", "best") != video_quality
+                or value.get("selected_media", "") != selected_media):
+            return None
+        self.connection.execute("INSERT OR IGNORE INTO media VALUES (?, ?, ?)",
+            (self.scope, self.key(source), json.dumps(value, ensure_ascii=False)))
+        self.connection.commit()
+        return self.lookup(source)
+
     def close(self):
         self.connection.close()

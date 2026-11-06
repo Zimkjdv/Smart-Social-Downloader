@@ -10,9 +10,9 @@ call setup.bat
 if errorlevel 1 exit /b 1
 
 :launch
-".venv\Scripts\python.exe" -X utf8 tools\manage.py start
+".venv\Scripts\python.exe" -X utf8 tools\manage.py start-background
 if errorlevel 1 (
-  pause
+  if not defined SSDL_NONINTERACTIVE pause
   exit /b 1
 )
 exit /b 0

@@ -16,6 +16,8 @@
 
 設定中的「本機紀錄與下載程序」顯示 worker 是否可用及最近的進度等待時間。登入資料透過匿名管線交給子程序，不放進命令列參數、程序日誌或診斷報告。
 
+Windows 安裝 CI 另有真正 Ctrl+C 的獨立控制台驗收：閒置與合成下載中呼叫原 entry，核對正常退出、writer 落盤、worker／子程序退出，以及重啟後待辦、暫停及額度恢復。這不取代一般終端的人手按鍵／批次提示及真實平台驗收；程序與訊號範圍見 [控制台驗收](CONSOLE_ACCEPTANCE.md)。
+
 ## 2．通用媒體保存紀錄（R08）
 
 一般下載使用 `data/media-manifest.sqlite3`，以**來源識別＋下載根目錄**區分。來源以 SHA-256 指紋作索引，逐檔保存相對路徑、大小、修改時間、引擎及媒體 ID；只有所有完成檔案仍符合紀錄時才略過來源取得。
@@ -98,8 +100,10 @@ node --test tests/frontend.test.cjs
 
 HLS／DASH 使用本機 fixture，以測試替身將已核對的公開數字位址路由到 fixture；驗證正常串流下載後 FFmpeg 可解碼，內網片段／金鑰／初始化未收到任何請求。這不是以真實平台內容測試。
 
-CI 使用 Python 3.12，安裝 Node.js 22 並執行相同前端測試，也驗證來源 ZIP 解壓後的完整回歸。GitHub CI 已有通過紀錄，每個新 commit 仍需個別確認；乾淨 Windows／真實 Chrome 自訂連接埠仍待環境驗收。DOM 與 Chrome 測試替身不代表實際 cookies API 已在所有版本通過。N08 補強帶 body 的未授權 POST、延後 body 與斷線後恢復覆蓋，原先偶發 10053 未穩定重現，未宣稱已確定修復根因；細節見 [SOURCE_TESTING](SOURCE_TESTING.md)。
+CI 使用 Python 3.12／Node.js 22，驗證 checkout 與來源 ZIP 的完整回歸，另以新來源／新 venv 執行安裝 job。每個新 commit 仍需個別確認；一般桌面與真實 Chrome／X 配對保留獨立驗收，見 [安裝範圍](INSTALLATION_ACCEPTANCE.md)。DOM 與 Chrome 測試替身不代表實際 cookies API 已在所有版本通過。
+
+2026-10-17 又捕捉到未讀 POST body 的拒絕回應出現 Windows 10053。現在先送出拒絕回應，再只清除合法單一 Content-Length、最多 100,000 bytes 的未讀內容；最多 0.1 秒且不延長原始輸入期限，不解析 JSON、不讀工作／登入資料、不執行變更。歧義 framing／Transfer-Encoding／超量內容不清除，已完整讀取的合法請求沒有額外讀取。測試驗證延後 body 完整清除、慢 body 回收上限、未知 framing 不讀取及後續請求恢復；其他 Windows 傳輸問題仍保留追蹤。環境外部命令改用 DEVNULL stdin，避免控制管線影響 pip check；細節見 [TESTING](TESTING.md)。
 
 2026-10-11 後續完整回歸：**104 項 Python＋10 項 Node 通過，沒有略過**，補齊 P2、畫質、動態捕捉及合成資料的真實 Chrome 介面操作。另重現並修正六個缺陷，包含備份保護及較舊回應排序；詳細結果見 [TESTING.md](TESTING.md) 與 [PROJECT_AUDIT.md](PROJECT_AUDIT.md)。真實帳號配對及前述乾淨環境／GitHub 驗收仍待執行。
 
-上游偶有 urllib3 SSL 選項棄用／已關閉 socket 的 ResourceWarning，測試結果仍通過；本輪修正了政策例外未關閉串流 `.part` 檔案的問題，並保留警告供引擎更新時追蹤。
+原先記錄的 urllib3 SSL 選項棄用已納入[版本與來源限制的故障追蹤](DEPENDENCY_FAULTS.md)。2026-10-21 進一步重現並修正 gallery-dl 委派 HLS 缺片時 HTTP 錯誤回應未關閉造成的兩個 socket ResourceWarning；錯誤內容保持可讀，錯誤釋放／引擎關閉時清理，工作結束也會關閉委派引擎。未知警告、ResourceWarning 及傳輸失敗會阻擋 CI，已知 SSL 觀察仍未宣稱上游已修正。先前 `.part` 清理與 10053 完整回應驗證仍保留，並不代表所有 Windows 傳輸異常都已解決。

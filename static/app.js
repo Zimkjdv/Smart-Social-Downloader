@@ -1,5 +1,7 @@
 /* Dashboard composition, ordered snapshot publishing and refresh scheduling. */
-const controllerDependencies = { document, browser: window, $, state, I18n, t, uiMessage, uiText,
+const desktop = new URLSearchParams(location.search).get('shell') === 'pywebview'
+  ? SSDLDesktopPywebview.create({ browser: window, document }) : SSDLDesktop.createBrowser({ browser: window, document });
+const controllerDependencies = { document, browser: window, desktop, $, state, I18n, t, uiMessage, uiText,
   api, render, toast, refresh, getSnapshot: () => lastResponse, isOffline: () => connectionOffline };
 const diagnosticsController = SSDLDiagnosticsController.create({ ...controllerDependencies, scheduleStatusRefresh, timeLabel, fileSize });
 const jobsController = SSDLJobsController.create({ ...controllerDependencies, rows, pendingJobActions, jobPageSizes, jobPageSizeKey,
@@ -7,13 +9,37 @@ const jobsController = SSDLJobsController.create({ ...controllerDependencies, ro
   invalidateView: () => { viewRefreshPending = true; } });
 const settingsController = SSDLSettingsController.create({ ...controllerDependencies, renderOffline,
   loadEnvironment: (...args) => diagnosticsController.load(...args) });
-diagnosticsController.init(); jobsController.init(); settingsController.init();
+const pixivLogin = SSDLPixivLogin.create({ api, refresh, state, $, t, uiText, desktop });
+diagnosticsController.init(); jobsController.init(); settingsController.init(); pixivLogin.init();
 let dashboardDisposed = false;
+const shellScope = SSDLControllerLifecycle.create(window);
+let stoppingBackend = false, backendStopped = false;
+function renderDesktopStatus() {
+  if (dashboardDisposed || desktop.kind !== 'pywebview') return;
+  $('#desktop-bar').hidden = false;
+  $('#desktop-stop').disabled = stoppingBackend || backendStopped || !desktop.capabilities.stopBackend;
+  uiText($('#desktop-status'), backendStopped ? 'ui.desktop_stopped' : stoppingBackend ? 'ui.desktop_stopping' :
+    !desktop.capabilities.openExternal ? 'ui.desktop_bridge_unavailable' : desktop.ownership === 'attached' ? 'ui.desktop_attached' : '');
+}
+shellScope.listen($('#desktop-stop'), 'click', async () => {
+  if (stoppingBackend || backendStopped || !desktop.capabilities.stopBackend) return;
+  stoppingBackend = true; renderDesktopStatus();
+  try {
+    const result = await desktop.stopBackend();
+    if (result.status === 'completed') { backendStopped = true; refresh(); }
+    else if (result.status !== 'cancelled') toast('ui.desktop_action_failed', true);
+  } finally { stoppingBackend = false; renderDesktopStatus(); }
+});
+shellScope.listen(document, 'ssdl-language-changed', renderDesktopStatus);
+shellScope.init();
+if (desktop.kind === 'pywebview') { renderDesktopStatus(); desktop.ready.then(renderDesktopStatus); }
 function disposeDashboard() {
   if (dashboardDisposed) return;
   dashboardDisposed = true;
   clearTimeout(refreshTimer);
-  settingsController.dispose(); jobsController.dispose(); diagnosticsController.dispose();
+  pixivLogin.dispose(); settingsController.dispose(); jobsController.dispose(); diagnosticsController.dispose();
+  shellScope.dispose();
+  desktop.dispose();
 }
 window.addEventListener('pagehide', (event) => { if (!event.persisted) disposeDashboard(); });
 function openSettings(...args) { return settingsController.open(...args); }
@@ -94,6 +120,9 @@ function render(data) {
   state.paused = Boolean(data.paused);
   state.ready = Boolean(data.ready);
   state.xAuth = data.x_auth || {};
+  state.pixivAuth = data.pixiv_auth || {};
+  pixivLogin.render();
+  state.fileActions = data.file_actions || 'desktop';
   state.cookieFile = data.x_cookie_file || '';
   state.downloadDir = data.download_dir || '';
   renderPlatformCooldown(data.safe_queue);
@@ -101,6 +130,13 @@ function render(data) {
   const authBusy = Boolean(state.xAuth.busy || connectingXRequest);
   const authConnected = Boolean(state.xAuth.connected);
   const authPending = authBusy || state.xAuth.phase === 'waiting';
+  const fileLogin = Boolean(state.cookieFile);
+  const authFailed = ['failed', 'expired'].includes(state.xAuth.phase);
+  $('#x-session-card').dataset.state = authPending ? 'pending' : authConnected || fileLogin ? 'connected' :
+    ['expired', 'failed'].includes(state.xAuth.phase) ? 'expired' : 'disconnected';
+  $('#x-session-status').textContent = t(authPending ? 'ui.waiting_for_x' : authConnected ? 'ui.x_session_connected' :
+    fileLogin ? 'ui.x_cookie_session' : 'ui.x_session_not_connected');
+  $('#x-auth-description').classList.toggle('hidden', (authConnected || fileLogin) && !authPending);
   $('#x-login-label').textContent = t(authBusy ? 'ui.waiting_for_x' : authConnected ? 'ui.x_connected' : 'ui.connect_chrome');
   $('#x-login-open').disabled = authBusy;
   $('#x-login-open').classList.toggle('connected', authConnected);
@@ -110,13 +146,17 @@ function render(data) {
   $('#x-login-browser').disabled = authBusy;
   $('#x-disconnect').disabled = !authPending && !authConnected && !state.cookieFile;
   $('#x-disconnect').textContent = t(authPending ? 'ui.cancel_connection' : 'ui.disconnect');
-  $('#x-auth-message').textContent = uiMessage(state.xAuth.message || '尚未連接 X 登入');
+  $('#x-auth-message').textContent = authFailed ? uiMessage(state.xAuth.message || 'ui.x_connection_failed') : authConnected && !authPending ? t('ui.x_session_ready') : fileLogin && !authPending ?
+    t('ui.x_cookie_session_ready') : uiMessage(state.xAuth.message || '尚未連接 X 登入');
   $('#x-auth-message').classList.toggle('connected', authConnected);
-  $('#x-auth-message').classList.toggle('error', state.xAuth.phase === 'failed');
+  $('#x-auth-message').classList.toggle('error', authFailed);
+  uiText($('#x-storage-copy'), state.xAuth.storage_mode === 'memory' ? 'ui.x_memory_storage' : state.xAuth.storage_mode === 'aes-gcm' ? 'ui.x_key_storage' : 'ui.only_x_session_cookies_are_saved_encrypted');
+  uiText($('#x-auth-description'), state.xAuth.host_browser ? 'ui.x_host_pairing' : 'ui.use_your_existing_x_session_in_chrome');
+  if (state.xAuth.phase !== 'waiting') { $('#x-pairing-link').hidden = true; $('#x-pairing-link').removeAttribute('href'); }
   if (oldAuthPhase && oldAuthPhase !== state.xAuth.phase) {
     if (state.xAuth.phase === 'connected') toast(state.paused ? 'ui.x_connected_failed_jobs_have_been_queued' : 'ui.x_connected_failed_x_jobs_will_be');
     else if (state.xAuth.phase === 'failed') toast(state.xAuth.message || 'ui.x_connection_failed', true);
-    else if (state.xAuth.phase === 'waiting') toast('ui.connection_page_opened_in_regular_chrome_load');
+    else if (state.xAuth.phase === 'waiting') toast(state.xAuth.host_browser ? 'ui.x_pairing_ready' : 'ui.connection_page_opened_in_regular_chrome_load');
   }
   const counts = data.counts || {};
   const queued = counts.queued || 0;
@@ -145,7 +185,7 @@ function render(data) {
   $('#top-pause').setAttribute('aria-pressed', String(state.paused));
   $('#top-pause .pause-symbol').textContent = state.paused ? '▶' : 'Ⅱ';
   $('#top-pause .pause-label').textContent = t(state.paused ? 'ui.resume' : 'ui.pause');
-  const runningProfile = data.active_job?.mode === 'x_profile' || state.jobs.some((job) => job.status === 'active' && job.mode === 'x_profile');
+  const runningProfile = ['x_profile', 'pixiv_profile'].includes(data.active_job?.mode) || state.jobs.some((job) => job.status === 'active' && ['x_profile', 'pixiv_profile'].includes(job.mode));
   $('#top-pause').title = t(state.paused ? 'ui.resume_upcoming_jobs_using_safe_queue_rules' : runningProfile ? 'ui.pause_upcoming_posts_the_current_post_will' : 'ui.pause_upcoming_jobs_the_current_download_will');
 
   const policy = data.safe_queue || {};
@@ -172,7 +212,7 @@ function render(data) {
   const monitorCopy = $('#monitor-copy');
   const progressBlock = $('#monitor-progress');
   const profileCounts = $('#monitor-profile-counts');
-  profileCounts.classList.toggle('hidden', !(activeJob?.mode === 'x_profile' && Number.isFinite(activeJob.profile_scanned_files)));
+  profileCounts.classList.toggle('hidden', !(['x_profile', 'pixiv_profile'].includes(activeJob?.mode) && Number.isFinite(activeJob.profile_scanned_files)));
   if (activeJob) {
     monitorTitle.textContent = activeJob.title ? jobTitle(activeJob) : t('ui.downloading_2');
     monitorCopy.textContent = `${activeJob.platform} · ${uiMessage(activeJob.status_text || '下載中')}`;
@@ -180,7 +220,7 @@ function render(data) {
     const pct = activeJob.progress ?? 8;
     $('#monitor-progress-fill').style.width = `${pct}%`;
     $('#monitor-progress-text').textContent = activeJob.progress === null ? t('ui.downloading') : `${pct}%`;
-    if (activeJob.mode === 'x_profile') {
+    if (['x_profile', 'pixiv_profile'].includes(activeJob.mode)) {
       monitorCopy.textContent = `${uiMessage(activeJob.status_text || '正在讀取 X 帳號媒體')} · ${profileSummary(activeJob)}`;
       const scanned = activeJob.profile_scan_complete && Number.isFinite(activeJob.profile_total_files);
       const total = scanned ? activeJob.profile_total_files : activeJob.profile_scanned_files;
@@ -219,7 +259,7 @@ function scheduleStatusRefresh() {
   if (dashboardDisposed) return;
   clearTimeout(refreshTimer);
   const processing = diagnosticsController.report?.busy || lastResponse?.storage?.refreshing || lastResponse?.thumbnail_cache?.clearing ||
-    state.xAuth.busy || state.xAuth.phase === 'waiting' ||
+    state.xAuth.busy || state.xAuth.phase === 'waiting' || state.pixivAuth.pending || state.pixivAuth.busy ||
     (lastResponse?.counts?.queued || lastResponse?.counts?.active);
   refreshTimer = setTimeout(refresh, !connectionOffline && processing ? 2000 : 30000);
 }
@@ -269,13 +309,21 @@ function renderOffline(error = lastStatusError) {
 }
 
 function parsedUrls() {
-  if (state.inputMode === 'x_profile') return $('#url-input').value.split(/[\s,，]+/).map((part) => part.trim()).filter(Boolean);
+  if (['x_profile', 'pixiv_profile'].includes(state.inputMode)) return $('#url-input').value.split(/[\s,，]+/).map((part) => part.trim()).filter(Boolean);
   return $('#url-input').value.split(/\s+|[,，](?=\s*https?:\/\/)/i).map((part) => part.trim()).filter(Boolean);
 }
 
-function updateUrlCount() { $('#url-count').textContent = t(state.inputMode === 'x_profile' ? 'ui.count_accounts' : 'ui.count_urls', { count: parsedUrls().length }); }
+function updateUrlCount() { $('#url-count').textContent = t(['x_profile', 'pixiv_profile'].includes(state.inputMode) ? 'ui.count_accounts' : 'ui.count_urls', { count: parsedUrls().length }); }
 
 function renderProfileLogin() {
+  if (state.inputMode === 'pixiv_profile') {
+    const connected = Boolean(state.pixivAuth.connected);
+    $('#profile-login-status').textContent = t(connected ? 'ui.pixiv_connected' : 'ui.pixiv_connect_required');
+    $('#profile-login-status').parentElement.classList.toggle('is-connected', connected);
+    $('#profile-connect-x').textContent = t('ui.pixiv_sign_in');
+    $('#profile-connect-x').disabled = Boolean(state.pixivAuth.busy);
+    return;
+  }
   const connected = Boolean(state.xAuth.connected || state.cookieFile);
   $('#profile-login-status').textContent = t(connected ? 'ui.x_session_connected' : 'ui.connect_an_x_session_to_continue');
   $('#profile-login-status').parentElement.classList.toggle('is-connected', connected);
@@ -283,9 +331,9 @@ function renderProfileLogin() {
   $('#profile-connect-x').disabled = Boolean(state.xAuth.busy || connectingXRequest);
 }
 
-const inputDrafts = { urls: '', x_profile: '' };
+const inputDrafts = { urls: '', x_profile: '', pixiv_profile: '' };
 function renderVideoQuality() {
-  const profile = state.inputMode === 'x_profile';
+  const profile = ['x_profile', 'pixiv_profile'].includes(state.inputMode);
   $('#video-quality-controls').classList.toggle('hidden', profile);
   $('#profile-quality-note').classList.toggle('hidden', !profile);
   $('#video-quality').disabled = profile;
@@ -297,11 +345,13 @@ $('#video-quality').addEventListener('change', () => {
   renderVideoQuality();
 });
 function renderInputMode() {
-  const profile = state.inputMode === 'x_profile';
-  $('#download-input-description').textContent = t(profile ? 'ui.paste_an_x_profile_url_or_username' : 'ui.paste_video_image_or_post_urls');
-  $('#download-input-label').textContent = t(profile ? 'ui.x_accounts_to_download_media_from' : 'ui.urls_to_download');
-  $('#url-input').placeholder = t(profile ? 'ui.paste_x_accounts_one_per_line_https' : 'ui.paste_media_urls_one_per_line_https');
+  const profile = ['x_profile', 'pixiv_profile'].includes(state.inputMode);
+  const pixiv = state.inputMode === 'pixiv_profile';
+  $('#download-input-description').textContent = t(pixiv ? 'ui.pixiv_paste_author' : profile ? 'ui.paste_an_x_profile_url_or_username' : 'ui.paste_video_image_or_post_urls');
+  $('#download-input-label').textContent = t(pixiv ? 'ui.pixiv_author_urls' : profile ? 'ui.x_accounts_to_download_media_from' : 'ui.urls_to_download');
+  $('#url-input').placeholder = t(pixiv ? 'ui.pixiv_placeholder' : profile ? 'ui.paste_x_accounts_one_per_line_https' : 'ui.paste_media_urls_one_per_line_https');
   $('#profile-options').classList.toggle('hidden', !profile);
+  $('#profile-description').textContent = t(pixiv ? 'ui.pixiv_profile_description' : 'ui.scan_the_media_list_first_to_show');
   $('#supported-platforms').classList.toggle('hidden', profile);
   renderVideoQuality();
   document.querySelectorAll('[data-download-mode]').forEach((button) => {
@@ -320,7 +370,7 @@ document.querySelectorAll('[data-download-mode]').forEach((button) => button.add
   renderInputMode();
   $('#url-input').focus();
 }));
-$('#profile-connect-x').addEventListener('click', () => connectX());
+$('#profile-connect-x').addEventListener('click', () => state.inputMode === 'pixiv_profile' ? openSettings('pixiv') : connectX());
 
 $('#url-input').addEventListener('input', updateUrlCount);
 $('#url-input').addEventListener('keydown', (event) => {
@@ -332,10 +382,10 @@ $('#add-jobs').addEventListener('click', async () => {
   const urls = parsedUrls();
   const submittedMode = state.inputMode;
   const submittedText = $('#url-input').value;
-  const submittedQuality = submittedMode === 'x_profile' ? 'best' : state.videoQuality;
+  const submittedQuality = ['x_profile', 'pixiv_profile'].includes(submittedMode) ? 'best' : state.videoQuality;
   const message = $('#form-message');
   message.classList.remove('error');
-  if (!urls.length) { uiText(message, submittedMode === 'x_profile' ? 'ui.paste_an_x_profile_url_or_username_2' : 'ui.paste_one_or_more_media_urls_first'); message.classList.add('error'); $('#url-input').focus(); return; }
+  if (!urls.length) { uiText(message, submittedMode === 'pixiv_profile' ? 'ui.pixiv_paste_author' : submittedMode === 'x_profile' ? 'ui.paste_an_x_profile_url_or_username_2' : 'ui.paste_one_or_more_media_urls_first'); message.classList.add('error'); $('#url-input').focus(); return; }
   const button = $('#add-jobs');
   button.disabled = true;
   button.querySelector('span').textContent = t('ui.adding');
@@ -388,3 +438,18 @@ document.addEventListener('ssdl-language-changed', () => {
 renderJobs();
 renderInputMode();
 refresh();
+
+// Local storage seeds the first HTTP preference file; later shells use that file.
+const uiPreferences = window.SSDLPreferences?.create({ api,
+  read: () => ({ schema: 1, language: I18n.language, page_size: state.pageSize }),
+  apply: value => {
+    I18n.change(value.language, false);
+    state.pageSize = value.page_size; state.page = 1;
+    requestJobView();
+  },
+  onError: error => toast(error.message, true),
+});
+document.addEventListener('ssdl-language-changed', () => uiPreferences?.changed());
+$('#jobs-page-size').addEventListener('change', () => uiPreferences?.changed());
+window.addEventListener('pagehide', () => uiPreferences?.dispose(), { once: true });
+uiPreferences?.start();

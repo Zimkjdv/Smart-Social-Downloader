@@ -71,6 +71,23 @@ class P2AppTests(unittest.TestCase):
         self.assertEqual(self.request(f"/api/jobs/{key}", {})[0], 200)
         self.assertNotIn(key, self.app.state.jobs)
 
+    def test_pixiv_work_variants_share_queue_row_but_not_quality(self):
+        self.prepare()
+        code, result = self.request("/api/jobs", {"urls": [
+            "https://www.pixiv.net/artworks/100",
+            "https://www.pixiv.net/en/artworks/100?utm_source=share",
+            "https://www.pixiv.net/member_illust.php?illust_id=100&mode=medium",
+        ]})
+        self.assertEqual(code, 201)
+        self.assertEqual(len(result["added"]), 1)
+        key = result["added"][0]
+        _, again = self.request("/api/jobs", {"urls": ["https://pixiv.net/i/100"]})
+        self.assertEqual(again["already_pending"], [key])
+        self.assertEqual(again["added"], [])
+        _, quality = self.request("/api/jobs", {"urls": ["https://pixiv.net/i/100"], "video_quality": "720"})
+        self.assertEqual(len(quality["added"]), 1)
+        self.assertNotEqual(quality["added"][0], key)
+
     def test_pause_requires_explicit_boolean_without_saving_invalid_input(self):
         self.prepare()
         with patch.object(self.app, "_save_locked", return_value=0) as save:

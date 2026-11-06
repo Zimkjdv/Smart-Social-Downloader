@@ -22,6 +22,20 @@ split has no current need. Future nested Python suites need `__init__.py` in eac
 package directory and must follow the `test_*.py` naming convention. New shared
 support belongs under `tests/helpers/`, not another test class.
 
+`tests/helpers/docker.py` supplies the fake CLI shared by Docker gate contracts.
+Those tests verify source selection, receipts and owned cleanup; only the actual
+[Docker runtime/service gates](DOCKER_SERVICE_ACCEPTANCE.md) establish container
+execution evidence. The helper is shipped by the existing code-only fixture policy.
+
+The [interaction gate](DOCKER_INTERACTION_ACCEPTANCE.md) separately exercises real
+container sessions/media. Native action regression mocks desktop launching;
+it never opens a user's media viewer or file manager.
+
+The [host-storage gate](DOCKER_HOST_ACCEPTANCE.md) further checks actual private
+host bind directories and file-backed secrets. Its probes stay outside the
+runtime image. Shared contracts use the same fake CLI; native ACL regressions
+use only empty temporary Windows directories.
+
 ## Reviewed packaging boundaries
 
 `tools/package_source.py` combines a fixed root-file list, shallow globs for
@@ -30,6 +44,7 @@ assets/docs/tools and recursive **code-only** boundaries:
 | Boundary | Allowed files |
 | --- | --- |
 | `ssdl/` | Python modules, including subpackages |
+| `desktop/` | Optional shell Python modules, including subpackages; no binaries/profile data |
 | `tests/` | `__init__.py`, `test_*.py`, `*.test.cjs` |
 | `tests/helpers/` | Python helper modules, including subpackages |
 | Other source folders | Only the explicit `SOURCE_GLOBS` entries |
@@ -67,7 +82,7 @@ The last command builds a disposable source ZIP, verifies the exact allowlisted
 member set, duplicate absence, CRC and source bytes, then extracts into an owned
 temporary directory. A child interpreter checks that app/helper/packager imports
 come from the extraction and runs the **full Python suite**, followed by the
-Node suite, with the extracted directory as cwd. Python ignores inherited
+Node suite and the [dependency fault gate](DEPENDENCY_FAULTS.md), with the extracted directory as cwd. Python ignores inherited
 PYTHONPATH/PYTHONHOME and user site packages; the current venv's installed
 dependencies and system Chrome/Node are intentionally available. Failures stop
 acceptance with a nonzero exit code; temporary outputs are cleaned on success
@@ -97,3 +112,28 @@ including the new late-body fixture. No assertion hides a failed complete 403
 exchange, and no production source policy or body-reading behavior was relaxed.
 These are additional regression cases, not a claim that an intermittent socket
 defect was conclusively fixed. Latest results: [TESTING](TESTING.md).
+
+2026-10-17 follow-up: a complete run encountered 10053 again on a foreign-Origin
+POST. Response handling now drains only an unread, strictly framed body up to
+100,000 bytes, after sending the refusal, within 0.1 seconds and the original
+deadline. It does not parse JSON or access application data. Ambiguous/oversized
+frames are not read. The late-body test asserts exact bytes; new tests verify
+bounded incomplete cleanup and rejected framing. This addresses the unread-body
+closure case while keeping other intermittent transport observations pending.
+
+Fresh dependency installation is now checked by a separate Windows job/tool;
+the extraction regression above intentionally uses current dependencies. See
+[Installation acceptance](INSTALLATION_ACCEPTANCE.md).
+
+The optional Windows GUI gate is separate from core/source/Docker acceptance:
+`python tools/check_desktop_gui.py --matrix` opens actual WebView2 sessions with
+isolated sources/data/profile and compares the shared UI with fresh Chrome.
+Neither GUI dependencies nor an interactive desktop are required by normal CI.
+See [D04 GUI acceptance](DESKTOP_GUI_ACCEPTANCE.md) for artifacts, startup-only
+reproduction, completed manual baseline and remaining environment limits.
+
+D05 release tooling and packaging recipes are included in source allowlists;
+compiled executables, vendor downloads, build venvs and acceptance data are not.
+Windows executable/installer acceptance is a separate opt-in lane documented in
+[Windows distribution](WINDOWS_DISTRIBUTION.md); it does not add GUI dependencies
+to the core/source or Docker gates.

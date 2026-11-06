@@ -8,14 +8,19 @@ import json
 import io
 import mimetypes
 import os
+import stat
 import time
 import uuid
+import zipfile
 from contextlib import contextmanager
 from http.server import BaseHTTPRequestHandler
 from pathlib import Path
-from urllib.parse import parse_qs, unquote, urlparse
+from urllib.parse import parse_qs, quote, unquote, urlparse
 from .http_server import DeadlineReader, READ_SECONDS, WRITE_SECONDS
 from .database_maintenance import MaintenanceError
+from .local_media import serve_job_media
+from .session_storage import host_browser_required
+from . import platform_actions
 
 
 class RequestFormatError(ValueError):
@@ -57,7 +62,10 @@ class ApiHandler(BaseHTTPRequestHandler):
         return parsed
 
     def log_message(self, format: str, *args) -> None:
-        if getattr(self, "command", None) == "GET" and urlparse(self.path).path in {"/api/state", "/api/summary", "/api/jobs"} and len(args) > 1 and args[1] == "200":
+        if urlparse(self.path).path.startswith("/api/jobs/") and urlparse(self.path).path.endswith("/content"):
+            print("[%s] Local media response" % self.log_date_time_string())
+            return
+        if getattr(self, "command", None) == "GET" and urlparse(self.path).path in {"/api/state", "/api/summary", "/api/jobs", "/api/health"} and len(args) > 1 and args[1] == "200":
             return
         print("[%s] %s" % (self.log_date_time_string(), self.app.redact_text(format % args)))
 
@@ -92,13 +100,14 @@ class ApiHandler(BaseHTTPRequestHandler):
             self.send_header("Access-Control-Allow-Methods", "POST, OPTIONS")
             self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-SSDL-Extension")
         self.end_headers()
-        self.wfile.write(body)
+        if self.command != "HEAD":
+            self.wfile.write(body)
 
     def _json(self, status: int, data: dict) -> None:
         body = json.dumps(self.app.redact_fields(data), ensure_ascii=False).encode("utf-8")
         self._send(status, body, "application/json; charset=utf-8")
 
-    def _read_json(self) -> dict:
+    def _body_length(self) -> int:
         lengths = self.headers.get_all("Content-Length", [])
         if (self.headers.get_all("Transfer-Encoding") or len(lengths) != 1
                 or not lengths[0].isascii() or not lengths[0].isdigit() or len(lengths[0]) > 6):
@@ -106,8 +115,13 @@ class ApiHandler(BaseHTTPRequestHandler):
         length = int(lengths[0])
         if length <= 0 or length > 100_000:
             raise RequestFormatError("請求內容大小不正確")
+        return length
+
+    def _read_json(self) -> dict:
+        length = self._body_length()
         self._input.remaining()
         payload = self.rfile.read(length)
+        self._body_read = True
         self._input.remaining()
         if len(payload) != length:
             raise RequestFormatError("請求內容不完整，請重新操作。")
@@ -117,6 +131,32 @@ class ApiHandler(BaseHTTPRequestHandler):
         if not isinstance(value, dict):
             raise RequestFormatError("請求格式不正確")
         return value
+
+    def _discard_rejected_body(self) -> int:
+        """Avoid closing over an unread, bounded POST body after responding.
+
+        No JSON parsing or application access; never accept ambiguous framing,
+        exceed 100 KB or extend the original absolute input deadline.
+        """
+        if self._body_read:
+            return 0
+        try:
+            remaining = self._body_length()
+        except RequestFormatError:
+            return 0
+        discarded = 0
+        self._input.deadline = min(self._input.deadline, time.monotonic() + 0.1)
+        try:
+            while remaining:
+                self._input.remaining()
+                chunk = self.rfile.read1(min(remaining, 65_536))
+                if not chunk:
+                    break
+                discarded += len(chunk)
+                remaining -= len(chunk)
+        except (OSError, ValueError):
+            pass  # Timed out/disconnected/shutting down: still close this request.
+        return discarded
 
     def _local_request(self) -> bool:
         allowed = {f"127.0.0.1:{self.app.PORT}", f"localhost:{self.app.PORT}", f"[::1]:{self.app.PORT}"}
@@ -147,7 +187,8 @@ class ApiHandler(BaseHTTPRequestHandler):
                 and (self.headers.get("Origin") == self.app.EXTENSION_ORIGIN if self.command == "OPTIONS"
                      else self.headers.get("Origin") in {None, self.app.EXTENSION_ORIGIN})
                 and (self.command == "OPTIONS" or self.headers.get("X-SSDL-Extension") == self.app.EXTENSION_ID)
-                and urlparse(self.path).path in {"/api/auth/x/extension", "/api/auth/x/prepare"})
+                and urlparse(self.path).path in {"/api/auth/x/extension", "/api/auth/x/prepare",
+                                                 "/api/auth/pixiv/claim", "/api/auth/pixiv/callback"})
 
     def do_OPTIONS(self) -> None:
         if self._extension_request():
@@ -160,6 +201,19 @@ class ApiHandler(BaseHTTPRequestHandler):
         # New read-only API routes inherit the same policy automatically.
         if path.startswith("/api/") and not self._local_request():
             return self._json(403, {"error": "僅允許本機操作"})
+        if path.startswith("/api/jobs/") and path.endswith("/content"):
+            return serve_job_media(self)
+        if path == "/api/health":
+            health = self.app.health()
+            return self._json(200 if health["status"] == "healthy" else 503, health)
+        if path == '/api/ui-preferences':
+            try:
+                return self._json(200, {'preferences': self.app.UI_PREFERENCES.read()})
+            except (OSError, ValueError, TypeError):
+                return self._json(500, {'error': '無法讀取介面偏好，原檔已保留。'})
+        if path == "/api/identity":
+            identity = self.app.identity()
+            return self._json(200 if identity["api_ready"] and identity["ui_ready"] else 503, identity)
         if path.startswith("/api/jobs/") and path.endswith("/thumbnail"):
             job_id = path.removeprefix("/api/jobs/").removesuffix("/thumbnail")
             with self.app.lock:
@@ -209,14 +263,48 @@ class ApiHandler(BaseHTTPRequestHandler):
             return self._json(200, self.app.ENVIRONMENT.snapshot())
         if path == "/api/diagnostics":
             return self._json(200, self.app._diagnostics())
+        if path == "/api/auth/pixiv/status":
+            return self._json(200, {"pixiv_auth": self.app.PIXIV_AUTH.status()})
         if path == "/api/auth/x/setup":
-            return self._json(200, {"extension_dir": str(self.app.X_AUTH.extension_directory),
+            auth = self.app.X_AUTH.status()
+            return self._json(200, {"extension_dir": "" if host_browser_required() else str(self.app.X_AUTH.extension_directory),
                                     "extension_id": self.app.EXTENSION_ID, "port": self.app.PORT,
-                                    "origin": self.app.X_AUTH.origin})
+                                    "origin": self.app.X_AUTH.origin, "host_browser": host_browser_required(),
+                                    "storage_mode": auth.get("storage_mode", "dpapi" if os.name == "nt" else "memory"),
+                                    "persistent": auth.get("persistent", os.name == "nt")})
+        if path == "/api/auth/x/connector":
+            buffer = io.BytesIO()
+            try:
+                base = self.app.RESOURCES / "chrome-extension"
+                if base.resolve() != base or base.is_symlink():
+                    raise ValueError("linked source")
+                with zipfile.ZipFile(buffer, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+                    for name in ("manifest.json", "background.js", "connect.js", "popup.html", "popup.js", "README.md"):
+                        target = base / name
+                        metadata = target.lstat()
+                        if (not stat.S_ISREG(metadata.st_mode) or metadata.st_nlink != 1
+                                or metadata.st_size > 256 * 1024
+                                or getattr(metadata, "st_file_attributes", 0) & 0x400):
+                            raise ValueError("unsafe source")
+                        descriptor = os.open(target, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0))
+                        with os.fdopen(descriptor, "rb") as source:
+                            opened = os.fstat(source.fileno())
+                            if (not stat.S_ISREG(opened.st_mode)
+                                    or (opened.st_dev, opened.st_ino) != (metadata.st_dev, metadata.st_ino)):
+                                raise ValueError("changed source")
+                            content = source.read(256 * 1024 + 1)
+                        if len(content) > 256 * 1024:
+                            raise ValueError("source too large")
+                        archive.writestr("chrome-extension/" + name, content)
+            except (OSError, ValueError):
+                return self._json(400, {"error": "無法建立連接器下載檔，請確認公開來源檔案完整。"})
+            return self._send(200, buffer.getvalue(), "application/zip")
         if path == "/" or path == "/index.html":
             target = self.app.STATIC / "index.html"
         elif path == "/chrome-connect":
             target = self.app.STATIC / "chrome-connect.html"
+        elif path == "/pixiv-connect":
+            target = self.app.STATIC / "pixiv-connect.html"
         elif path.startswith("/static/"):
             relative = unquote(path.removeprefix("/static/"))
             target = (self.app.STATIC / relative).resolve()
@@ -230,10 +318,18 @@ class ApiHandler(BaseHTTPRequestHandler):
         self._send(200, target.read_bytes(), content_type + ("; charset=utf-8" if content_type.startswith("text/") else ""))
 
     def do_POST(self) -> None:
+        self._body_read = False
         try:
             self._post()
         except ApplicationClosedError:
             self._json(503, {"error": "本機服務正在關閉，請重新啟動後再操作。"})
+        finally:
+            self._discard_rejected_body()
+
+    def do_HEAD(self) -> None:
+        if urlparse(self.path).path.startswith("/api/jobs/") and urlparse(self.path).path.endswith("/content"):
+            return self.do_GET()
+        return self._send(405, b"", "text/plain")
 
     @contextmanager
     def _mutation(self):
@@ -256,6 +352,43 @@ class ApiHandler(BaseHTTPRequestHandler):
             return self._json(400, {"error": str(exc)})
         except (ValueError, UnicodeError, RecursionError):
             return self._json(400, {"error": "請求格式不正確"})
+
+        if path == '/api/ui-preferences':
+            try:
+                with self._mutation():
+                    value = self.app.UI_PREFERENCES.save(data)
+                return self._json(200, {'preferences': value})
+            except (TypeError, ValueError):
+                return self._json(400, {'error': '介面偏好格式不正確。'})
+            except OSError:
+                return self._json(500, {'error': '無法保存介面偏好，原檔已保留。'})
+
+        if path.startswith("/api/auth/pixiv/"):
+            if path in {"/api/auth/pixiv/claim", "/api/auth/pixiv/callback"}:
+                if not self._extension_request():
+                    return self._json(403, {"error": "僅允許 Chrome 連接器操作"})
+                try:
+                    if path.endswith("/claim") and set(data) == {"ticket"}:
+                        return self._json(200, self.app.PIXIV_AUTH.claim(data["ticket"]))
+                    if path.endswith("/callback") and set(data) == {"ticket", "code"}:
+                        return self._json(200, {"pixiv_auth": self.app.PIXIV_AUTH.connect(**data)})
+                except self.app.AuthError as exc:
+                    return self._json(400, {"error": self.app.redact_text(str(exc)).replace("X 登入", "Pixiv 登入")})
+                return self._json(400, {"error": "請求格式不正確"})
+            if not self._local_request():
+                return self._json(403, {"error": "僅允許本機操作"})
+            try:
+                if path == "/api/auth/pixiv/begin" and (not data or data == {"manual": True}):
+                    return self._json(200, self.app.PIXIV_AUTH.begin(manual=bool(data.get("manual"))))
+                if path == "/api/auth/pixiv/connect" and set(data) in ({"code"}, {"refresh_token"}):
+                    return self._json(200, {"pixiv_auth": self.app.PIXIV_AUTH.connect(**data)})
+                if path == "/api/auth/pixiv/disconnect" and not data:
+                    return self._json(200, {"pixiv_auth": self.app.PIXIV_AUTH.disconnect()})
+            except self.app.AuthError as exc:
+                return self._json(400, {"error": self.app.redact_text(str(exc))})
+            except OSError:
+                return self._json(400, {"error": "Pixiv 登入無法保存或清除，請檢查儲存權限。"})
+            return self._json(400, {"error": "Pixiv 登入操作參數不正確。"})
 
         if path == "/api/environment/refresh":
             return self._json(202, self.app.ENVIRONMENT.refresh())
@@ -312,12 +445,17 @@ class ApiHandler(BaseHTTPRequestHandler):
 
         if path == "/api/auth/x/connect":
             try:
-                self.app.X_AUTH.connect()
+                result = self.app.X_AUTH.connect()
             except self.app.AuthError as exc:
                 return self._json(400, {"error": str(exc)})
-            return self._json(202, self._state())
+            response = self._state()
+            if isinstance(result, dict) and result.get("pairing_url"):
+                response["pairing_url"] = result["pairing_url"]
+            return self._json(202, response)
 
         if path in {"/api/auth/x/login", "/api/auth/x/open-extensions"}:
+            if host_browser_required():
+                return self._json(400, {"error": "請在目前的 Chrome 開啟 X，或在網址列輸入 chrome://extensions 管理連接器。"})
             try:
                 if path.endswith("/login"):
                     self.app.X_AUTH.open_x()
@@ -342,14 +480,14 @@ class ApiHandler(BaseHTTPRequestHandler):
         if path == "/api/jobs":
             raw_urls = data.get("urls", [])
             mode = data.get("mode", "urls")
-            if not isinstance(mode, str) or mode not in {"urls", "x_profile"}:
+            if not isinstance(mode, str) or mode not in {"urls", "x_profile", "pixiv_profile"}:
                 return self._json(400, {"error": "下載模式不正確"})
             try:
                 requested_quality = self.app.validate_video_quality(data.get("video_quality", "best"))
             except ValueError as exc:
                 return self._json(400, {"error": str(exc)})
-            if mode == "x_profile" and requested_quality != "best":
-                return self._json(400, {"error": "X 帳號媒體目前使用最高畫質。"})
+            if mode in self.app.PROFILE_MODES and requested_quality != "best":
+                return self._json(400, {"error": "作者媒體模式使用原圖／最高畫質。"})
             if not isinstance(raw_urls, list) or not raw_urls:
                 return self._json(400, {"error": "請先貼上至少一個網址"})
             if len(raw_urls) > self.app.MAX_URLS_PER_REQUEST:
@@ -360,9 +498,10 @@ class ApiHandler(BaseHTTPRequestHandler):
                 if not isinstance(raw, str):
                     rejected.append({"url": "", "error": "網址格式不正確"})
                     continue
-                if mode == "x_profile":
+                if mode in self.app.PROFILE_MODES:
                     try:
-                        result, account = self.app.normalize_account(raw)
+                        normalizer = self.app.normalize_pixiv_account if mode == "pixiv_profile" else self.app.normalize_account
+                        result, account = normalizer(raw)
                     except ValueError as exc:
                         rejected.append({"url": raw[:120], "error": str(exc)})
                         continue
@@ -376,7 +515,7 @@ class ApiHandler(BaseHTTPRequestHandler):
                     if profile:
                         result = profile[0]
                 if account and requested_quality != "best":
-                    rejected.append({"url": result, "error": "X 帳號媒體目前使用最高畫質。"})
+                    rejected.append({"url": result, "error": "作者媒體模式使用原圖／最高畫質。"})
                     continue
                 identity = self.app.media.source_key(result)
                 if identity in seen:
@@ -384,13 +523,13 @@ class ApiHandler(BaseHTTPRequestHandler):
                 seen.add(identity)
                 accepted.append((result, account))
             with self._mutation():
-                pending_accounts = {job.get("account") for job in self.app.state.jobs.values()
-                    if job.get("mode") == "x_profile" and job["status"] in {"queued", "active"}}
+                pending_accounts = {(job.get("mode"), job.get("account")) for job in self.app.state.jobs.values()
+                    if job.get("mode") in self.app.PROFILE_MODES and job["status"] in {"queued", "active"}}
                 ready = []
                 already_pending = []
                 for url, account in accepted:
-                    if account and account in pending_accounts:
-                        rejected.append({"url": url, "error": "此 X 帳號已有等待中或下載中的工作。"})
+                    if account and (self.app.profile_mode(url), account) in pending_accounts:
+                        rejected.append({"url": url, "error": "此作者已有等待中或下載中的工作。"})
                         continue
                     identity = self.app.media.source_key(url)
                     preference = "best" if account or self.app.media.original_image_url(url) else requested_quality
@@ -411,7 +550,7 @@ class ApiHandler(BaseHTTPRequestHandler):
                 created, reused = [], []
                 for url, account, existing, preference in accepted:
                     if existing is not None:
-                        existing.update(url=url, mode="x_profile" if account else "urls", account=account, video_quality=preference)
+                        existing.update(url=url, mode=self.app.profile_mode(url) if account else "urls", account=account, video_quality=preference)
                         self.app._retry_locked(existing)
                         if not account:
                             existing["status_text"] = "等待檢查已下載檔案"
@@ -421,10 +560,10 @@ class ApiHandler(BaseHTTPRequestHandler):
                     job = {
                         "id": job_id,
                         "url": url,
-                        "mode": "x_profile" if account else "urls",
+                        "mode": self.app.profile_mode(url) if account else "urls",
                         "account": account,
                         "platform": self.app._platform(url),
-                        "title": f"@{account}" if account else "等待下載",
+                        "title": (("Pixiv · " + account) if self.app.profile_mode(url) == "pixiv_profile" else f"@{account}") if account else "等待下載",
                         "status": "queued",
                         "status_text": "等待中",
                         "progress": 0,
@@ -505,9 +644,9 @@ class ApiHandler(BaseHTTPRequestHandler):
                 directory = self.app.state.download_dir
             try:
                 directory.mkdir(parents=True, exist_ok=True)
-                if os.name != "nt":
-                    return self._json(400, {"error": "目前僅支援在 Windows 開啟資料夾"})
-                os.startfile(str(directory))
+                platform_actions.open_path(directory)
+            except platform_actions.UnsupportedPlatformError:
+                return self._json(400, {"error": "目前僅支援在 Windows 開啟資料夾"})
             except OSError as exc:
                 return self._json(400, {"error": f"無法開啟下載資料夾：{exc}"})
             return self._json(200, {"opened": True})
@@ -541,7 +680,7 @@ class ApiHandler(BaseHTTPRequestHandler):
             except (OSError, RuntimeError, ValueError) as exc:
                 return self._json(400, {"error": str(exc)})
             try:
-                target_dir = Path(raw_dir).expanduser().resolve()
+                target_dir = self.app.resolve_download_directory(raw_dir)
                 target_dir.mkdir(parents=True, exist_ok=True)
                 if not target_dir.is_dir():
                     raise ValueError("指定路徑不是資料夾")
@@ -608,17 +747,22 @@ class ApiHandler(BaseHTTPRequestHandler):
             if data.get("filename") != files[index]:
                 return self._json(409, {"error": "檔案清單已更新，請重新選擇要開啟的檔案"})
             try:
-                root = Path(directory).resolve()
+                root = self.app.resolve_download_directory(directory)
                 target = (root / files[index]).resolve()
                 if not target.is_relative_to(root):
                     return self._json(403, {"error": "檔案路徑不在此項目的下載資料夾內"})
                 if not target.is_file():
                     return self._json(404, {"error": "找不到檔案，可能已被移動或刪除"})
-                if os.name != "nt":
-                    return self._json(400, {"error": "目前僅支援在 Windows 開啟檔案與資料夾"})
                 if action == "open-file" and target.suffix.lower() not in self.app.MEDIA_EXTENSIONS:
                     return self._json(400, {"error": "此檔案不是支援的圖片、影片或音訊格式"})
-                os.startfile(str(target if action == "open-file" else target.parent))
+                if host_browser_required():
+                    if action == "open-folder":
+                        return self._json(400, {"error": "請使用網頁中的工作檔案清單；容器無法開啟主機檔案總管。"})
+                    return self._json(200, {"opened": True, "browser": True,
+                        "url": f"/api/jobs/{job_id}/content?file_index={index}&filename=" + quote(files[index], safe="")})
+                platform_actions.open_path(target if action == "open-file" else target.parent)
+            except platform_actions.UnsupportedPlatformError:
+                return self._json(400, {"error": "目前僅支援在 Windows 開啟檔案與資料夾"})
             except (OSError, ValueError, TypeError, RuntimeError):
                 return self._json(400, {"error": "無法開啟檔案或資料夾，請確認檔案存在且已設定預設開啟程式"})
             return self._json(200, {"opened": True})
@@ -632,7 +776,7 @@ class ApiHandler(BaseHTTPRequestHandler):
                 if job["status"] not in {"failed", "completed"}:
                     return self._json(409, {"error": "此項目已在佇列或下載中，請等處理完成"})
                 if not self.app._retry_locked(job, force=True):
-                    return self._json(409, {"error": "此 X 帳號已有等待中或下載中的工作。"})
+                    return self._json(409, {"error": "此作者已有等待中或下載中的工作。"})
                 generation = self.app._save_locked()
                 self.app.condition.notify_all()
             self.app._wait_saved(generation)

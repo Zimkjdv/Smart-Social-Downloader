@@ -1,5 +1,13 @@
 # 專案結構與維護
 
+D05 新增 [Windows 發行版](WINDOWS_DISTRIBUTION.md)：`runtime_paths` 分開資源／可寫資料／cache／媒體，`runtime_entry` 將 frozen EXE 分派至明確角色；`data_access` 以資料 scope 保護前景／背景 writer，`data_migration` 提供先驗證備份的離線匯入與回復。`ui_preferences` 與 `/api/ui-preferences` 保存外殼中立偏好；一般業務 API 與下載引擎沿用。PyInstaller onedir 與每位使用者 Inno 安裝版已通過目前主機的 EXE／GUI／安裝生命週期；乾淨 Windows 10／11 待驗收。
+
+D03 新增選配 [pywebview／WebView2 來源版本](DESKTOP_GUI.md)：`desktop/pywebview_app.py` 管理 native frame、原生動作及受限 WebView2 事件，`static/desktop_pywebview.js` 處理 bridge 就緒／取消／期限；組裝入口明確選 Adapter，業務 controller 繼續使用 HTTP。預設瀏覽器入口不變；一般 Chrome 承接授權，專用 `data/webview2` 保存 UI 偏好。D04 目前主機驗收已完成；安裝版與資源路徑見上述 D05。
+
+D02 將 `ensure_backend()` 與 `open_page()` 分開，新增 [Supervisor／JSON 控制契約](DESKTOP_CONTROL.md) 及受本機來源保護的 `/api/identity`。啟動／附接核對控制鎖、執行個體與版本；外殼僅以執行個體專屬事件停止自己啟動的後端。`WindowSession` 管理同 scope 的單視窗／喚回事件，關閉它不停止背景工作。GUI 套件仍不是後端依賴。
+
+D01 已加入 [共用 HTTP／桌面契約](API_CONTRACT.md)：`static/desktop.js` 集中 Browser Adapter 的外部開頁、彈窗預留、診斷下載及剪貼簿，由 `app.js` 注入 controller。業務功能仍使用 `static/api.js`；`ssdl/platform_actions.py` 承接驗證後的 Windows 開檔分派，路徑與來源檢查留在 HTTP。pywebview Adapter／服務生命週期依 [Roadmap](../ROADMAP.md) 後續實作。
+
 後端模組集中到 `ssdl/`。根目錄 `app.py` 是簡單入口，`python app.py`、`start.bat` 及既有瀏覽器網址仍可使用。
 
 `ssdl` 是 **Smart Social Downloader** 的縮寫，作為 Python 套件名稱，方便使用 `from ssdl import media` 等匯入。它不代表下載媒體的分類資料夾；平台分類仍使用 `youtube/`、`twitter/` 等名稱。中英文 README 均提供目錄結構及用途。
@@ -10,8 +18,19 @@
 smart-social-downloader/
 ├── app.py                    # 啟動入口
 ├── setup.bat                 # 首次安裝／恢復基準依賴
-├── start.bat                 # 本機檢查與啟動
+├── start.bat                 # 背景啟動並開啟網頁
+├── stop.bat                  # 正常停止專屬背景服務
 ├── update.bat                # 主動更新下載引擎
+├── Dockerfile / compose.yaml # 實驗性 Linux amd64 部署來源
+├── compose.login.yaml        # 選配的獨立登入金鑰 secret 掛載
+├── .dockerignore             # 預設排除、明確允許的 build context
+├── docker/
+│   ├── entrypoint.py         # 容器監聽與 SIGTERM 清理入口
+│   ├── runtime.py            # 固定掛載、寫入檢查與儲存區互斥鎖
+│   ├── storage.py            # 停機完整備份、校驗及空 volume 還原
+│   ├── healthcheck.py        # 有界、無 proxy 的本機健康探測
+│   ├── session_key.py        # 不顯示、不覆寫的外部金鑰建立
+│   └── debian.sources        # 固定且驗簽的 Debian 套件快照
 ├── requirements.txt          # 引擎更新的相容範圍
 ├── requirements.lock.txt     # 發布基準依賴
 ├── requirements-browser.txt  # 選配 Playwright 鎖定版本
@@ -26,6 +45,7 @@ smart-social-downloader/
 ├── ssdl/                     # Python 後端套件
 │   ├── version.py            # 唯一應用程式版本來源
 │   ├── app.py                # create_app factory、組裝與啟動入口
+│   ├── desktop_service.py  Windows background ownership / graceful stop
 │   ├── app_context.py        # AppState、實例擁有的服務及 start／close
 │   ├── http_api.py           # HTTP 路由與本機來源檢查
 │   ├── http_server.py        # HTTP 連線上限、讀取期限與 socket 清理
@@ -54,10 +74,17 @@ smart-social-downloader/
 │   ├── gallery_adapter.py    # gallery-dl 設定、節流與檔案進度
 │   ├── image_adapter.py      # 原始圖片位元組及 ImageHistory
 │   ├── x_account_media.py    # X 帳號掃描計畫／同步及公開貼文
+│   ├── profiles.py  作者網址、平台模式與標準化
+│   ├── pixiv_auth.py  Pixiv PKCE 授權及加密登入保存
+│   ├── pixiv_auth_exchange.py  隔離、固定端點的 Token 交換
+│   ├── pixiv_profiles.py  作者原圖掃描與核對後增量補抓
+│   ├── pixiv_paths.py  共用作者名／ID 資料夾及跨平台安全命名
 │   ├── video_quality.py       # 來源尺寸辨識及畫質顯示
 │   ├── web_media.py          # 通用 HTML／播放器媒體發現
 │   ├── browser_media.py      # 選配臨時 Chrome／受檢查傳輸
 │   ├── x_auth.py             # X 登入連接與加密保存
+│   ├── session_storage.py    # DPAPI／外部金鑰 AES-GCM／記憶體保存
+│   ├── local_media.py        # 限定工作檔案的 GET／HEAD／單段 Range
 │   ├── x_profiles.py         # 帳號網址及媒體保存紀錄
 │   ├── image_history.py      # 圖片直連保存紀錄
 │   ├── request_policy.py     # 延時、節流及冷卻
@@ -86,13 +113,32 @@ smart-social-downloader/
 │   ├── package_source.py      # 有界來源樹與允許清單 ZIP
 │   ├── check_source_archive.py # 解壓後匯入檢查與完整回歸
 │   ├── check_workflows.py      # 已審查 Action 來源與完整 SHA 的離線政策
+│   ├── check_installation.py   # 新來源／venv 的安裝、啟動與更新恢復驗收
+│   ├── check_desktop.py        # 原生背景啟停、佇列恢復與專案隔離驗收
+│   ├── check_chrome_pairing.py    一般 Chrome／原生 DPAPI 隔離配對驗收
+│   ├── check_dependency_faults.py # 有界警告／傳輸觀察與維護回歸門檻
+│   ├── check_docker.py       # 隔離來源、context 允許清單、映像與 runtime 驗收
+│   ├── docker_runtime_probe.py # 合成影音及 Node provider，經 stdin 傳入容器
+│   ├── docker_service_acceptance.py # 真正 Compose／volume／備份／連線隔離驗收
+│   ├── docker_storage_probe.py # 需 receipt 的合成資料與還原中斷注入
+│   ├── docker_interaction_acceptance.py # 真正容器登入／重啟及 HTTP 媒體驗收
+│   ├── docker_interaction_probe.py # 僅供隔離 fixture 的合成金鑰／登入／媒體操作
+│   ├── docker_host_acceptance.py # 私有主機資料夾、檔案型 secret 與還原登入驗收
+│   ├── docker_host_probe.py    # receipt 限定的 bind 權限／歸還擁有者與備份檢查
+│   ├── docker_browser_acceptance.py # 主機 Chrome 檔案 UI／鍵盤與實際圖片／影片解碼
+│   ├── docker_pixiv_acceptance.py # 非 root、斷網的 Linux Pixiv 目錄／恢復／授權／識別驗收
+│   ├── docker_upgrade_acceptance.py # 不同來源映像升級、SQLite 保存與原映像備份回復
 │   ├── measure_persistence.py # 隔離合成歷史保存／API 延遲量測
-│   └── measure_capacity.py    # 合成帳號掃描、IPC 及保存容量邊界
+│   ├── measure_capacity.py    # 合成帳號掃描、IPC 及保存容量邊界
+│   └── measure_hashing.py     # 合成內容雜湊評估，未接入下載流程
 ├── docs/                     # 使用、發布、去重及架構說明
 ├── tests/                    # 本機 API、下載、串流及發布測試
 │   ├── __init__.py            # 明確測試套件，discovery 以專案根為 top level
-│   └── helpers/app.py         # 共用隔離實例、覆寫及暫存資料清理
-├── .github/workflows/        # Windows CI
+│   ├── helpers/app.py         # 共用隔離實例、覆寫及暫存資料清理
+│   ├── helpers/docker.py      # 共用假 Docker CLI；不作為真實容器驗收證據
+│   ├── helpers/install_runner.py # receipt 閘門、批次子程序及正常關閉 fixture
+│   └── helpers/console_runner.py # 獨立隱藏控制台、真正 Ctrl+C 及合成下載程序
+├── .github/workflows/        # Windows CI 與 Linux Docker runtime／服務驗收
 ├── data/                     # 本機歷史、設定、登入及快取，排除 Git
 ├── downloads/                # 預設下載檔，排除 Git
 ├── .venv/                    # 本機 Python 環境，排除 Git
@@ -104,6 +150,10 @@ smart-social-downloader/
 - `ssdl.app.ROOT` 固定指向專案根目錄，不取決於呼叫時的工作目錄。`create_app()` 沿用此預設根目錄；測試可明確傳入隔離 root。既有 `data/`、下載位置及 Chrome 連接器位置保持一致。
 - 後端模組採套件內相對匯入；測試使用 `from ssdl import media` 等明確匯入。
 - 啟動入口只呼叫 `ssdl.app.main()`；匯入模組不會自動開啟 HTTP 服務或啟動下載 worker。
+- `main()` 的 `bind_host` 預設仍為 `127.0.0.1`；僅 `docker/entrypoint.py` 明確傳入容器內的 `0.0.0.0`，Compose 對主機發布仍限 loopback。容器入口把 SIGTERM 導向既有 KeyboardInterrupt／context manager 清理，未另建排程或保存邏輯。容器的 `/app/data`、`/app/cache`、`/downloads` 分別掛載，原生縮圖位置保持相容；容器下載位置及保存的 output root 限於 `/downloads`。入口及離線儲存工具共用 volume 互斥鎖，主程式關閉後才釋放。實際 runtime／本機 Compose 儲存與連線驗收已通過，Linux 登入真實配對仍待完成，見 [Docker 部署](DOCKER.md)、[服務驗收](DOCKER_SERVICE_ACCEPTANCE.md)及[儲存回復](DOCKER_STORAGE.md)。
+- `/api/health` 沿用讀取 API 的 Host／Origin 檢查，僅取得生命週期、worker、保存與快取環境診斷的布林摘要。它不產生完整工作 snapshot、不重跑診斷、不包含路徑或登入資訊。容器探測限 loopback、socket 3 秒及回應 2 KiB，Docker 每 30 秒執行；故障狀態不等同容器程序已退出。
+- `XAuthManager` 接受登入保存實作，透過 `SessionStorage` 集中 DPAPI／AES-GCM／記憶體行為；status 僅傳回模式與可否保存，不回傳金鑰或 Cookie。容器 connect 的配對網址僅屬該次明確回應，前端不把票證放進正常 snapshot／歷史；取消操作淘汰未完成回應。Chrome 擴充功能仍只向使用者選定的 loopback port 傳送 X Cookie。secret 外掛及回復見 [Docker 登入](DOCKER_LOGIN.md)。
+- `local_media.py` 只讀取 job/index/精確 filename 所指的普通媒體檔；Linux 使用目錄描述符及 no-follow 開啟，四個讀取名額及 64 KiB 區塊不占用 queue lock。Host／Origin 仍在查詢工作前檢查，媒體 query 不寫入 request log。Windows UI 沿用桌面操作，容器以瀏覽器檢視及既有分頁檔案清單替代主機檔案總管。
 - `tools/manage.py` 檢查／安裝第三方環境，不讀取正式登入 Cookie 或下載歷史。
 - `ssdl/environment.py` 共用於命令列與介面；服務啟動時在獨立執行緒檢查，API 輪詢只讀快取，使用者按「重新檢查」才啟動下一次診斷。外部命令各有逾時，不占用下載 worker。
 - `static/api.js` 共用於主介面與 Chrome 連接頁，檢查 JSON 格式與各路由必要欄位；主介面請求期限為 15 秒。只有有效回應會取代主介面的狀態快取，未確認的寫入不自動重送。
@@ -200,3 +250,7 @@ SQLite 維護每個 AppContext 各自擁有服務／執行緒／取消狀態；�
 README 是中英文精簡首頁；完整操作移至 `docs/USAGE.md`、`docs/USAGE_CN.md`。`docs/MAINTENANCE.md` 定義發布流程，`docs/images/dashboard-preview.svg` 為虛構公開示意；`.github/ISSUE_TEMPLATE/` 與 `.github/pull_request_template.md` 定義回報與 PR 內容。原始碼包以允許清單納入這些檔案，排除 runtime 資料。
 
 `.github/dependabot.yml` 提出每週 Actions／Python 依賴更新 PR。工作流程只直接使用已審查的官方 Actions，固定完整 SHA 並保留版本註解；`tools/check_workflows.py` 對明確區塊式 `uses:` 做離線來源／SHA 語法檢查。它不取代 YAML 驗證、上游 commit 查核或漏洞掃描；更新／回歸／恢復規則見 [維護文件](MAINTENANCE.md#dependency-updates-and-action-pins)。
+
+同一 workflow 的 `install-windows` job 在新來源／新 venv 呼叫安裝驗收工具。其 base Python 閘門先加入所屬 Job Object 才啟動 venv redirector／批次／pip 子程序；控制 receipt 只寫入合成副本。環境命令以 DEVNULL 隔離 stdin，避免繼承控制管線。實際批次強制清理與 installed AppContext 正常關閉分別驗證，完整邊界見 [安裝驗收](INSTALLATION_ACCEPTANCE.md)。
+
+控制台驗收在 base 閘門建立獨立隱藏 console，確認成員後啟動 installed entry。只以合成管線 worker 替代媒體傳輸，實際 entry、HTTP、排程、程序管理、writer 與服務關閉均保留。真正 CTRL_C_EVENT 後先核對正常退出、關閉紀錄、程序 handle 與恢復狀態，再容許 outer Job Object 作失敗清理；詳見 [控制台驗收](CONSOLE_ACCEPTANCE.md)。

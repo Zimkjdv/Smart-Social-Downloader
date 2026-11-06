@@ -10,7 +10,7 @@ import re
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
-REVIEWED_ACTIONS = frozenset({"actions/checkout", "actions/setup-python", "actions/setup-node"})
+REVIEWED_ACTIONS = frozenset({"actions/checkout", "actions/setup-python", "actions/setup-node", "actions/upload-artifact", "actions/download-artifact"})
 USES_KEY = re.compile(r"^\s*(?:-\s*)?(?:uses|'uses'|\"uses\")\s*:\s*(.*)$")
 USES_TOKEN = re.compile(r"(?<![\w-])(?:uses|'uses'|\"uses\")\s*:")
 PIN = re.compile(r"([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+)@([0-9a-f]{40})")

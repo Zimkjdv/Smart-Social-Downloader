@@ -6,6 +6,8 @@
 
 ## 核心功能
 
+Windows 可執行 **desktop.bat** 使用選配 WebView2 桌面視窗，提供資料夾選擇與原生診斷另存。業務功能仍透過同一套 HTTP API。關窗後背景下載繼續；擁有後端的視窗可確認停止，附接時請用 stop.bat。需求、專用 profile、一般 Chrome 登入與來源版本範圍見 [桌面版指南](DESKTOP_GUI.md)。
+
 以下功能已實作：
 
 | 功能 | 目前行為 |

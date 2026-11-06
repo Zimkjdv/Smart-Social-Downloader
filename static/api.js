@@ -59,11 +59,20 @@
       object(value.counts) && ['queued', 'active', 'completed', 'failed'].every((key) => count(value.counts[key])) &&
       optional(value.counts, 'selecting', count) &&
       typeof value.paused === 'boolean' && typeof value.ready === 'boolean' &&
+      optional(value, 'file_actions', (item) => ['desktop', 'browser'].includes(item)) &&
+      optional(value, 'pairing_url', (item) => typeof item === 'string' && item.length <= 512) &&
       optional(value, 'app_version', (item) => typeof item === 'string' && item.length <= 64) &&
       optional(value, 'dynamic_capture', (item) => typeof item === 'boolean') &&
       optional(value, 'browser_capture_available', (item) => typeof item === 'boolean') &&
+      optional(value, 'pixiv_auth', (item) => object(item) && typeof item.connected === 'boolean' &&
+        typeof item.busy === 'boolean' && typeof item.phase === 'string' &&
+        ['dpapi', 'memory', 'aes-gcm'].includes(item.storage_mode) &&
+        !('refresh_token' in item) && !('access_token' in item)) &&
       typeof value.download_dir === 'string' && typeof value.x_cookie_file === 'string' &&
       object(value.x_auth) && typeof value.x_auth.connected === 'boolean' && typeof value.x_auth.busy === 'boolean' &&
+      optional(value.x_auth, 'host_browser', (item) => typeof item === 'boolean') &&
+      optional(value.x_auth, 'storage_mode', (item) => ['dpapi', 'memory', 'aes-gcm'].includes(item)) &&
+      optional(value.x_auth, 'persistent', (item) => typeof item === 'boolean') &&
       typeof value.x_auth.phase === 'string' && object(value.safe_queue) && typeof value.safe_queue.enabled === 'boolean' &&
       object(value.rate_limit) && count(value.rate_limit.used) && count(value.rate_limit.limit) &&
       object(value.storage) && typeof value.storage.ready === 'boolean' &&
@@ -76,6 +85,9 @@
   }
   function contract(path, method = 'GET') {
     path = path.split('?')[0];
+    if (path === '/api/ui-preferences') return value => object(value) && (value.preferences === null ||
+      object(value.preferences) && value.preferences.schema === 1 && ['en', 'zh-Hant'].includes(value.preferences.language) &&
+      [10, 20, 50].includes(value.preferences.page_size));
     if (path === '/api/databases') return databases;
     if (/^\/api\/jobs\/[^/]+\/select-media$/.test(path)) return state;
     if (/^\/api\/jobs\/[^/]+\/details$/.test(path)) return (value) => job(value) &&
@@ -91,6 +103,17 @@
     if (path === '/api/diagnostics') return (value) => object(value) && value.format_version === 1 &&
       optional(value, 'app_version', (item) => typeof item === 'string' && item.length <= 64) &&
       number(value.created_at) && environment(value.environment) && Array.isArray(value.jobs) && object(value.counts);
+    if (path === '/api/auth/pixiv/begin') return (value) => object(value) &&
+      (typeof value.authorization_url === 'string' && value.authorization_url.length <= 1024 &&
+        value.authorization_url.startsWith('https://app-api.pixiv.net/web/v1/login?') ||
+       typeof value.pairing_url === 'string' && value.pairing_url.length <= 256 &&
+        /^http:\/\/127\.0\.0\.1:[0-9]{1,5}\/pixiv-connect#ticket=[A-Za-z0-9_-]{43}$/.test(value.pairing_url)) &&
+      typeof value.opened === 'boolean' && count(value.expires_in);
+    if (['/api/auth/pixiv/connect', '/api/auth/pixiv/disconnect', '/api/auth/pixiv/status'].includes(path)) return (value) =>
+      object(value) && object(value.pixiv_auth) && typeof value.pixiv_auth.connected === 'boolean' &&
+      typeof value.pixiv_auth.busy === 'boolean' && typeof value.pixiv_auth.phase === 'string' &&
+      ['dpapi', 'memory', 'aes-gcm'].includes(value.pixiv_auth.storage_mode) &&
+      !('refresh_token' in value.pixiv_auth) && !('access_token' in value.pixiv_auth);
     if (path === '/api/auth/x/setup') return (value) => object(value) &&
       typeof value.extension_dir === 'string' && typeof value.extension_id === 'string' &&
       optional(value, 'port', (item) => Number.isInteger(item) && item >= 1 && item <= 65535);
