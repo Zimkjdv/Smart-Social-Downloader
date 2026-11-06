@@ -138,7 +138,7 @@ Files that are no longer listed by Pixiv are not automatically deleted.
 - Windows uses the existing DPAPI storage service. The refresh token is in
   `data/pixiv-session.bin`, separate from queue/settings JSON.
 - Docker/Linux uses memory by default. The existing optional external key in
-  [compose.login.yaml](../../compose.login.yaml) also encrypts the Pixiv session.
+  [compose.login.yaml](../../docker/compose.login.yaml) also encrypts the Pixiv session.
   Retain that same key for restart/recovery; it is not part of the data backup.
 - Saved JSON inside the encrypted envelope identifies the `pixiv` service.
   Unreadable ciphertext remains in place and is not treated as plaintext.
@@ -161,7 +161,7 @@ The implementation uses the already installed [gallery-dl Pixiv extractor](https
 and its [documented authentication/configuration](https://gdl-org.github.io/docs/configuration.html#extractor.pixiv.refresh-token).
 The PKCE handoff follows the protocol used by its
 [Pixiv OAuth helper](https://github.com/mikf/gallery-dl/blob/master/gallery_dl/extractor/oauth.py).
-Dependency licensing remains as described in [third-party notices](../../THIRD_PARTY_NOTICES.md).
+Dependency licensing remains as described in [third-party notices](../reference/THIRD_PARTY_NOTICES.md).
 
 [PixivUtil2](https://github.com/Nandaka/PixivUtil2) remains a useful design reference:
 its [database manager](https://github.com/Nandaka/PixivUtil2/blob/master/PixivDBManager.py)

@@ -10,7 +10,7 @@ This guide accompanies the [Docker deployment configuration](DOCKER.md). **Real 
 | `cache` | `/app/cache` | Persistent but disposable thumbnails and XDG engine caches |
 | `media` | `/downloads` | Durable platform/account folders, completed media and partial downloads |
 
-The three named volumes are scoped by the Compose project name. Keep using the same project name for normal restarts/upgrades. `docker compose down` retains volumes; deleting volumes is not a stop or upgrade procedure. The backup includes **both data and media**, so a restoration does not pair older history with unrelated media. Cache is excluded and regenerated.
+The three named volumes are scoped by the Compose project name. Keep using the same project name for normal restarts/upgrades. `docker compose --project-directory . -f docker/compose.yaml down` retains volumes; deleting volumes is not a stop or upgrade procedure. The backup includes **both data and media**, so a restoration does not pair older history with unrelated media. Cache is excluded and regenerated.
 
 Native mode keeps its existing `data/thumbnails` path. Docker sets `SSDL_CACHE_DIR=/app/cache` and `XDG_CACHE_HOME=/app/cache`; old caches under a phase-1 data volume are left untouched and become unused. Those legacy directories remain part of a data-volume backup until explicitly retired; only the separate new cache volume is excluded. Neither a Windows history import nor automatic path conversion is implemented.
 
@@ -49,7 +49,7 @@ sudo install -d -m 0700 -o 10001 -g 10001 ./backups
 For another location, set `SSDL_BACKUP_DIR` to its absolute path in the shell used for Compose commands. Keep the same `SSDL_PORT`, `SSDL_IMAGE` and Compose project selection throughout an operation. The maintenance profile uses the already built application image, no network and no Docker socket.
 
 The examples below use the base Compose file. If encrypted X persistence is
-enabled, keep **both** `-f compose.yaml -f compose.login.yaml` on downloader
+enabled, keep **both** `-f docker/compose.yaml -f docker/compose.login.yaml` on downloader
 stop/start/build commands, especially when resuming after backup or restore.
 Storage maintenance itself needs no key and can use the base file alone.
 
@@ -62,14 +62,14 @@ service gate's named-backup-volume substitution does not limit this newer gate.
 1. Pause the queue in the UI. Wait for active work to finish if possible. Stop the service gracefully, keeping the volumes:
 
    ```powershell
-   docker compose stop downloader
-   docker compose ps -a
+   docker compose --project-directory . -f docker/compose.yaml stop downloader
+   docker compose --project-directory . -f docker/compose.yaml ps -a
    ```
 
 2. Confirm the downloader is stopped, and stop any other program that writes these volumes. Run the offline tool:
 
    ```powershell
-   docker compose --profile maintenance run --rm --no-deps storage backup
+   docker compose --project-directory . -f docker/compose.yaml --profile maintenance run --rm --no-deps storage backup
    ```
 
    It writes `ssdl-<UTC timestamp>-<random id>.tar` and a matching `.tar.sha256`. Both files are required. A `.partial` file or an archive without a complete sidecar is not a finished backup. The tar contains a small format/application-version manifest and ordinary directories/files from both volumes; the separate cache volume and process lock files are excluded. Symbolic/hard links and special files are rejected. The helper does not print archived names or Cookie values.
@@ -77,8 +77,8 @@ service gate's named-backup-volume substitution does not limit this newer gate.
 3. Check that the command succeeded and both files exist. Record the source revision/local changes, application version and image ID outside the volumes. Preserve the matching local image before an upgrade. After a successful backup, resume the same installed image:
 
    ```powershell
-   docker compose up -d --no-build --pull never downloader
-   docker compose ps
+   docker compose --project-directory . -f docker/compose.yaml up -d --no-build --pull never downloader
+   docker compose --project-directory . -f docker/compose.yaml ps
    ```
 
 A graceful stop cancels active work through the ordinary cleanup path. A restored pending queue can resume when the service starts; a backup does not mark partial downloads complete. An abrupt kill is not a substitute for a consistent offline backup. Lock checks cannot coordinate old/custom services without the shared lock protocol.
@@ -95,10 +95,10 @@ A graceful stop cancels active work through the ordinary cleanup path. A restore
 2. Review the new source's state/backup compatibility and pinned dependencies, then build it with the downloader stopped:
 
    ```powershell
-   docker compose build --pull downloader
-   docker compose up -d --no-build --pull never downloader
-   docker compose ps
-   docker compose logs --tail=100 downloader
+   docker compose --project-directory . -f docker/compose.yaml build --pull downloader
+   docker compose --project-directory . -f docker/compose.yaml up -d --no-build --pull never downloader
+   docker compose --project-directory . -f docker/compose.yaml ps
+   docker compose --project-directory . -f docker/compose.yaml logs --tail=100 downloader
    ```
 
 3. Inspect Docker health, settings, job history, an existing media file and the selected download location. Resume the paused queue only after these checks. A container's `healthy` state is a bounded readiness signal, not acceptance of a platform download or an upgrade.
@@ -112,7 +112,7 @@ Restore only a backup you trust. Copy the **archive and sidecar together**, plus
 Restore to a **new Compose project**, so the existing installation's volumes remain available. Stop the old downloader before sharing a host port or moving the installation. In the following example, replace the fictional archive filename with the actual generated filename:
 
 ```powershell
-docker compose -p ssdl-recovery --profile maintenance run --rm --no-deps storage restore ssdl-20261021T120000Z-012345abcdef.tar
+docker compose --project-directory . -f docker/compose.yaml -p ssdl-recovery --profile maintenance run --rm --no-deps storage restore ssdl-20261021T120000Z-012345abcdef.tar
 ```
 
 Both new data/media volumes must be empty apart from their process lock. The helper verifies SHA-256, stages all files inside the destination volumes, rejects traversal/links/devices/duplicates, ignores archived ownership/modes and creates files privately as UID 10001. It then promotes validated content. Existing installations are never overwritten or automatically erased to make room.
@@ -140,9 +140,9 @@ $env:SSDL_IMAGE = "smart-social-downloader:before-upgrade-20261021"
 After a successful restore, start that same project/image without rebuilding:
 
 ```powershell
-docker compose -p ssdl-recovery up -d --no-build --pull never downloader
-docker compose -p ssdl-recovery ps
-docker compose -p ssdl-recovery logs --tail=100 downloader
+docker compose --project-directory . -f docker/compose.yaml -p ssdl-recovery up -d --no-build --pull never downloader
+docker compose --project-directory . -f docker/compose.yaml -p ssdl-recovery ps
+docker compose --project-directory . -f docker/compose.yaml -p ssdl-recovery logs --tail=100 downloader
 ```
 
 On POSIX shells, use `export SSDL_IMAGE=smart-social-downloader:before-upgrade-20261021` for the corresponding selection. Use the same backup-era application image/source first, check history and media, then perform any later upgrade separately. Cache rebuilds on demand. Container paths remain `/app/data`, `/app/cache` and `/downloads` on the new host, so a normal Docker-to-Docker move needs no history path rewrite.

@@ -87,12 +87,12 @@ class Fixtures:
         self.environment = {key: value for key, value in os.environ.items()
                             if not key.startswith(("SSDL_", "COMPOSE_"))}
         self.source = directory / "compose.yaml"
-        self.source.write_bytes((root / "compose.yaml").read_bytes())
+        self.source.write_bytes((root / "docker/compose.yaml").read_bytes())
         self.env_file = directory / "fixture.env"
         self.env_file.write_text("SSDL_PORT=8765\n", encoding="ascii")
 
     def compose(self, path, project, args, **kwargs):
-        return self.docker.run(["compose", "--env-file", str(self.env_file), "-f", str(path), "-p", project, *args],
+        return self.docker.run(["compose", "--project-directory", str(self.directory), "--env-file", str(self.env_file), "-f", str(path), "-p", project, *args],
                                env=self.environment, **kwargs)
 
     def model(self, port):
@@ -254,10 +254,10 @@ def run_checks(docker, image, receipt, root, report):
     require(re.fullmatch(r"v?[0-9]+\.[0-9]+\.[0-9]+(?:[.+-][A-Za-z0-9.-]+)?", compose_version), "invalid_compose_version")
     report["compose_version"] = compose_version.removeprefix("v")
     report["service_checks"] = []
-    for name in ("compose.yaml", "tools/docker_storage_probe.py", "tools/docker_service_acceptance.py"):
+    for name in ("docker/compose.yaml", "tools/docker_storage_probe.py", "tools/docker_service_acceptance.py"):
         ordinary(root / name, root)
     report["service_sources_sha256"] = hashlib.sha256(b"".join((root / name).read_bytes() for name in
-        ("compose.yaml", "tools/docker_storage_probe.py", "tools/docker_service_acceptance.py"))).hexdigest()
+        ("docker/compose.yaml", "tools/docker_storage_probe.py", "tools/docker_service_acceptance.py"))).hexdigest()
     current = STAGES[0]
     def passed(stage):
         report["service_checks"].append(stage)

@@ -1,7 +1,7 @@
 # P2 architecture and interaction changes
 
 > Historical record. Version, completion and pending statements apply to the dates recorded below.
-> Current work is in [Roadmap](../development/ROADMAP.md); current dependency pins are in the root requirements files.
+> Current work is in [Roadmap](../development/ROADMAP.md); current dependency pins are in the requirements directory.
 
 Implemented on 2026-10-11. The earlier performance work remains described in [PERFORMANCE.md](../reference/PERFORMANCE.md).
 

@@ -21,27 +21,27 @@ smart-social-downloader/
 ├── start.bat                 # 背景啟動並開啟網頁
 ├── stop.bat                  # 正常停止專屬背景服務
 ├── update.bat                # 主動更新下載引擎
-├── Dockerfile / compose.yaml # 實驗性 Linux amd64 部署來源
-├── compose.login.yaml        # 選配的獨立登入金鑰 secret 掛載
+├── desktop.bat               # 選配原生視窗入口
 ├── .dockerignore             # 預設排除、明確允許的 build context
 ├── docker/
+│   ├── Dockerfile            # 固定 runtime 建置
+│   ├── compose.yaml          # 本機服務與維護設定
+│   ├── compose.login.yaml    # 選配加密登入保存
 │   ├── entrypoint.py         # 容器監聽與 SIGTERM 清理入口
 │   ├── runtime.py            # 固定掛載、寫入檢查與儲存區互斥鎖
 │   ├── storage.py            # 停機完整備份、校驗及空 volume 還原
 │   ├── healthcheck.py        # 有界、無 proxy 的本機健康探測
 │   ├── session_key.py        # 不顯示、不覆寫的外部金鑰建立
 │   └── debian.sources        # 固定且驗簽的 Debian 套件快照
-├── requirements.txt          # 引擎更新的相容範圍
-├── requirements.lock.txt     # 發布基準依賴
-├── requirements-browser.txt  # 選配 Playwright 鎖定版本
+├── requirements/             # 依賴更新範圍與固定安裝基準
+│   ├── requirements.txt
+│   ├── requirements.lock.txt
+│   ├── requirements-browser.txt
+│   ├── requirements-desktop.txt
+│   └── requirements-build.txt
 ├── README.md                 # 英文首頁
-├── README_CN.md              # 繁體中文說明
-├── CHANGELOG.md              # 應用程式更新紀錄
-├── SECURITY.md               # 私人安全回報政策
-├── CONTRIBUTING.md           # 貢獻與回報說明
 ├── AGENTS.md                 # 代理工作規則與條件式指引
 ├── LICENSE
-├── THIRD_PARTY_NOTICES.md
 ├── desktop/                  # Windows 外殼與 frozen 入口
 │   ├── __init__.py
 │   ├── frozen_entry.py
@@ -180,7 +180,7 @@ smart-social-downloader/
 │   ├── helpers/docker.py      # 共用假 Docker CLI；不作為真實容器驗收證據
 │   ├── helpers/install_runner.py # receipt 閘門、批次子程序及正常關閉 fixture
 │   └── helpers/console_runner.py # 獨立隱藏控制台、真正 Ctrl+C 及合成下載程序
-├── .github/workflows/        # Windows CI 與 Linux Docker runtime／服務驗收
+├── .github/                  # CI、Dependabot、貢獻及安全政策
 ├── data/                     # 本機歷史、設定、登入及快取，排除 Git
 ├── downloads/                # 預設下載檔，排除 Git
 ├── .venv/                    # 本機 Python 環境，排除 Git

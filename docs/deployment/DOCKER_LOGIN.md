@@ -28,7 +28,7 @@ This works with the existing connector protocol. No Chrome/Playwright installati
 
 ## Optional encrypted persistence
 
-The optional [`compose.login.yaml`](../../compose.login.yaml) grants **only the downloader** a file-backed Compose secret at `/run/secrets/x_session_key`. The maintenance backup container receives no key. The key is not an environment-variable value or an image layer. Local Compose secrets are file mounts, not a managed encrypted key vault; protect the original host file with host permissions.
+The optional [`compose.login.yaml`](../../docker/compose.login.yaml) grants **only the downloader** a file-backed Compose secret at `/run/secrets/x_session_key`. The maintenance backup container receives no key. The key is not an environment-variable value or an image layer. Local Compose secrets are file mounts, not a managed encrypted key vault; protect the original host file with host permissions.
 
 First build the current image using the base Compose file. Create the private key directory on the host:
 
@@ -45,7 +45,7 @@ sudo install -d -m 0700 -o 10001 -g 10001 ./.secrets
 Create a random key using the already built image and the base configuration (before enabling the override):
 
 ```powershell
-docker compose --profile maintenance run --rm --no-deps session-key
+docker compose --project-directory . -f docker/compose.yaml --profile maintenance run --rm --no-deps session-key
 ```
 
 The helper creates exactly 32 random bytes at `.secrets/x-session.key`, with private permissions, and never prints or overwrites key material. If a key already exists, it fails instead of rotating it. Linux Compose file-backed secrets retain host file ownership; the key must remain readable by UID 10001. Do not rely on `uid`/`mode` declarations to repair a file-backed secret. On Windows, keep the host directory accessible only to the intended user and Docker Desktop.
@@ -65,8 +65,8 @@ if (-not (Test-Path -LiteralPath $sessionKey -PathType Leaf) -or (Get-Item -Lite
 ```
 
 ```powershell
-docker compose stop downloader
-docker compose -f compose.yaml -f compose.login.yaml up -d --no-build --pull never downloader
+docker compose --project-directory . -f docker/compose.yaml stop downloader
+docker compose --project-directory . -f docker/compose.yaml -f docker/compose.login.yaml up -d --no-build --pull never downloader
 ```
 
 Keep using **both Compose files** for later downloader creation/upgrades; omitting the override selects memory mode. For a different key directory, set `SSDL_X_KEY_DIR` to its absolute path for both generation and override commands. `SSDL_X_KEY_FILE` contains only the container mount path; do not supply raw key bytes through environment variables, settings, logs or Git.

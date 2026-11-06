@@ -1,6 +1,6 @@
 # Smart Social Downloader
 
-English | [繁體中文](README_CN.md)
+English | [繁體中文](docs/README_CN.md)
 
 A local video and image download manager with a browser interface. Paste URLs, queue downloads, and organize media into platform folders. Powered by **yt-dlp**, **gallery-dl** and **FFmpeg**.
 
@@ -115,7 +115,7 @@ smart-social-downloader/
 
 ## Updates, reporting and releases
 
-The **application version** appears beneath the app name and in Settings → Diagnostics. Engine versions appear separately in environment diagnostics. `update.bat` updates engines; it does not update application source. See [Maintenance](docs/development/MAINTENANCE.md) and [CHANGELOG](CHANGELOG.md).
+The **application version** appears beneath the app name and in Settings → Diagnostics. Engine versions appear separately in environment diagnostics. `update.bat` updates engines; it does not update application source. See [Maintenance](docs/development/MAINTENANCE.md) and [CHANGELOG](docs/history/CHANGELOG.md).
 
 CI Actions use reviewed commit SHAs. Dependabot proposes weekly Actions/Python dependency updates for maintainer review and regression/source-distribution checks. See [dependency maintenance](docs/development/MAINTENANCE.md#dependency-updates-and-action-pins).
 
@@ -131,7 +131,7 @@ Settings → Diagnostics shows saved history size and warns at 80% of its **64 M
 
 The same tab offers SQLite capacity checks, consistent local backups and manual compaction. Pause the queue and wait for active downloads to finish before backup/compaction; compaction first creates a checked backup and retains dedup records and original media. Backups stay under `data/database-backups/` and need additional space. See [database maintenance and recovery](docs/reference/DATABASE_MAINTENANCE.md); indexed file storage remains a future feature in [ROADMAP](docs/development/ROADMAP.md).
 
-After the GitHub repository is published, use the Issue forms for bugs, installation or feature requests. Read [CONTRIBUTING](CONTRIBUTING.md) first and review diagnostics/screenshots before sharing them. Vulnerabilities use the private process in [SECURITY](SECURITY.md).
+After the GitHub repository is published, use the Issue forms for bugs, installation or feature requests. Read [CONTRIBUTING](.github/CONTRIBUTING.md) first and review diagnostics/screenshots before sharing them. Vulnerabilities use the private process in [SECURITY](.github/SECURITY.md).
 
 Source archives include code, docs, public artwork and licenses. They exclude downloaded media, history, cookies and your Python environment. The versioned archive is source code, not an executable installer. The source repository is [Zimkjdv/Smart-Social-Downloader](https://github.com/Zimkjdv/Smart-Social-Downloader). GitHub private reporting activation and a tagged preview Release are still pending.
 
@@ -139,10 +139,10 @@ Maintainers can run `python tools/check_source_archive.py` to build, verify and 
 
 ## Planned work
 
-Pending reliability fixes, architecture improvements and release acceptance are tracked in [Roadmap](docs/development/ROADMAP.md). Completed implementation milestones are in [CHANGELOG](CHANGELOG.md).
+Pending reliability fixes, architecture improvements and release acceptance are tracked in [Roadmap](docs/development/ROADMAP.md). Completed implementation milestones are in [CHANGELOG](docs/history/CHANGELOG.md).
 
 The experimental [Docker deployment](docs/deployment/DOCKER.md) includes Python 3.12/Compose, three persistent volumes, local networking/health checks, [backup/recovery](docs/deployment/DOCKER_STORAGE.md) and [host Chrome login/browser file actions](docs/deployment/DOCKER_LOGIN.md). Linux sessions use memory by default, with optional external-key encrypted persistence. Actual Linux amd64 builds, the [nine-check runtime gate](docs/testing/DOCKER_ACCEPTANCE.md), [14-stage service/storage gate](docs/testing/DOCKER_SERVICE_ACCEPTANCE.md), [15-stage invented-login/media HTTP gate](docs/testing/DOCKER_INTERACTION_ACCEPTANCE.md) and [eight-stage actual host-storage gate](docs/testing/DOCKER_HOST_ACCEPTANCE.md) pass. The optional [seven-stage host Chrome gate](docs/testing/DOCKER_BROWSER_ACCEPTANCE.md) adds actual UI, PNG decoding and H.264 play/seek checks; Linux CI runs the combined `--browser` gate. Another physical host (currently deferred), actual version migrations and human Chrome/login interaction remain on the [roadmap](docs/development/ROADMAP.md#docker-化部署); no prebuilt image is published.
 
 ## License
 
-This project's own code and documentation use [MIT](LICENSE). Dependencies retain their own licenses; see [THIRD_PARTY_NOTICES](THIRD_PARTY_NOTICES.md).
+This project's own code and documentation use [MIT](LICENSE). Dependencies retain their own licenses; see [THIRD_PARTY_NOTICES](docs/reference/THIRD_PARTY_NOTICES.md).

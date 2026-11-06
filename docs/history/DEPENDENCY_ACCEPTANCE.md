@@ -1,7 +1,7 @@
 # First dependency proposal acceptance
 
 > Historical record. Version, completion and pending statements apply to the dates recorded below.
-> Current work is in [Roadmap](../development/ROADMAP.md); current dependency pins are in the root requirements files.
+> Current work is in [Roadmap](../development/ROADMAP.md); current dependency pins are in the requirements directory.
 
 Review date: **2026-10-21**. Application baseline: `88e2852`; Windows / Python 3.12.
 Dependency updates are independent of the application and connector versions.
@@ -10,8 +10,8 @@ Dependency updates are independent of the application and connector versions.
 
 | Proposal | Reviewed head | Scope | Decision |
 | --- | --- | --- | --- |
-| [Dependabot #1](https://github.com/Zimkjdv/Smart-Social-Downloader/pull/1) | `638f84097ae383e1048d3d3996a851d730f2c7ba` | `requirements.lock.txt`: pycryptodomex 3.24.0 → 3.24.1, one patch in the Python maintenance group | Accept: fresh-environment, regression and recovery verification passed |
-| [Dependabot #2](https://github.com/Zimkjdv/Smart-Social-Downloader/pull/2) | `7d1c727e1a8083a494a2dfe12ffa9bbcdfb5ca59` | `requirements-browser.txt`: pyee 13.0.1 → 14.0.0, separate major proposal | Defer: incompatible with the pinned Playwright dependency range |
+| [Dependabot #1](https://github.com/Zimkjdv/Smart-Social-Downloader/pull/1) | `638f84097ae383e1048d3d3996a851d730f2c7ba` | `requirements/requirements.lock.txt`: pycryptodomex 3.24.0 → 3.24.1, one patch in the Python maintenance group | Accept: fresh-environment, regression and recovery verification passed |
+| [Dependabot #2](https://github.com/Zimkjdv/Smart-Social-Downloader/pull/2) | `7d1c727e1a8083a494a2dfe12ffa9bbcdfb5ca59` | `requirements/requirements-browser.txt`: pyee 13.0.1 → 14.0.0, separate major proposal | Defer: incompatible with the pinned Playwright dependency range |
 
 Both proposals were authored by `dependabot[bot]` in this repository. They confirm
 discovery of the core lock and optional browser requirements. Their base preceded
@@ -76,7 +76,7 @@ Probe commands use the existing receipt-gated process owner. Any temporary batch
 substitution for the deliberate downgrade/dry-run is confined to the fixture and
 restored byte-for-byte before source verification. No production history, browser
 profile, Cookie or live platform media is used. Actual results are recorded in
-[TESTING](TEST_RESULTS.md) and [CHANGELOG](../../CHANGELOG.md).
+[TESTING](TEST_RESULTS.md) and [CHANGELOG](CHANGELOG.md).
 
 The completed local run passes **271 Python / 23 Node**, zero skips, using the
 fresh interpreter. It verifies **160** source members, the actual

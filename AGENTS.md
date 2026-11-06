@@ -60,3 +60,5 @@ Read [`AGENTS-MAINTENANCE.md`](docs/development/agents/AGENTS-MAINTENANCE.md) on
 ## Documentation locations
 
 Start at [說明文件](docs/README.md). Keep current guides and contracts separate from dated records in `docs/history/`; the complete module tree belongs in `docs/reference/ARCHITECTURE.md`. After moving documentation, update links, heading anchors and the explicit source-package allowlist; run `python tools/check_docs.py` and the affected release checks described in [the testing guide](docs/development/TESTING.md).
+
+Dependency manifests live in `requirements/`; Docker recipes live in `docker/`. Run Compose from the project root with `--project-directory . -f docker/compose.yaml` to preserve relative backup and secret paths.

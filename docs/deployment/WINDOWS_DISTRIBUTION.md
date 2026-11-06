@@ -111,7 +111,7 @@ Desktop or the Linux CI job), build the fixed Windows media tool first:
 
 ```powershell
 python tools/prepare_windows_ffmpeg.py --output dist/windows-media
-python -m pip install -r requirements.lock.txt -r requirements-browser.txt -r requirements-desktop.txt -r requirements-build.txt
+python -m pip install -r requirements/requirements.lock.txt -r requirements/requirements-browser.txt -r requirements/requirements-desktop.txt -r requirements/requirements-build.txt
 python tools/build_windows.py --ffmpeg-dir dist/windows-media --output dist/windows-build
 ```
 
@@ -139,7 +139,7 @@ The package includes component licenses, Node/CPython/WebView2 notices, the exac
 FFmpeg/zlib source archives/build recipe, application source ZIP and gallery-dl /
 mutagen source archives. The wheel's unrelated FFmpeg binary is excluded.
 Application MIT licensing does not relicense bundled third-party code; see
-[third-party notices](../../THIRD_PARTY_NOTICES.md). Keep these directories with the
+[third-party notices](../reference/THIRD_PARTY_NOTICES.md). Keep these directories with the
 program when redistributing a folder bundle.
 
 ## Acceptance and CI

@@ -1,6 +1,6 @@
 # 操作指南
 
-[繁體中文首頁](../../README_CN.md) | [English usage guide](USAGE.md)
+[繁體中文首頁](../README_CN.md) | [English usage guide](USAGE.md)
 
 此處保留詳細安裝與操作說明。指令中的路徑皆以專案根目錄為基準；應用程式版本及發布步驟見 [維護指南](../development/MAINTENANCE.md)。
 
@@ -304,7 +304,7 @@ HLS／DASH 片段最多重試 3 次；仍無法取得任何必要片段時，工
 
 ## 授權與發布
 
-本專案自有程式碼採 [MIT](../../LICENSE)。第三方下載引擎保留各自授權，gallery-dl 採 GPL-2.0，詳見 [THIRD_PARTY_NOTICES.md](../../THIRD_PARTY_NOTICES.md)。原始碼 ZIP 使用明確檔案清單，排除下載內容、Cookie、帳號紀錄與 `.venv`；建立方式見 [發布說明](../development/MAINTENANCE.md)。
+本專案自有程式碼採 [MIT](../../LICENSE)。第三方下載引擎保留各自授權，gallery-dl 採 GPL-2.0，詳見 [THIRD_PARTY_NOTICES.md](../reference/THIRD_PARTY_NOTICES.md)。原始碼 ZIP 使用明確檔案清單，排除下載內容、Cookie、帳號紀錄與 `.venv`；建立方式見 [發布說明](../development/MAINTENANCE.md)。
 
 ## 專案結構
 
@@ -316,4 +316,4 @@ HLS／DASH 片段最多重試 3 次；仍無法取得任何必要片段時，工
 
 來源包驗收會在隔離暫存目錄建立／核對 ZIP、確認匯入來源並執行完整 Python／Node 測試，沿用目前安裝的依賴，不等於乾淨作業系統驗收。共用 fixture、巢狀來源與打包邊界見 [Testing guide](../development/TESTING.md)。
 
-頂部及設定 → 診斷的應用程式版本來自執行中的後端，引擎版本另列。詳見 [維護指南](../development/MAINTENANCE.md)、[CHANGELOG](../../CHANGELOG.md)、[CONTRIBUTING](../../CONTRIBUTING.md) 與 [SECURITY](../../SECURITY.md)。更新原始碼後，重新啟動後端並更新網頁才會使用新版本。
+頂部及設定 → 診斷的應用程式版本來自執行中的後端，引擎版本另列。詳見 [維護指南](../development/MAINTENANCE.md)、[CHANGELOG](../history/CHANGELOG.md)、[CONTRIBUTING](../../.github/CONTRIBUTING.md) 與 [SECURITY](../../.github/SECURITY.md)。更新原始碼後，重新啟動後端並更新網頁才會使用新版本。

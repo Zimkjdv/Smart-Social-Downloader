@@ -45,7 +45,7 @@ Start here to find an operator guide, implementation contract or reproducible ch
 - [測試方法](development/TESTING.md)：共用 fixture、回歸指令、文件檢查與來源 ZIP 驗收。
 - [維護與發布](development/MAINTENANCE.md)：版本、依賴審查、Action pins、發布及提交隱私檢查。
 - [依賴與傳輸故障追蹤](development/DEPENDENCY_FAULTS.md)。
-- [Roadmap](development/ROADMAP.md)：未完成工作；[Changelog](../CHANGELOG.md)：已完成變更。
+- [Roadmap](development/ROADMAP.md)：未完成工作；[Changelog](history/CHANGELOG.md)：已完成變更。
 - [代理工作規則](../AGENTS.md)：按條件讀取[需求釐清](development/agents/REQUIREMENTS.md)及[規則維護](development/agents/AGENTS-MAINTENANCE.md)。
 
 ## 歷史紀錄 / History

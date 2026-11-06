@@ -1,7 +1,7 @@
 # PR 整合計畫與執行紀錄
 
 > Historical record. Version, completion and pending statements apply to the dates recorded below.
-> Current work is in [Roadmap](../development/ROADMAP.md); current dependency pins are in the root requirements files.
+> Current work is in [Roadmap](../development/ROADMAP.md); current dependency pins are in the requirements directory.
 
 更新：2026-10-27（Asia/Taipei）。本文件記錄這次九個 open PR 的處理順序、證據與結果；功能待辦仍以 [ROADMAP](../development/ROADMAP.md) 為準。使用者已授權依序合併；不建立 tag 或公開 Release。
 

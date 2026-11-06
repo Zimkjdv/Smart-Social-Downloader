@@ -8,7 +8,7 @@ import unittest
 from unittest.mock import patch
 import zipfile
 
-from tools.package_source import ROOT_FILES, create_archive, source_files
+from tools.package_source import REQUIRED_FILES, create_archive, source_files
 from tools.check_source_archive import extract_verified, run_checks
 
 
@@ -17,8 +17,10 @@ class ReleaseTests(unittest.TestCase):
         self.temporary = tempfile.TemporaryDirectory(prefix="ssdl-release-")
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name).resolve()
-        for name in ROOT_FILES:
-            (self.root / name).write_text("source fixture\n", encoding="utf-8")
+        for name in REQUIRED_FILES:
+            path = self.root / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("source fixture\n", encoding="utf-8")
 
     def test_archive_excludes_runtime_and_arbitrarily_named_private_exports(self):
         for name in ("data/state.json", "data/x-auth.bin", "downloads/movie.mp4", ".venv/secret",
@@ -29,7 +31,7 @@ class ReleaseTests(unittest.TestCase):
         archive = self.root / "dist/source.zip"
         create_archive(self.root, archive)
         with zipfile.ZipFile(archive) as zipped:
-            self.assertEqual(len(zipped.namelist()), len(ROOT_FILES))
+            self.assertEqual(len(zipped.namelist()), len(REQUIRED_FILES))
             self.assertFalse(any(b"fixture-private-sentinel" in zipped.read(name) for name in zipped.namelist()))
 
     def test_source_with_personal_path_is_rejected_without_echoing_path(self):
@@ -61,7 +63,7 @@ class ReleaseTests(unittest.TestCase):
         for name in (*allowed, *excluded):
             self.write_source(name)
         selected = {path.relative_to(self.root).as_posix() for path in source_files(self.root)}
-        self.assertEqual(selected, set(ROOT_FILES) | set(allowed))
+        self.assertEqual(selected, set(REQUIRED_FILES) | set(allowed))
 
     def test_linked_parent_is_rejected_even_when_it_resolves_inside_root(self):
         source = self.write_source("ssdl/nested/service.py")
@@ -87,7 +89,16 @@ class ReleaseTests(unittest.TestCase):
         for name in (*allowed, *excluded):
             self.write_source(name)
         selected = {path.relative_to(self.root).as_posix() for path in source_files(self.root)}
-        self.assertEqual(selected, set(ROOT_FILES) | set(allowed))
+        self.assertEqual(selected, set(REQUIRED_FILES) | set(allowed))
+
+    def test_relocated_dependency_and_deployment_inputs_remain_required(self):
+        for name in ("requirements/requirements.lock.txt", "docker/Dockerfile", "docs/reference/THIRD_PARTY_NOTICES.md"):
+            path = self.root / name
+            contents = path.read_bytes()
+            path.unlink()
+            with self.subTest(name=name), self.assertRaisesRegex(ValueError, "Missing or unsafe"):
+                source_files(self.root)
+            path.write_bytes(contents)
 
     def test_extraction_imports_and_discovers_nested_helpers_without_checkout(self):
         for name in ("tests/__init__.py", "tests/helpers/__init__.py", "tests/unit/__init__.py"):

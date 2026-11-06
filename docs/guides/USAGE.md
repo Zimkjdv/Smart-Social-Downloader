@@ -48,7 +48,7 @@ Platform support depends on upstream extractors, content availability, and acces
 The main supported environment is **Windows with Python 3.12**. Installation and CI use Python 3.12, matching the local environment. Chrome session storage and opening files/folders use Windows features.
 
 1. Download or clone the source and extract it into your own folder.
-2. Run **`setup.bat`** to create `.venv`, install the baseline from `requirements.lock.txt`, and check the engines and FFmpeg.
+2. Run **`setup.bat`** to create `.venv`, install the baseline from `requirements/requirements.lock.txt`, and check the engines and FFmpeg.
 3. Run **`start.bat`**.
 4. Open [http://127.0.0.1:8765](http://127.0.0.1:8765) in your browser.
 
@@ -190,7 +190,7 @@ The static scanner does not execute scripts. Optional JavaScript video/audio cap
 
 ## Updates
 
-Stop the service, run **`update.bat`**, then restart. Updates use compatible ranges in `requirements.txt`; `requirements.lock.txt` remains the recovery baseline.
+Stop the service, run **`update.bat`**, then restart. Updates use compatible ranges in `requirements/requirements.txt`; `requirements/requirements.lock.txt` remains the recovery baseline.
 
 ```powershell
 .\.venv\Scripts\python.exe tools/manage.py update
@@ -226,9 +226,9 @@ Source archives include reviewed code, documentation, licenses and setup scripts
 
 ## License and documentation
 
-The project's own code and docs use [MIT](../../LICENSE). Dependencies retain their licenses; gallery-dl is GPL-2.0-only. Combined distribution must respect third-party conditions. See [THIRD_PARTY_NOTICES.md](../../THIRD_PARTY_NOTICES.md), including future executable/portable packaging requirements.
+The project's own code and docs use [MIT](../../LICENSE). Dependencies retain their licenses; gallery-dl is GPL-2.0-only. Combined distribution must respect third-party conditions. See [THIRD_PARTY_NOTICES.md](../reference/THIRD_PARTY_NOTICES.md), including future executable/portable packaging requirements.
 
-- [Traditional Chinese README](../../README_CN.md)
+- [Traditional Chinese README](../README_CN.md)
 - [Review and improvement progress](../development/ROADMAP.md) (Chinese)
 - [Installation, API protection, privacy, and release guide](../development/MAINTENANCE.md) (Chinese)
 - [Environment, API, and login troubleshooting](TROUBLESHOOTING.md) (Chinese)
@@ -238,4 +238,4 @@ The project's own code and docs use [MIT](../../LICENSE). Dependencies retain th
 
 ## Application versions and reports
 
-The application version in the header and Settings → Diagnostics comes from the running backend. Engine versions are listed separately. See [Maintenance](../development/MAINTENANCE.md), [CHANGELOG](../../CHANGELOG.md), [CONTRIBUTING](../../CONTRIBUTING.md) and [SECURITY](../../SECURITY.md). After replacing source files, restart the service and refresh the page to use the new version.
+The application version in the header and Settings → Diagnostics comes from the running backend. Engine versions are listed separately. See [Maintenance](../development/MAINTENANCE.md), [CHANGELOG](../history/CHANGELOG.md), [CONTRIBUTING](../../.github/CONTRIBUTING.md) and [SECURITY](../../.github/SECURITY.md). After replacing source files, restart the service and refresh the page to use the new version.

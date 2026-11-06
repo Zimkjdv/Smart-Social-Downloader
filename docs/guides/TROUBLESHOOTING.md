@@ -1,6 +1,6 @@
 # 安裝、狀態更新與 X 登入排錯
 
-對應 [CHANGELOG](../../CHANGELOG.md) 已完成的 R05、R07、R10；待驗收項目見 [Roadmap](../development/ROADMAP.md)。一般使用者依英文或繁中 README 安裝；本文件補充異常的處理方式。
+對應 [CHANGELOG](../history/CHANGELOG.md) 已完成的 R05、R07、R10；待驗收項目見 [Roadmap](../development/ROADMAP.md)。一般使用者依英文或繁中 README 安裝；本文件補充異常的處理方式。
 
 ## 1．安裝與環境診斷使用相同規則
 
@@ -111,7 +111,7 @@ $env:SSDL_PORT = "8877"
 目前以 Windows 為主要支援環境，Python 3.12 為安裝與 CI 基準，與本機環境一致；最低版本為 3.12。Chrome 自動登入及開啟檔案／資料夾採用 Windows 功能。
 
 
-`requirements.lock.txt` 固定 Python 3.12 基準的直接及間接依賴版本，不再保留舊版 websockets 分支。GitHub CI 僅使用 Python 3.12，尚未在 GitHub 執行的結果不能視為通過。版本鎖定不是完整的檔案雜湊驗證。
+`requirements/requirements.lock.txt` 固定 Python 3.12 基準的直接及間接依賴版本，不再保留舊版 websockets 分支。GitHub CI 僅使用 Python 3.12，尚未在 GitHub 執行的結果不能視為通過。版本鎖定不是完整的檔案雜湊驗證。
 
 首次安裝優先以 Windows Python launcher 的 `py -3.12` 建立專案環境；未安裝 launcher 或未登記該版本時改用 PATH 的 `python`，安裝程式仍檢查最低版本 3.12。既有 `.venv` 沿用原環境。如果它的 Python 版本低於 3.12，請停止服務、重新建立該虛擬環境，再執行 setup。
 

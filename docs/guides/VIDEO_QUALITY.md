@@ -1,6 +1,6 @@
 # Video resolution selection
 
-[English README](../../README.md) · [繁體中文 README](../../README_CN.md)
+[English README](../../README.md) · [繁體中文 README](../README_CN.md)
 
 ## Selection and display
 

@@ -5,7 +5,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        English / 繁體中文皆可。For vulnerabilities, follow SECURITY.md and use private reporting. Never attach cookies, data/, browser profiles, private URLs or unredacted logs. Review screenshots and exported diagnostics before sharing.
+        English / 繁體中文皆可。For vulnerabilities, follow .github/SECURITY.md and use private reporting. Never attach cookies, data/, browser profiles, private URLs or unredacted logs. Review screenshots and exported diagnostics before sharing.
   - type: input
     id: app_version
     attributes:

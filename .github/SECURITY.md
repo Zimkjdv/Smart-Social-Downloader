@@ -29,4 +29,4 @@ Platform account restrictions, deleted media and unsupported websites are not by
 
 ## Maintainer setup before publishing
 
-Enable GitHub private vulnerability reporting for the actual repository, confirm the private report button is available, and nominate a maintainer to receive it. Do not advertise the channel as active before enabling it. Publication and this repository setting have not been performed by adding this file. The release checklist is in [說明文件](docs/development/MAINTENANCE.md).
+Enable GitHub private vulnerability reporting for the actual repository, confirm the private report button is available, and nominate a maintainer to receive it. Do not advertise the channel as active before enabling it. Publication and this repository setting have not been performed by adding this file. The release checklist is in [說明文件](../docs/development/MAINTENANCE.md).

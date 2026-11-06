@@ -14,22 +14,26 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from ssdl.version import __version__
 
-ROOT_FILES = (".gitignore", "LICENSE", "THIRD_PARTY_NOTICES.md", "README.md", "README_CN.md",
-              "CHANGELOG.md", "SECURITY.md", "CONTRIBUTING.md", "AGENTS.md", "requirements.txt",
-              "requirements.lock.txt", "requirements-browser.txt", "requirements-desktop.txt", "requirements-build.txt", "desktop.bat", "start.bat", "stop.bat", "setup.bat", "update.bat",
-              "app.py", "Dockerfile", "compose.yaml", "compose.login.yaml", ".dockerignore")
+ROOT_FILES = (".gitignore", ".dockerignore", "LICENSE", "README.md", "AGENTS.md", "app.py",
+              "desktop.bat", "start.bat", "stop.bat", "setup.bat", "update.bat")
+REQUIRED_FILES = ROOT_FILES + ("docs/README_CN.md", "docs/history/CHANGELOG.md",
+    "docs/reference/THIRD_PARTY_NOTICES.md", ".github/CONTRIBUTING.md", ".github/SECURITY.md",
+    "requirements/requirements.txt", "requirements/requirements.lock.txt", "requirements/requirements-browser.txt",
+    "requirements/requirements-desktop.txt", "requirements/requirements-build.txt",
+    "docker/Dockerfile", "docker/compose.yaml", "docker/compose.login.yaml")
 SOURCE_GLOBS = {"packaging/windows": ("*.spec", "*.iss", "*.json", "*.Dockerfile"), "static": ("*.js", "*.css", "*.html"),
-                "docker": ("entrypoint.py", "runtime.py", "storage.py", "healthcheck.py", "session_key.py", "debian.sources"),
+                "docker": ("Dockerfile", "compose.yaml", "compose.login.yaml", "entrypoint.py", "runtime.py", "storage.py", "healthcheck.py", "session_key.py", "debian.sources"),
+                "requirements": ("requirements.txt", "requirements.lock.txt", "requirements-browser.txt", "requirements-desktop.txt", "requirements-build.txt"),
                 "chrome-extension": ("*.js", "*.html", "manifest.json", "README.md"),
                 "tools": ("manage.py", "package_source.py", "check_source_archive.py", "check_docs.py", "check_workflows.py", "check_installation.py", "check_desktop.py", "check_desktop_gui.py", "build_windows.py", "prepare_windows_ffmpeg.py", "check_windows_distribution.py", "check_chrome_pairing.py", "check_dependency_faults.py", "check_docker.py", "docker_runtime_probe.py", "docker_service_acceptance.py", "docker_storage_probe.py", "docker_interaction_acceptance.py", "docker_interaction_probe.py", "docker_host_acceptance.py", "docker_host_probe.py", "docker_browser_acceptance.py", "docker_pixiv_acceptance.py", "docker_upgrade_acceptance.py", "measure_state.py", "measure_persistence.py", "measure_capacity.py", "measure_hashing.py"),
-                "docs": ("README.md",), "docs/images": ("dashboard-preview.svg",),
+                "docs": ("README.md", "README_CN.md"), "docs/images": ("dashboard-preview.svg",),
                 "docs/guides": ("*.md",), "docs/deployment": ("*.md",),
                 "docs/reference": ("*.md",), "docs/development": ("*.md",),
                 "docs/development/agents": ("REQUIREMENTS.md", "AGENTS-MAINTENANCE.md"),
                 "docs/testing": ("*.md",), "docs/history": ("*.md",),
                 "docs/research": ("CONTENT_HASH_ASSESSMENT.md",),
                 ".github/ISSUE_TEMPLATE": ("*.yml", "*.yaml"),
-                ".github": ("pull_request_template.md", "dependabot.yml"),
+                ".github": ("CONTRIBUTING.md", "SECURITY.md", "pull_request_template.md", "dependabot.yml"),
                 ".github/workflows": ("*.yml", "*.yaml")}
 # Recursive review boundaries, never a recursive search of the workspace.
 # Test helpers may have ordinary module names; test suites retain name filters.
@@ -57,7 +61,7 @@ def _safe_path(path: Path, root: Path) -> None:
 
 def source_files(root: Path) -> list[Path]:
     root = root.resolve()
-    files = [root / name for name in ROOT_FILES]
+    files = [root / name for name in REQUIRED_FILES]
     for folder, patterns in SOURCE_GLOBS.items():
         directory = root / folder
         if not directory.exists():

@@ -7,7 +7,7 @@ checks for decoding. Run from source with Python 3.12, a local Linux amd64 Docke
 engine, Compose, ordinary Google Chrome and the pinned host-only dependency:
 
 ```powershell
-python -m pip install -r requirements-browser.txt
+python -m pip install -r requirements/requirements-browser.txt
 python tools/check_docker.py --browser --report data/docker-browser.json
 ```
 

@@ -68,6 +68,12 @@ class DockerServiceTests(unittest.TestCase):
         self.assertEqual(config["volumes"]["app-data"]["name"], group["data"])
         self.assertEqual(original, compose_model(19876))
 
+    def test_compose_commands_keep_the_fixture_project_directory_explicit(self):
+        fixtures = self.fixtures()
+        fixtures.compose(fixtures.source, fixtures.prefix, ["config", "--format", "json"])
+        args, _ = fixtures.docker.calls[-1]
+        self.assertEqual(args[args.index("--project-directory") + 1], str(fixtures.directory))
+
     def test_foreign_volume_label_is_rejected_before_mount_and_cleanup(self):
         fixtures = self.fixtures(ServiceDocker(receipt="b" * 32))
         with self.assertRaisesRegex(gate.GateError, "foreign_fixture_volume"):

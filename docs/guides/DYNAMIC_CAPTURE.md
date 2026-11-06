@@ -14,7 +14,7 @@ Implemented in **0.1.0-preview.2**. This is an optional fallback for video/audio
 3. Restart the backend using `start.bat`.
 4. Open **Settings → General → Enable JavaScript media capture**, check the option and save.
 
-The option defaults to **off**. Settings and diagnostics report whether the optional package and Chrome are present; presence does not guarantee Chrome can launch on every machine. Setup installs the pinned packages from `requirements-browser.txt` into the project `.venv`. It uses installed Chrome and does not download another browser. Ordinary setup/start do not install this optional component. Existing jobs use the setting captured when they start; later jobs use the saved setting.
+The option defaults to **off**. Settings and diagnostics report whether the optional package and Chrome are present; presence does not guarantee Chrome can launch on every machine. Setup installs the pinned packages from `requirements/requirements-browser.txt` into the project `.venv`. It uses installed Chrome and does not download another browser. Ordinary setup/start do not install this optional component. Existing jobs use the setting captured when they start; later jobs use the saved setting.
 
 繁中操作：在專案目錄執行上述指令，重新啟動 `start.bat`，於「設定 → 一般設定」勾選「啟用 JavaScript 媒體捕捉」後儲存。預設關閉；這台電腦已安裝選配套件，使用者仍可自行選擇是否啟用。
 
@@ -49,6 +49,6 @@ Playwright creates a temporary browser profile. Normal shutdown cleans it up; fo
 
 See [Historical test results](../history/TEST_RESULTS.md) for reproducible synthetic tests, failure simulations and remaining environment acceptance. Real platform logins and restricted content are not used in these tests.
 
-Keep `requirements-browser.txt` pinned and rerun browser capture/UI tests when upgrading Chrome or Playwright. Parent deadline supervision is deliberate: Playwright's synchronous evaluate/close calls can outlive a page timeout. The Windows WebSocket handler intentionally does not call synchronous `close()` inside the route callback, which hung in local testing; it never calls `connect_to_server()`.
+Keep `requirements/requirements-browser.txt` pinned and rerun browser capture/UI tests when upgrading Chrome or Playwright. Parent deadline supervision is deliberate: Playwright's synchronous evaluate/close calls can outlive a page timeout. The Windows WebSocket handler intentionally does not call synchronous `close()` inside the route callback, which hung in local testing; it never calls `connect_to_server()`.
 
 Primary API references: [Playwright network interception](https://playwright.dev/python/docs/network), [Route fulfillment](https://playwright.dev/python/docs/api/class-route), [service workers](https://playwright.dev/python/docs/service-workers), and [WebSocketRoute](https://playwright.dev/python/docs/api/class-websocketroute).

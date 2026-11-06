@@ -34,16 +34,16 @@ precision that was never saved.
 
 | File | Responsibility |
 | --- | --- |
-| [`Dockerfile`](../../Dockerfile) | Python 3.12 venv, Node 22, FFmpeg and non-root UID/GID 10001; application source stays root-owned |
-| [`compose.yaml`](../../compose.yaml) | Local build, loopback publication, init process, read-only root and three persistent volumes; offline maintenance profile |
+| [`Dockerfile`](../../docker/Dockerfile) | Python 3.12 venv, Node 22, FFmpeg and non-root UID/GID 10001; application source stays root-owned |
+| [`compose.yaml`](../../docker/compose.yaml) | Local build, loopback publication, init process, read-only root and three persistent volumes; offline maintenance profile |
 | [`.dockerignore`](../../.dockerignore) | Deny the build context by default; allow only named runtime source inputs |
 | [`docker/entrypoint.py`](../../docker/entrypoint.py) | Container listener and SIGTERM routing through existing application cleanup |
 | [`docker/runtime.py`](../../docker/runtime.py) | Required mounts, write-access preflight and exclusive data/media locks |
 | [`docker/storage.py`](../../docker/storage.py) | Stopped-service full backup and staged restore into empty volumes |
 | [`docker/healthcheck.py`](../../docker/healthcheck.py) | Bounded loopback readiness probe using the configured port |
-| [`compose.login.yaml`](../../compose.login.yaml) · [`docker/session_key.py`](../../docker/session_key.py) | Optional external-key session persistence and one-time key creation |
+| [`compose.login.yaml`](../../docker/compose.login.yaml) · [`docker/session_key.py`](../../docker/session_key.py) | Optional external-key session persistence and one-time key creation |
 | [`docker/debian.sources`](../../docker/debian.sources) | Fixed Debian package snapshots with signature checking |
-| [`requirements.lock.txt`](../../requirements.lock.txt) | Shared exact Python package versions; Windows baseline plus accepted Linux amd64 install/compatibility check |
+| [`requirements/requirements.lock.txt`](../../requirements/requirements.lock.txt) | Shared exact Python package versions; Windows baseline plus accepted Linux amd64 install/compatibility check |
 | [`tools/check_docker.py`](../../tools/check_docker.py) · [`tools/docker_runtime_probe.py`](../../tools/docker_runtime_probe.py) | Disposable source/context build and network-disabled synthetic runtime acceptance; never copied into the runtime image |
 
 The official image identities were read from Docker Hub on 2026-10-21. Each returned index digest was compared with the downloaded manifest bytes, and a Linux amd64 descriptor was present. This verifies input identity, not image execution.
@@ -68,6 +68,10 @@ This fixes component inputs and documents the procedure. It is **not an offline/
 
 Pinned inputs need deliberate maintenance. Review new Python/Node digests, the Debian snapshot and Python pins together, then repeat container acceptance. `--pull` alone does not move a digest-pinned base to a newer release. See [maintenance](../development/MAINTENANCE.md).
 
+## Project directory and configuration
+
+Run deployment commands from the project root with `docker compose --project-directory . -f docker/compose.yaml`. The explicit project directory keeps `.env`, `backups/`, `.secrets/` and relative path settings rooted at their original locations. For encrypted login, add `-f docker/compose.login.yaml` after the base file. Direct image builds use `docker build -f docker/Dockerfile .`; the context and its `.dockerignore` stay at the project root.
+
 ## Prerequisites
 
 - Docker Engine with Compose V2, or Docker Desktop in Linux-container mode.
@@ -83,11 +87,11 @@ From the extracted project root:
 
 ```powershell
 docker version
-docker compose version
-docker compose config
-docker compose build --pull
-docker compose up -d
-docker compose logs --tail=100 downloader
+docker compose --project-directory . -f docker/compose.yaml version
+docker compose --project-directory . -f docker/compose.yaml config
+docker compose --project-directory . -f docker/compose.yaml build --pull
+docker compose --project-directory . -f docker/compose.yaml up -d
+docker compose --project-directory . -f docker/compose.yaml logs --tail=100 downloader
 ```
 
 Open [http://127.0.0.1:8765](http://127.0.0.1:8765). Compose builds the local `smart-social-downloader:docker-preview` image; this name does not identify a published Docker Hub image. Its build policy prevents treating that application name as a remote image to pull.
@@ -96,13 +100,13 @@ To use a different port in PowerShell:
 
 ```powershell
 $env:SSDL_PORT = "8876"
-docker compose up --build -d
+docker compose --project-directory . -f docker/compose.yaml up --build -d
 ```
 
 For a POSIX shell:
 
 ```sh
-SSDL_PORT=8876 docker compose up --build -d
+SSDL_PORT=8876 docker compose --project-directory . -f docker/compose.yaml up --build -d
 ```
 
 Use the same environment value for subsequent Compose commands. Open [http://127.0.0.1:8876](http://127.0.0.1:8876) in that example. Choose an unprivileged port such as 8765 or 8876. The same port is used inside and outside the container so existing Host/Origin checks still match the browser address.
@@ -115,7 +119,7 @@ This is a local service without remote authentication. Docker/network administra
 
 `GET /api/health` uses the same local Host/Origin checks as other read APIs. Its response contains only a service marker, health status and four booleans: application lifecycle, queue-worker thread, persistence status and cached required-dependency diagnostics. It returns HTTP 200 when all are ready, otherwise 503. It does not enumerate downloads, disclose paths/session state, start environment commands, access a platform or count against Rate.
 
-The Dockerfile configures a **30-second** interval, 3-second socket probe timeout, **5-second** Docker timeout, **60-second** start period and three failed probes before unhealthy. The Python probe connects directly to `127.0.0.1:$SSDL_PORT`, bypassing proxy environment variables and refusing oversized/unexpected responses or redirects. Use `docker compose ps` to see the result.
+The Dockerfile configures a **30-second** interval, 3-second socket probe timeout, **5-second** Docker timeout, **60-second** start period and three failed probes before unhealthy. The Python probe connects directly to `127.0.0.1:$SSDL_PORT`, bypassing proxy environment variables and refusing oversized/unexpected responses or redirects. Use `docker compose --project-directory . -f docker/compose.yaml ps` to see the result.
 
 An idle or paused queue can be healthy. A failed individual download or a platform cooldown does not make the whole service unhealthy. Required dependency failures, a dead queue worker, shutdown or a recorded persistence failure do. This is a cached readiness signal; it does not continuously recheck free disk space/permissions or guarantee the success of a future platform download. Docker's restart policy handles process exits; it does **not** automatically restart a running process merely because it becomes unhealthy. Inspect logs and diagnose the cause first.
 
@@ -132,7 +136,7 @@ Mounts must be present and writable as UID/GID 10001. The root filesystem is rea
 Native Windows history, Cookie storage and downloads are not imported automatically. Settings paths refer to the **container filesystem**, not Windows drive letters. Docker confines download destinations to `/downloads` and its subdirectories, including paths read from saved history; moving existing native settings into the data volume is unsupported.
 
 ```powershell
-docker compose down
+docker compose --project-directory . -f docker/compose.yaml down
 ```
 
 This stops the service and retains named volumes. Starting with the same Compose project name attaches them again. Removing volumes deletes their stored data; it is not part of the ordinary stop procedure.
@@ -150,17 +154,17 @@ The recipe installs the ordinary backend/UI, download engines, FFmpeg and Node. 
 To inspect a build's recorded versions:
 
 ```powershell
-docker compose exec downloader cat /usr/local/share/ssdl/os-packages.txt
-docker compose exec downloader cat /usr/local/share/ssdl/python-packages.txt
-docker compose exec downloader cat /usr/local/share/ssdl/node-version.txt
-docker compose images
+docker compose --project-directory . -f docker/compose.yaml exec downloader cat /usr/local/share/ssdl/os-packages.txt
+docker compose --project-directory . -f docker/compose.yaml exec downloader cat /usr/local/share/ssdl/python-packages.txt
+docker compose --project-directory . -f docker/compose.yaml exec downloader cat /usr/local/share/ssdl/node-version.txt
+docker compose --project-directory . -f docker/compose.yaml images
 ```
 
 ## Source and distribution boundaries
 
 The context allowlist excludes local history, downloads, `.git`, `.venv`, environment files and common credential file formats. Dockerfile copies explicit runtime sources rather than the whole workspace. Keep private files outside allowed source paths; a filename allowlist cannot detect secrets pasted into ordinary source code. Compose does not mount the Docker socket, browser profile, home directory or Cookie exports.
 
-The source ZIP includes these recipes and this guide, not an image or installed runtimes. A locally built image contains third-party binaries, including Python, Node and FFmpeg. Their licenses remain applicable: retain installed Python/package licenses, Debian copyright files and the copied Node license. Before publishing an image, review the actual included versions, notices and applicable source/redistribution obligations; see [third-party notices](../../THIRD_PARTY_NOTICES.md). This source milestone does not claim that image distribution review is complete.
+The source ZIP includes these recipes and this guide, not an image or installed runtimes. A locally built image contains third-party binaries, including Python, Node and FFmpeg. Their licenses remain applicable: retain installed Python/package licenses, Debian copyright files and the copied Node license. Before publishing an image, review the actual included versions, notices and applicable source/redistribution obligations; see [third-party notices](../reference/THIRD_PARTY_NOTICES.md). This source milestone does not claim that image distribution review is complete.
 
 ## References
 

@@ -27,7 +27,7 @@ RUN rm -f /etc/apt/sources.list /etc/apt/sources.list.d/debian.sources \
 COPY --from=node_runtime /usr/local/bin/node /usr/local/bin/node
 COPY --from=node_runtime /usr/local/LICENSE /usr/local/share/doc/node/LICENSE
 
-COPY requirements.lock.txt ./
+COPY requirements/requirements.lock.txt ./
 RUN python -m venv /app/.venv \
     && /app/.venv/bin/python -m pip install --no-cache-dir --only-binary=:all: -r requirements.lock.txt \
     && /app/.venv/bin/python -m pip check \
@@ -37,7 +37,8 @@ RUN python -m venv /app/.venv \
     && node --version > /usr/local/share/ssdl/node-version.txt
 
 # Explicit runtime sources only; .dockerignore independently bounds the context.
-COPY app.py LICENSE THIRD_PARTY_NOTICES.md ./
+COPY app.py LICENSE ./
+COPY docs/reference/THIRD_PARTY_NOTICES.md ./
 COPY ssdl/ ./ssdl/
 COPY static/ ./static/
 COPY chrome-extension/ ./chrome-extension/

@@ -10,7 +10,7 @@ acceptance scope are documented in [Windows distribution](../deployment/WINDOWS_
 ## Reproduce
 
 Install the normal locked requirements, optional browser requirements and
-requirements-desktop.txt using Python 3.12, then run:
+requirements/requirements-desktop.txt using Python 3.12, then run:
 
 ```powershell
 node --test tests/frontend.test.cjs

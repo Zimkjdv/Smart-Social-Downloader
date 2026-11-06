@@ -104,7 +104,7 @@ and excluded from source releases. No package update, rollback, automatic retry
 or allowlist edit is performed by the checker.
 
 Keep the [dependency review/recovery process](MAINTENANCE.md#review-regression-and-recovery),
-both Windows CI jobs, [third-party notices](../../THIRD_PARTY_NOTICES.md) and
+both Windows CI jobs, [third-party notices](../reference/THIRD_PARTY_NOTICES.md) and
 release-specific license review. Source packages exclude installed dependencies;
 future binary distributions need separate license review. Actual verification is
 in [TESTING](../history/TEST_RESULTS.md); desktop/account/platform/release work stays in

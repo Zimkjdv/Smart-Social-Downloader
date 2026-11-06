@@ -1,13 +1,13 @@
 # 全專案複查：問題、修正與剩餘驗收
 
 > Historical record. Version, completion and pending statements apply to the dates recorded below.
-> Current work is in [Roadmap](../development/ROADMAP.md); current dependency pins are in the root requirements files.
+> Current work is in [Roadmap](../development/ROADMAP.md); current dependency pins are in the requirements directory.
 
 日期：2026-10-11。對應尚未發布的 `0.1.0-preview.2`。
 
 ## 結論
 
-前輪 P0、P1、P2、README／維護配套及選配動態捕捉已完成主要實作；完成紀錄見 [CHANGELOG](../../CHANGELOG.md)。本輪重新檢查後端、介面、連接器、安裝與打包，重現並修正下列 **6 個問題**；完成實作不代表乾淨系統、真實帳號及 GitHub 發布驗收已完成。
+前輪 P0、P1、P2、README／維護配套及選配動態捕捉已完成主要實作；完成紀錄見 [CHANGELOG](CHANGELOG.md)。本輪重新檢查後端、介面、連接器、安裝與打包，重現並修正下列 **6 個問題**；完成實作不代表乾淨系統、真實帳號及 GitHub 發布驗收已完成。
 
 ## 已重現並修正
 
@@ -52,4 +52,4 @@ CI 使用的 v7 action 已核對官方發布頁：[checkout](https://github.com/
 
 ## 後續工作
 
-本文件保留前輪六項修正的歷史證據。後續容量／IPC、HTTP 期限、SQLite 維護及架構修正已記錄於 [CHANGELOG](../../CHANGELOG.md)；目前未完成工作與發布／Docker 等驗收統一追蹤於 [Roadmap](../development/ROADMAP.md)。
+本文件保留前輪六項修正的歷史證據。後續容量／IPC、HTTP 期限、SQLite 維護及架構修正已記錄於 [CHANGELOG](CHANGELOG.md)；目前未完成工作與發布／Docker 等驗收統一追蹤於 [Roadmap](../development/ROADMAP.md)。

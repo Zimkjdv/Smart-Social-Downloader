@@ -84,4 +84,4 @@ permissions. The following remain in [ROADMAP](../development/ROADMAP.md):
   were not edited to manufacture those cases.
 - Linux/Docker title/media/session persistence and additional browser environments.
 
-The completed Windows checks above are recorded in [CHANGELOG](../../CHANGELOG.md).
+The completed Windows checks above are recorded in [CHANGELOG](../history/CHANGELOG.md).

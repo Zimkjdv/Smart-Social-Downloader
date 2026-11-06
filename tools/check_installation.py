@@ -222,7 +222,7 @@ def accept(workspace, *, browser=False):
         config = (root / ".venv/pyvenv.cfg").read_text(encoding="utf-8").lower()
         if "include-system-site-packages = false" not in config:
             raise AcceptanceError("Installed venv includes system site packages")
-        baseline = pinned_versions(root / "requirements.lock.txt")
+        baseline = pinned_versions(root / "requirements/requirements.lock.txt")
         initial = inventory(root, env)
         verify_versions(initial, baseline)
         offline = dict(env, PIP_NO_INDEX="1", PIP_FIND_LINKS=str(workspace / "empty-index"))
@@ -290,7 +290,7 @@ def accept(workspace, *, browser=False):
             raise AcceptanceError("Package maintenance changed saved state or original media")
         if browser:
             action("browser")
-            verify_versions(inventory(root, env), pinned_versions(root / "requirements-browser.txt"))
+            verify_versions(inventory(root, env), pinned_versions(root / "requirements/requirements-browser.txt"))
             verify_versions(inventory(root, env), baseline)
         graceful()
         phases.append("restored-graceful-restart")

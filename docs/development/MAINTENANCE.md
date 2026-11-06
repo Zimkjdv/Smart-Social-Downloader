@@ -87,7 +87,7 @@ and groups follow the [Dependabot options reference](https://docs.github.com/en/
    `pull_request` checks.
 2. Test Python changes in a disposable source copy with a fresh Python 3.12 venv.
    Run `setup.bat` with the proposed lock, verify compatibility with
-   `requirements.txt`, and inspect direct/transitive versions and licenses.
+   `requirements/requirements.txt`, and inspect direct/transitive versions and licenses.
    Change compatibility ranges deliberately. Avoid copying a development venv's
    entire freeze into the core baseline. Install the matching optional browser
    requirements with `python tools/manage.py browser-setup`; `update.bat` updates
@@ -122,7 +122,7 @@ regressions and Dependabot configuration ship in the source ZIP.
 
 The [dated first Python proposal review](../history/DEPENDENCY_ACCEPTANCE.md) records the
 pycryptodomex 3.24.1 acceptance and the pyee/Playwright constraints at that time.
-Use the root `requirements*.txt` files for the current reviewed pins and ranges;
+Use the `requirements/requirements*.txt` files for the current reviewed pins and ranges;
 historical proposals do not override those files. The [dependency fault gate](DEPENDENCY_FAULTS.md) tracks reviewed SSL
 deprecations and fails on resource warnings, new warnings or transport failures;
 CI and extracted-source checks run it after upgrades. The reproduced delegated
@@ -137,7 +137,7 @@ SQLite capacity checks, consistent backups, manual compaction and offline restor
 
 Issue forms ask separately for application, engine and connector versions. Reproduce ordinary reports with synthetic/local data first. When an upstream extractor is responsible, document the relevant engine version and update path. Do not ask users to post cookies or unredacted diagnostic data.
 
-Follow [SECURITY.md](../../SECURITY.md) for vulnerabilities. When private reporting is unavailable, the public contact-request form only asks for a private channel; it must not contain reproduction details or secrets. Provide a private channel before asking for those details.
+Follow [SECURITY.md](../../.github/SECURITY.md) for vulnerabilities. When private reporting is unavailable, the public contact-request form only asks for a private channel; it must not contain reproduction details or secrets. Provide a private channel before asking for those details.
 
 
 ## Commit privacy review
@@ -148,7 +148,7 @@ Follow [SECURITY.md](../../SECURITY.md) for vulnerabilities. When private report
 
 Chrome manifest 的公開金鑰用於維持 extension ID，不是私人憑證，可納入原始碼。截圖請使用適合公開的範例，避免含有私人帳號、網址、下載紀錄或路徑。
 
-軟體及第三方授權見 [THIRD_PARTY_NOTICES.md](../../THIRD_PARTY_NOTICES.md)。
+軟體及第三方授權見 [THIRD_PARTY_NOTICES.md](../reference/THIRD_PARTY_NOTICES.md)。
 
 ## Private runtime data and diagnostics
 
