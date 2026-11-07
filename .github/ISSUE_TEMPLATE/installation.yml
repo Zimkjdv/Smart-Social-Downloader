@@ -5,7 +5,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        First read docs/TROUBLESHOOTING.md and the Chrome connector README. Do not attach cookies or browser profiles. The connector uses an existing X session; it cannot lift X account restrictions. English / 繁體中文皆可。
+        First read docs/guides/TROUBLESHOOTING.md and the Chrome connector README. Do not attach cookies or browser profiles. The connector uses an existing X session; it cannot lift X account restrictions. English / 繁體中文皆可。
   - type: input
     id: version
     attributes:

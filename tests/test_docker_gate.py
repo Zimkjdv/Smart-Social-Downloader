@@ -17,9 +17,11 @@ class DockerGateTests(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name).resolve()
         for name in gate.ROOT_INPUTS:
-            (self.root / name).write_bytes(DOCKERFILE if name == "Dockerfile" else b"public fixture\n")
+            target = self.root / name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(DOCKERFILE if name.endswith("/Dockerfile") else b"public fixture\n")
         for folder, patterns in gate.INPUTS.items():
-            (self.root / folder).mkdir()
+            (self.root / folder).mkdir(exist_ok=True)
             for pattern in patterns:
                 path = self.root / folder / pattern.replace("*", "fixture")
                 path.write_bytes(b"public fixture\n")
@@ -78,6 +80,20 @@ class DockerGateTests(unittest.TestCase):
         (context / ".env").write_text("synthetic private fixture", encoding="ascii")
         with self.assertRaises(AssertionError):
             exec(compile(program, "synthetic-context-audit", "exec"), {})
+
+    def test_older_source_layout_remains_usable_for_upgrade_baselines(self):
+        for source, destination in (("docker/Dockerfile", "Dockerfile"),
+                                    ("requirements/requirements.lock.txt", "requirements.lock.txt"),
+                                    ("docs/reference/THIRD_PARTY_NOTICES.md", "THIRD_PARTY_NOTICES.md")):
+            (self.root / source).rename(self.root / destination)
+        files = gate.runtime_sources(self.root)
+        self.assertIn("Dockerfile", files)
+        self.assertNotIn("docker/Dockerfile", files)
+        docker = FakeDocker()
+        self.assertTrue(gate.run_gate(docker, self.root, self.report())["passed"])
+        for args, _ in docker.calls:
+            if args[0] == "build":
+                self.assertEqual(args[args.index("--file") + 1], "Dockerfile")
 
     def test_mutable_base_or_unnamed_final_stage_is_rejected(self):
         self.assertEqual(gate.base_versions(DOCKERFILE)["python"], "3.12.15")

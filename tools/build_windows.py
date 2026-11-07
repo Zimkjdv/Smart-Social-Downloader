@@ -66,14 +66,14 @@ def compiler(cache, item):
 
 def build(output, ffmpeg, cache, iscc=None):
     if os.name != 'nt' or sys.version_info[:2] != (3,12):
-        raise RuntimeError('Build with Windows x64 / Python 3.12 and requirements-build.txt')
+        raise RuntimeError('Build with Windows x64 / Python 3.12 and requirements/requirements-build.txt')
     output.mkdir(parents=True, exist_ok=False)
     stage = output / 'stage';source = stage / 'source'
     source.mkdir(parents=True)
     reviewed_source(source)
     from packaging.requirements import Requirement
     packages = {}
-    for filename in ('requirements.lock.txt','requirements-desktop.txt','requirements-browser.txt'):
+    for filename in ('requirements/requirements.lock.txt','requirements/requirements-desktop.txt','requirements/requirements-browser.txt'):
         for line in (source / filename).read_text(encoding='utf-8').splitlines():
             if not line.strip() or line.lstrip().startswith('#'):
                 continue
@@ -140,7 +140,7 @@ def build(output, ffmpeg, cache, iscc=None):
             original=download({'url':item['url'],'filename':item['filename'],'sha256':item['digests']['sha256']},cache)
             shutil.copyfile(original,sources/original.name)
     shutil.copyfile(source/'LICENSE',licenses/'PROJECT-LICENSE.txt')
-    shutil.copyfile(source/'THIRD_PARTY_NOTICES.md',licenses/'THIRD_PARTY_NOTICES.md')
+    shutil.copyfile(source/'docs/reference/THIRD_PARTY_NOTICES.md',licenses/'THIRD_PARTY_NOTICES.md')
     shutil.copyfile(Path(sys.base_prefix)/'LICENSE.txt',licenses/'CPython-LICENSE.txt')
     manifest={'schema':1,'application_source_sha256':hashlib.sha256((sources/'application-source.zip').read_bytes()).hexdigest(),'app_version':__version__,'python':sys.version.split()[0], 'packages':packages,'pyinstaller':metadata.version('pyinstaller'),
               'node':inputs['node'],'ffmpeg_source':inputs['ffmpeg-source'], 'format':'onedir-x64',

@@ -85,7 +85,7 @@ def status(project, connected, *, phase=None):
 
 
 def run_checks(docker, image, receipt, root, report):
-    sources = ("compose.login.yaml", "docker/session_key.py", "tools/docker_interaction_acceptance.py",
+    sources = ("docker/compose.login.yaml", "docker/session_key.py", "tools/docker_interaction_acceptance.py",
                "tools/docker_interaction_probe.py")
     for name in sources:
         ordinary(root / name, root)
@@ -110,7 +110,7 @@ def run_checks(docker, image, receipt, root, report):
             return result["result"]
         try:
             override = Path(directory) / "compose.login.yaml"
-            override.write_bytes((root / "compose.login.yaml").read_bytes())
+            override.write_bytes((root / "docker/compose.login.yaml").read_bytes())
             _, model = fixtures.compose(fixtures.source, fixtures.prefix,
                 ["-f", str(override), "--profile", "maintenance", "config", "--format", "json"])
             model = decode_json(model)

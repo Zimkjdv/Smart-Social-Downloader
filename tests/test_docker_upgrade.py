@@ -22,11 +22,20 @@ class DockerUpgradeTests(unittest.TestCase):
 
     def test_retag_or_label_only_changes_cannot_count_as_application_upgrade(self):
         files = gate.runtime_sources(gate.ROOT)
-        for name in ("Dockerfile", ".dockerignore", "LICENSE", "THIRD_PARTY_NOTICES.md"):
+        for name in ("docker/Dockerfile", ".dockerignore", "LICENSE", "docs/reference/THIRD_PARTY_NOTICES.md"):
             self.assertEqual(upgrade.application_fingerprint(files),
                              upgrade.application_fingerprint({**files, name: files[name] + b"\nchanged\n"}))
         self.assertNotEqual(upgrade.application_fingerprint(files),
                             upgrade.application_fingerprint({**files, "app.py": b"different source\n"}))
+
+    def test_layout_only_changes_do_not_count_as_an_application_upgrade(self):
+        files = gate.runtime_sources(gate.ROOT)
+        old = dict(files)
+        for source, target in (("docker/Dockerfile", "Dockerfile"),
+                               ("requirements/requirements.lock.txt", "requirements.lock.txt"),
+                               ("docs/reference/THIRD_PARTY_NOTICES.md", "THIRD_PARTY_NOTICES.md")):
+            old[target] = old.pop(source)
+        self.assertEqual(upgrade.application_fingerprint(old), upgrade.application_fingerprint(files))
 
     def test_identical_source_and_changed_candidate_fail_before_docker_resources(self):
         docker = ServiceDocker()

@@ -18,6 +18,37 @@ class InstallationTests(unittest.TestCase):
         temporary = self.enterContext(tempfile.TemporaryDirectory(prefix="ssdl-install-unit-"))
         self.root = Path(temporary).resolve()
 
+    def test_setup_and_update_resolve_relocated_pins_without_changing_launch_directory(self):
+        environment = self.root / '.venv'
+        interpreter = environment / 'Scripts/python.exe'
+        interpreter.parent.mkdir(parents=True)
+        interpreter.touch()
+        with patch.object(manage, 'ROOT', self.root), patch.object(manage, 'ENVIRONMENT', environment), \
+             patch.object(manage, 'ENV_PYTHON', interpreter), patch.object(manage, 'MARKER', environment / 'ssdl-setup.json'), \
+             patch.object(manage.subprocess, 'run') as run:
+            for update, filename in ((False, 'requirements.lock.txt'), (True, 'requirements.txt')):
+                run.reset_mock()
+                self.assertEqual(manage.install(update=update), 0)
+                command = run.call_args_list[0].args[0]
+                self.assertEqual(command[command.index('-r') + 1], str(self.root / 'requirements' / filename))
+                self.assertEqual(run.call_args_list[0].kwargs['cwd'], self.root)
+                self.assertEqual('--upgrade' in command, update)
+                self.assertEqual(json.loads(manage.MARKER.read_text())['mode'], 'updated' if update else 'locked')
+
+    def test_optional_setup_uses_the_matching_relocated_manifest(self):
+        interpreter = self.root / 'python.exe'
+        interpreter.touch()
+        actions = [('browser-setup', 'requirements-browser.txt')]
+        if os.name == 'nt':
+            actions.append(('desktop-setup', 'requirements-desktop.txt'))
+        with patch.object(manage, 'ROOT', self.root), patch.object(manage, 'ENV_PYTHON', interpreter), \
+             patch.object(manage.subprocess, 'run') as run:
+            for action, filename in actions:
+                run.reset_mock()
+                self.assertEqual(manage.main([action]), 0)
+                command = run.call_args_list[0].args[0]
+                self.assertEqual(command[command.index('-r') + 1], str(self.root / 'requirements' / filename))
+
     def test_environment_is_isolated_without_mutating_the_parent(self):
         values = {"PYTHONPATH": "fixture-private", "PIP_EXTRA_INDEX_URL": "fixture-registry",
                   "SSDL_DOWNLOAD_DIR": "fixture-data", "VIRTUAL_ENV": "fixture-venv", "PATH": "fixture-path"}

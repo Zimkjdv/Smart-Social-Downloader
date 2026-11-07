@@ -21,7 +21,9 @@ import uuid
 
 ROOT = Path(__file__).resolve().parents[1]
 CHECKS = ("isolation", "dependencies", "javascript", "ffmpeg_merge", "thumbnail", "image_privacy", "optional_browser")
-ROOT_INPUTS = ("Dockerfile", ".dockerignore", "requirements.lock.txt", "app.py", "LICENSE", "THIRD_PARTY_NOTICES.md")
+ROOT_INPUTS = ("docker/Dockerfile", ".dockerignore", "requirements/requirements.lock.txt", "app.py", "LICENSE", "docs/reference/THIRD_PARTY_NOTICES.md")
+# Trusted older source snapshots remain usable by the upgrade/rollback gate.
+LEGACY_ROOT_INPUTS = ("Dockerfile", ".dockerignore", "requirements.lock.txt", "app.py", "LICENSE", "THIRD_PARTY_NOTICES.md")
 INPUTS = {"ssdl": ("*.py",), "static": ("*.js", "*.html", "*.css"),
           "chrome-extension": ("manifest.json", "README.md", "*.js", "*.html"),
           "docker": ("entrypoint.py", "runtime.py", "storage.py", "healthcheck.py", "session_key.py", "debian.sources")}
@@ -52,7 +54,8 @@ def ordinary(path: Path, root: Path):
 
 
 def runtime_sources(root: Path) -> dict[str, bytes]:
-    paths = [root / name for name in ROOT_INPUTS]
+    inputs = ROOT_INPUTS if (root / "docker/Dockerfile").exists() else LEGACY_ROOT_INPUTS
+    paths = [root / name for name in inputs]
     for folder, patterns in INPUTS.items():
         directory = root / folder
         ordinary(directory, root)
@@ -108,7 +111,7 @@ def audit_dockerfile(original: bytes, files: dict[str, bytes], python_image: str
     script = ("import pathlib; "
               "found={p.relative_to('/context').as_posix() for p in pathlib.Path('/context').rglob('*') if p.is_file()}; "
               f"allowed=set({sorted(files)!r}); "
-              "assert found <= allowed; assert allowed-{'Dockerfile','.dockerignore'} <= found")
+              "assert found <= allowed; assert allowed-{'Dockerfile','docker/Dockerfile','.dockerignore'} <= found")
     addition = (f"\nFROM {python_image} AS ssdl_context_audit\nWORKDIR /context\nCOPY . .\n"
                 + "RUN " + json.dumps(["python", "-c", script]) + "\n")
     return original + addition.encode()
@@ -192,7 +195,8 @@ def run_gate(docker, root, report, *, service_gate=None):
         report["engine_version"] = info["ServerVersion"]
         phase = "source"
         files = runtime_sources(root)
-        versions = base_versions(files["Dockerfile"])
+        dockerfile = "docker/Dockerfile" if "docker/Dockerfile" in files else "Dockerfile"
+        versions = base_versions(files[dockerfile])
         probe_path = root / "tools/docker_runtime_probe.py"
         ordinary(probe_path, root)
         require(probe_path.stat().st_size <= 64 * 1024, "probe_limit")
@@ -204,18 +208,18 @@ def run_gate(docker, root, report, *, service_gate=None):
             stage_sources(files, stage, marker)
             phase = "context"
             print("Docker acceptance: building synthetic context audit", file=sys.stderr, flush=True)
-            (stage / "Dockerfile").write_bytes(audit_dockerfile(files["Dockerfile"], files, versions["python_image"]))
+            (stage / dockerfile).write_bytes(audit_dockerfile(files[dockerfile], files, versions["python_image"]))
             audit_tag = "ssdl-context-acceptance:" + receipt
             images.append(audit_tag)
-            docker.run(["build", "--platform", "linux/amd64", "--target", "ssdl_context_audit", "--tag", audit_tag, "."],
+            docker.run(["build", "--file", dockerfile, "--platform", "linux/amd64", "--target", "ssdl_context_audit", "--tag", audit_tag, "."],
                        timeout=900, cwd=stage)
             report["checks"].append("context_allowlist")
             phase = "build"
             print("Docker acceptance: building runtime image", file=sys.stderr, flush=True)
-            (stage / "Dockerfile").write_bytes(files["Dockerfile"])
+            (stage / dockerfile).write_bytes(files[dockerfile])
             tag = "ssdl-runtime-acceptance:" + receipt
             images.append(tag)
-            docker.run(["build", "--platform", "linux/amd64", "--target", "runtime", "--tag", tag, "."], timeout=900, cwd=stage)
+            docker.run(["build", "--file", dockerfile, "--platform", "linux/amd64", "--target", "runtime", "--tag", tag, "."], timeout=900, cwd=stage)
             _, identity = docker.run(["image", "inspect", "--format", "{{.Id}}", tag])
             require(re.fullmatch(r"sha256:[0-9a-f]{64}", identity), "invalid_image_identity")
             report["image_id"] = identity

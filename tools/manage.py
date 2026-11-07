@@ -48,7 +48,7 @@ def install(*, update=False) -> int:
         raise RuntimeError("Python 3.12 or newer is required.")
     if not ENV_PYTHON.is_file():
         venv.EnvBuilder(with_pip=True).create(ENVIRONMENT)
-    requirement = ROOT / ("requirements.txt" if update else "requirements.lock.txt")
+    requirement = ROOT / ("requirements/requirements.txt" if update else "requirements/requirements.lock.txt")
     command = [str(ENV_PYTHON), "-m", "pip", "install", "--disable-pip-version-check"]
     if update:
         command.append("--upgrade")
@@ -81,7 +81,7 @@ def main(argv=None) -> int:
             if not ENV_PYTHON.is_file():
                 raise RuntimeError("Run setup.bat first to create the project environment.")
             subprocess.run([str(ENV_PYTHON), "-m", "pip", "install", "--disable-pip-version-check",
-                            "-r", str(ROOT / "requirements-desktop.txt")], check=True, cwd=ROOT)
+                            "-r", str(ROOT / "requirements/requirements-desktop.txt")], check=True, cwd=ROOT)
             subprocess.run([str(ENV_PYTHON), "-m", "pip", "check"], check=True, cwd=ROOT)
             print("Desktop dependencies installed. Run desktop.bat. Microsoft Edge WebView2 Runtime is required.")
             return 0
@@ -89,7 +89,7 @@ def main(argv=None) -> int:
             if not ENV_PYTHON.is_file():
                 raise RuntimeError("Run setup.bat first to create the project environment.")
             subprocess.run([str(ENV_PYTHON), "-m", "pip", "install", "--disable-pip-version-check",
-                            "-r", str(ROOT / "requirements-browser.txt")], check=True, cwd=ROOT)
+                            "-r", str(ROOT / "requirements/requirements-browser.txt")], check=True, cwd=ROOT)
             subprocess.run([str(ENV_PYTHON), "-m", "pip", "check"], check=True, cwd=ROOT)
             print("Optional capture installed. Use existing Google Chrome; restart the service, then enable it in Settings > General.")
             return 0

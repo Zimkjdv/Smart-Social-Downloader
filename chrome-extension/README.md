@@ -8,7 +8,7 @@
 
 在工具「設定 → Pixiv 登入」按「一鍵連接 Pixiv」。連接頁確認新版連接器後自動開啟 Pixiv；由使用者完成登入／驗證，再自動接回並保存登入。無需 F12 或複製 code。只觀察這次配對分頁的頂層 Pixiv callback，不讀取 Pixiv Cookie、密碼或其他網站登入；code 只傳到配對的 `127.0.0.1` 工具，Refresh Token 與 PKCE verifier 只由後端保存。
 
-分頁關閉、十分鐘過期、重啟瀏覽器／服務或新連接都可能需要從工具重開一次。自訂 port 不符會在開啟授權前拒絕。完整設定、進階手動備援及未驗收項目見 [Pixiv](../docs/PIXIV.md)。
+分頁關閉、十分鐘過期、重啟瀏覽器／服務或新連接都可能需要從工具重開一次。自訂 port 不符會在開啟授權前拒絕。完整設定、進階手動備援及未驗收項目見 [Pixiv](../docs/guides/PIXIV.md)。
 
 ## 自訂連接埠
 
@@ -24,7 +24,7 @@
 
 ## Docker 主機配對
 
-在主機的一般 Chrome 開啟工具網址；容器不會啟動主機 Chrome 或讀取其個人檔案。配對頁可下載連接器 ZIP，解壓後在主機 Chrome 載入 `chrome-extension` 資料夾，不能使用容器內 `/app/` 路徑。X 配對協定與 extension ID 維持相容；1.2.0 的 Pixiv 權限如上；自訂 port 仍須在擴充功能視窗明確設定。預設記憶體模式在服務重啟後需重新連接，獨立金鑰選配見 [Docker 登入](../docs/DOCKER_LOGIN.md)。真實容器配對／保存／重啟仍待驗收。
+在主機的一般 Chrome 開啟工具網址；容器不會啟動主機 Chrome 或讀取其個人檔案。配對頁可下載連接器 ZIP，解壓後在主機 Chrome 載入 `chrome-extension` 資料夾，不能使用容器內 `/app/` 路徑。X 配對協定與 extension ID 維持相容；1.2.0 的 Pixiv 權限如上；自訂 port 仍須在擴充功能視窗明確設定。預設記憶體模式在服務重啟後需重新連接，獨立金鑰選配見 [Docker 登入](../docs/deployment/DOCKER_LOGIN.md)。真實容器配對／保存／重啟仍待驗收。
 
 ## 權限與排錯
 
@@ -41,4 +41,4 @@ Chrome 要求擴充功能具有 cookies 與相應網站權限，才能透過正�
 - [Chrome storage API](https://developer.chrome.com/docs/extensions/reference/api/storage)
 - [Chrome webRequest API](https://developer.chrome.com/docs/extensions/reference/api/webRequest)
 
-完整排錯：[安裝、狀態更新與 X 登入](../docs/TROUBLESHOOTING.md)。新版自訂連接埠的實際驗收、隔離工具及各項完成範圍見 [一般 Chrome 配對驗收](../docs/CHROME_PAIRING_ACCEPTANCE.md)。
+完整排錯：[安裝、狀態更新與 X 登入](../docs/guides/TROUBLESHOOTING.md)。新版自訂連接埠的實際驗收、隔離工具及各項完成範圍見 [一般 Chrome 配對驗收](../docs/testing/CHROME_PAIRING_ACCEPTANCE.md)。

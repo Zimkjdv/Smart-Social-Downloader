@@ -106,7 +106,7 @@ class HostFixtures:
             (path / '.ssdl-acceptance').write_text(fixtures.receipt)
         fixtures.environment.update(SSDL_X_KEY_DIR=self.keys.as_posix(), SSDL_BACKUP_DIR=self.backups.as_posix())
         self.override = self.root / 'compose.login.yaml'
-        self.override.write_bytes((fixtures.root / 'compose.login.yaml').read_bytes())
+        self.override.write_bytes((fixtures.root / 'docker/compose.login.yaml').read_bytes())
 
     def model(self, port):
         self.fixtures.model(port)
@@ -191,7 +191,7 @@ class HostFixtures:
 
 
 def run_checks(docker, image, receipt, root, report):
-    sources = ('compose.yaml', 'compose.login.yaml', 'tools/docker_host_acceptance.py', 'tools/docker_host_probe.py')
+    sources = ('docker/compose.yaml', 'docker/compose.login.yaml', 'tools/docker_host_acceptance.py', 'tools/docker_host_probe.py')
     for name in sources:
         ordinary(root / name, root)
     report['host_sources_sha256'] = hashlib.sha256(b''.join((root / name).read_bytes() for name in sources)).hexdigest()

@@ -33,8 +33,10 @@ def version(files):
 
 def application_fingerprint(files):
     # A new image label/tag or license edit alone is not an application upgrade.
-    return fingerprint({name: content for name, content in files.items()
-                        if name not in {"Dockerfile", ".dockerignore", "LICENSE", "THIRD_PARTY_NOTICES.md"}})
+    aliases = {"requirements/requirements.lock.txt": "requirements.lock.txt"}
+    return fingerprint({aliases.get(name, name): content for name, content in files.items()
+                        if name not in {"Dockerfile", "docker/Dockerfile", ".dockerignore", "LICENSE",
+                                        "THIRD_PARTY_NOTICES.md", "docs/reference/THIRD_PARTY_NOTICES.md"}})
 
 
 def action(fixtures, probe, container, name, *, root=False):
@@ -184,7 +186,7 @@ def run_checks(docker, image, receipt, root, report, *, baseline_root):
     report["upgrade_error"] = "source_selection_failed"
     sources = ("tools/docker_upgrade_acceptance.py",
                "tools/docker_service_acceptance.py", "tools/docker_storage_probe.py",
-               "tools/docker_interaction_acceptance.py", "tools/docker_interaction_probe.py", "compose.yaml")
+               "tools/docker_interaction_acceptance.py", "tools/docker_interaction_probe.py", "docker/compose.yaml")
     for name in sources:
         ordinary(root / name, root)
     report["upgrade_sources_sha256"] = fingerprint({name: (root / name).read_bytes() for name in sources})

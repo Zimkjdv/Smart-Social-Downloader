@@ -15,7 +15,7 @@ updates:
     commit-message:
       prefix: "chore(ci)"
   - package-ecosystem: pip
-    directory: /
+    directory: /requirements
     schedule:
       interval: weekly
       day: wednesday

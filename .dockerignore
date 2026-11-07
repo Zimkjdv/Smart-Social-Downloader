@@ -1,11 +1,14 @@
 # Deny by default, including local state, downloads, .git and .venv.
 **
-!Dockerfile
+!docker/Dockerfile
 !.dockerignore
-!requirements.lock.txt
+!requirements/
+!requirements/requirements.lock.txt
 !app.py
 !LICENSE
-!THIRD_PARTY_NOTICES.md
+!docs/
+!docs/reference/
+!docs/reference/THIRD_PARTY_NOTICES.md
 !ssdl/
 !ssdl/*.py
 !static/
