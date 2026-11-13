@@ -6,7 +6,7 @@ This is a preview project. Security fixes target the latest preview/source revis
 
 ## Report a vulnerability privately
 
-On the published GitHub repository, use **Security → Advisories → Report a vulnerability** when private vulnerability reporting is enabled. Send a minimal reproduction using synthetic data, the application version, affected component and expected impact. Avoid disclosing exploit details in ordinary public Issues or pull requests.
+Use **Security → Advisories → Report a vulnerability** to send the maintainer a private report. Include a minimal reproduction using synthetic data, the application version, affected component and expected impact. Keep exploit details in the private report. [GitHub Security Advisories](https://github.com/Zimkjdv/Smart-Social-Downloader/security/advisories)
 
 If the private-report button is unavailable, use the **Request a private security contact** Issue form. Include only a request for a private channel. Wait for the maintainer to provide that channel before sharing any technical details. Do not post credentials or the vulnerability itself. There is no dedicated security email address configured in this source tree.
 
@@ -27,6 +27,6 @@ Relevant issues include unintended local API access, credential disclosure, unsa
 
 Platform account restrictions, deleted media and unsupported websites are not by themselves security vulnerabilities. The project cannot promise response times or continuous security monitoring.
 
-## Maintainer setup before publishing
+## Maintainer release check
 
-Enable GitHub private vulnerability reporting for the actual repository, confirm the private report button is available, and nominate a maintainer to receive it. Do not advertise the channel as active before enabling it. Publication and this repository setting have not been performed by adding this file. The release checklist is in [說明文件](../docs/development/MAINTENANCE.md).
+Before publishing, confirm that GitHub private vulnerability reporting is enabled, the report button is available and the repository maintainer can receive reports. [Release checklist](../docs/development/MAINTENANCE.md#preparing-a-release)
