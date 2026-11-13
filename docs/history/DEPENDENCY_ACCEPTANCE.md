@@ -1,4 +1,4 @@
-# First dependency proposal acceptance
+# Dependency proposal acceptance
 
 > Historical record. Version, completion and pending statements apply to the dates recorded below.
 > Current work is in [Roadmap](../development/ROADMAP.md); current dependency pins are in the requirements directory.
@@ -121,3 +121,9 @@ No production packages, login state or TLS behavior are changed by this review.
 Sources: [official release](https://github.com/actions/setup-python/releases/tag/v7.1.0),
 [exact manifest](https://github.com/actions/setup-python/blob/6d4fd22b20465ccc0f7354476588e8df7c9ca0e0/action.yml),
 [Playwright metadata](https://pypi.org/pypi/playwright/1.64.0/json).
+
+## Dependency proposals #19 and #20 — 2026-11-13
+
+- Closed [#19](https://github.com/Zimkjdv/Smart-Social-Downloader/pull/19) after a fresh pip dry run reproduced `ResolutionImpossible`. The proposal changes only pyee to 16.0.1. Playwright 1.64.1 requires `pyee>=13,<15`, so the browser requirements retain pyee 14.0.0. [Playwright dependency metadata](https://pypi.org/pypi/playwright/1.64.1/json)
+- Merged [#20](https://github.com/Zimkjdv/Smart-Social-Downloader/pull/20) at `811c17e`. A fresh Windows/Python 3.12.10 virtual environment installed `imageio-ffmpeg==0.8.1` and `pycryptodomex==3.24.2`. The official Windows wheel hashes matched PyPI. The selected wheel binary reported FFmpeg 9.0.2, and a synthetic AES-GCM session payload passed encryption, decryption and tag verification. [imageio-ffmpeg release](https://github.com/imageio/imageio-ffmpeg/releases/tag/v0.8.1) · [pycryptodomex wheel metadata](https://pypi.org/project/pycryptodomex/3.24.2/)
+- Checkout and extracted-source runs each passed **488 Python and 59 Node tests**. The extracted dependency gate passed **116 cases**. Hosted Windows, fresh installation, Docker and Windows distribution checks passed on the reviewed head. [Source and download checks](https://github.com/Zimkjdv/Smart-Social-Downloader/actions/runs/42911715741) · [Windows distribution](https://github.com/Zimkjdv/Smart-Social-Downloader/actions/runs/42911715780)

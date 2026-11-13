@@ -1,6 +1,6 @@
 # Roadmap
 
-更新：2026-10-29。此檔是**未完成工作與最新審查發現的唯一總清單**；完成紀錄移至 [CHANGELOG](../history/CHANGELOG.md)。目前基準為 Windows／Python 3.12，沒有 Python 3.10 驗收工作。未勾選項目尚未完成；已勾選階段仍以所列驗收範圍為準，不代表已發布。N01～N08 已完成並移到 [CHANGELOG](../history/CHANGELOG.md#unreleased)，回歸結果見 [TESTING](../history/TEST_RESULTS.md)。N07 的索引評估已記錄，實際索引／游標儲存列為後續選配，尚未實作。
+更新：2026-11-13。此檔是**未完成工作與最新審查發現的唯一總清單**；完成紀錄移至 [CHANGELOG](../history/CHANGELOG.md)。目前基準為 Windows／Python 3.12，沒有 Python 3.10 驗收工作。未勾選項目尚未完成；已勾選階段仍以所列驗收範圍為準，不代表已發布。N01～N08 已完成並移到 [CHANGELOG](../history/CHANGELOG.md#unreleased)，回歸結果見 [TESTING](../history/TEST_RESULTS.md)。
 
 ## 本輪整體審查
 
@@ -61,7 +61,7 @@ Windows 背景啟停的 7 項原生隔離驗收已於 2026-10-24 通過並移至
 
 - [ ] **線上平台抽樣**：實際 Best／指定畫質、登入失效、限流與恢復、帳號媒體掃描、缺檔補抓；先取得適合的測試素材。104＋10 合成測試不代表所有平台即時相容。
 - [ ] **GitHub 設定與發布**：啟用並確認私人漏洞回報入口，核對 tag、版本、來源 ZIP、release notes 後發布 preview。repo 已公開、Windows／Python 3.12 CI 已通過，目前沒有 tag／Release。
-- [ ] **後續依賴更新提案驗收**：歷史提案、Actions 整合結果與當時的 GUI 故障觀察見[PR 整合紀錄](../history/PR_INTEGRATION.md)及[首輪依賴審查](../history/DEPENDENCY_ACCEPTANCE.md)。目前基準以`requirements/` 下的 `requirements*.txt` 為準；新提案仍須獨立核對相容範圍、原生 GUI 與必要 CI，不能由舊提案紀錄推定目前套件或遠端 PR 狀態，也未宣稱完成 CVE 掃描。
+- [ ] **後續依賴更新提案驗收**：目前基準以 `requirements/` 下的固定版本為準。已處理的提案見[依賴審查紀錄](../history/DEPENDENCY_ACCEPTANCE.md#dependency-proposals-19-and-20--2026-11-13)。每次新提案都要核對相容範圍、相關原生 GUI 驗收和必要 CI。
 
 依賴故障追蹤工具、CI／來源包檢查及本輪 HTTP 錯誤回應資源修正已完成，移至 [CHANGELOG](../history/CHANGELOG.md#unreleased)。後續每次引擎／Chrome／Playwright 升級仍須重跑；已知 SSL 棄用、10053 的驗證範圍與故障處置維護在[追蹤文件](DEPENDENCY_FAULTS.md)，不代表所有上游問題已消失。未來二進位散布仍須逐版核對第三方授權。
 
@@ -81,10 +81,9 @@ Windows／Linux 的合成作者目錄驗收已於 2026-10-25 通過並移至 [CH
 
 ## 後續功能
 
-### 大型媒體清單索引（選配）
+### 大型媒體清單索引（暫緩）
 
-- [ ] 實作獨立的工作檔案索引及游標分頁，配套增量 IPC、snapshot generation 發布、恢復／回退、舊資料遷移及精確檔案操作。N07 的[評估與取捨](../reference/DATABASE_MAINTENANCE.md#indexed-file-detail-assessment)已完成；此實作是後續功能，屬於未來選配。
-- [ ] 工作清單生命週期與有效去重紀錄分開；原位置檔案不存在就重新取得。現有 HTTP 分頁仍從記憶體清單取得，64 MiB 限制維持，不以直接提高上限取代索引設計。
+2026-11-13 複評後暫緩實作。現有按需分頁可支援清單瀏覽。大型合成歷史仍有整份保存的延遲，超過 64 MiB 也會觸發容量保護，但現有紀錄尚無代表性工作因此無法完成的案例。清除工作清單與保留有效去重紀錄已是現行行為。重啟評估的條件為代表性工作反覆觸發容量限制、必要歷史長期接近容量警示且無法清理，或可重現的保存延遲影響操作。[量測、決策與後續設計](../reference/DATABASE_MAINTENANCE.md#indexed-file-detail-assessment)
 
 ### Docker 化部署
 

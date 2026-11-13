@@ -68,10 +68,10 @@ The index uses memory proportional to media-path count. This is not an OS filesy
 
 ## Verification scope
 
-After confirming the queue was idle, the service was restarted under the normal Windows account. It loaded all 22 existing completed records, retained the connected X session, and reported healthy worker/storage/cache status. Normal status reads returned 20 rows on page 1 (30,410 bytes), 2 on page 2 (5,885 bytes), and a 3,786-byte summary. These one-time observations are not latency benchmarks or regression-suite results.
+The original Windows restart check loaded all 22 completed records, retained the X session and reported healthy worker, storage and cache status. Status reads returned 20 rows on page 1 (30,410 bytes), two rows on page 2 (5,885 bytes), and a 3,786-byte summary. The payload sizes describe that one history.
 
-Python/JavaScript syntax checks and the synthetic measurement were completed. No tests were added or suites run for this P2 change; previous P1 results predate it. Real-browser pagination/focus/preview retention, lazy file loading, concurrent scans, cache eviction, and new API contracts still need regression validation before publication.
+The 2026-10-11 follow-up passed **104 Python and 10 Node tests**, including real headless Chrome against synthetic pages and APIs. Coverage includes pagination, keyboard focus, lazy file detail, bounded API responses, storage scans with concurrent updates, and thumbnail cache cleanup and failure handling. The same follow-up covers the component split, stable message keys, multi-player selection and platform cooldown grouping. [P2 verification](../history/P2_COMPLETION.md#verification-status) · [Test results](../history/TEST_RESULTS.md)
 
-## Remaining P2 work
+## Large histories
 
-The component split, stable UI message keys, modal keyboard/responsive improvements, static multi-player selection and platform cooldown grouping were implemented on 2026-10-11. See [P2_COMPLETION.md](../history/P2_COMPLETION.md) for their rules and pending verification. The earlier measurements do not benchmark these changes.
+The browser fetches file details on demand. The worker and state writer still process full file lists, so IPC and saved history have separate capacity limits. [Capacity measurements](CAPACITY.md) · [Indexed file-detail assessment](DATABASE_MAINTENANCE.md#indexed-file-detail-assessment)

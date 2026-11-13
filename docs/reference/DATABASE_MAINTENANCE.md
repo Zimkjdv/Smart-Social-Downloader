@@ -58,9 +58,15 @@ Stop this tool and every other process using these databases first. Preserve a s
 
 ## Indexed file-detail assessment
 
-The three databases store completion/dedup evidence; they are not yet the authoritative source for all job file lists. Reusing them as a live paginated job index would mix two lifecycles: users can clear job history while retaining dedup, and a failed/retried job can retain an earlier success. Deleting those rows to implement list cleanup would violate existing rules.
+The three databases store completion and dedup evidence. Clearing jobs already removes list entries while retaining those records and downloaded media. A failed or retried job can also retain its earlier successful result. Keep these lifecycles independent if job file details move to an index. [Download dedup rules](DOWNLOAD_DEDUP.md)
 
-A separate index keyed by job ID, snapshot generation and file ordinal is the preferred future direction. It needs transactional generation publication with state snapshots, restart/backup/rollback migration, concurrent readers, exact file actions and incremental child-to-parent transfer. Merely changing HTTP pagination leaves whole-list IPC/state costs intact; simply lifting the 64 MiB limit does not solve them. Keep schema 2 and current limits for this milestone; indexed storage/cursor delivery is an explicit **future feature** in [ROADMAP](../development/ROADMAP.md), not claimed as implemented by SQLite maintenance.
+### 2026-11-13 reassessment
+
+Defer the index, cursor pagination, incremental updates and migration. The existing on-demand file endpoint serves up to 100 entries at a time. The main costs at large scale are repeated full lists in worker messages and durable history saves.
+
+On Windows with Python 3.12.10, an isolated synthetic run round-tripped 90,000 filenames in a 20.52 MB logical worker message. The 64 MiB boundary probe accepted the exact limit and rejected one extra byte while preserving the primary and backup. A separate three-sample synthetic run with 200 jobs and 400,180 paths saved a 21.27 MB state file. Median durable save was 1.73 s. While the writer was busy, median summary, pause and stop responses were 0.15 s, 3.27 s and 3.41 s. The samples describe synthetic workloads on one host. [Capacity probe](CAPACITY.md#reproduce-the-measurements) · [Persistence probe](PERSISTENCE_PERFORMANCE.md)
+
+Reassess when representative jobs repeatedly hit `worker_message_too_large` or `state_too_large`, when needed history routinely reaches the existing 80% warning and cannot be cleared, or when reproducible save latency disrupts normal use. A future implementation should pair a separate index keyed by job ID, snapshot generation and file ordinal with incremental worker IPC and cursor pagination. Verify consistent generation publication, exact file actions, concurrent reads, restart, backup, migration and rollback. HTTP pagination alone leaves full-list IPC and saves in place. [Roadmap](../development/ROADMAP.md#大型媒體清單索引暫緩)
 
 ## Verification
 
