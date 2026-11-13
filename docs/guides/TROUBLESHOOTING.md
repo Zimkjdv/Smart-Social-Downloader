@@ -81,7 +81,7 @@ $env:SSDL_PORT = "8877"
 
 ## 5．驗證範圍
 
-已補齊合成故障測試：API 無回應／內容讀取逾時／壞 JSON／欄位不符／寫入回應遺失、DOM 離線恢復／按鈕／草稿／頁碼／語言切換，以及 Chrome 合成來源／連接埠／加密前置失敗。前輪 Python 59 項、Node 8 項本機通過；後續結果見 [Historical test results](../history/TEST_RESULTS.md)。真實 Chrome 自訂連接埠及乾淨 Windows 使用 Python 3.12 的首次安裝驗收仍待執行，進度以 [ROADMAP.md](../development/ROADMAP.md) 為準。
+合成故障測試涵蓋 API 無回應、讀取逾時、壞 JSON、欄位不符、寫入回應遺失、介面離線恢復，以及 Chrome 連接器的來源、連接埠與加密前置失敗。2026-10-25 已在一般 Chrome 與 Windows 自訂連接埠 `8877` 完成 X 配對、Pixiv 自動回接、後端重啟後的 DPAPI 登入恢復，以及 Chrome 重啟後的重新配對。乾淨 Windows 首次安裝、全新連接器的權限提示與 OAuth 進行中的 Chrome／worker 生命週期仍待驗收。[Chrome 實機紀錄](../testing/CHROME_PAIRING_ACCEPTANCE.md#follow-up-evidence--2026-10-25) · [Roadmap](../development/ROADMAP.md)
 
 ## 6．停止、保存錯誤與分享診斷
 
@@ -115,7 +115,7 @@ $env:SSDL_PORT = "8877"
 
 首次安裝優先以 Windows Python launcher 的 `py -3.12` 建立專案環境；未安裝 launcher 或未登記該版本時改用 PATH 的 `python`，安裝程式仍檢查最低版本 3.12。既有 `.venv` 沿用原環境。如果它的 Python 版本低於 3.12，請停止服務、重新建立該虛擬環境，再執行 setup。
 
-前輪已在 Windows 的獨立原始碼副本與全新 Python 3.12.10 虛擬環境驗證基準安裝、環境檢查，以及停用套件下載後的 `start.bat` 啟動。未複製作者的歷史、Cookie 或下載檔。這不等同驗證全新 Windows 系統或 Chrome 登入流程；介面診斷及自訂連接埠流程仍待乾淨環境驗收。
+已在 Windows 的獨立原始碼副本與全新 Python 3.12.10 虛擬環境驗證基準安裝、環境檢查和離線 `start.bat` 啟動。在乾淨 Windows 系統上的首次安裝及真人桌面操作仍待驗收。[安裝驗收範圍](../testing/INSTALLATION_ACCEPTANCE.md#ci-and-remaining-acceptance)
 
 YouTube 等部分網站需要 Node.js 22+ 或 Deno 2.3+；啟動與設定中的環境診斷會檢查執行檔及版本。腳本不會靜默安裝全域 JavaScript runtime。[yt-dlp 官方 EJS 說明](https://github.com/yt-dlp/yt-dlp/wiki/EJS)
 
