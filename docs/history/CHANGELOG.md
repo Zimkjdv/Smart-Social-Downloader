@@ -4,14 +4,19 @@ Application changes are recorded here. Download engine and Chrome connector vers
 
 ## Unreleased
 
+## 0.1.0-preview.2 — 2026-11-14
+
+First public source preview for Windows with Python 3.12. The release includes the versioned source ZIP, SHA-256 checksum and installation instructions. [GitHub prerelease](https://github.com/Zimkjdv/Smart-Social-Downloader/releases/tag/v0.1.0-preview.2)
+
+- Update the reviewed Python baseline to `imageio-ffmpeg` 0.8.1 and `pycryptodomex` 3.24.2. [Dependency acceptance](DEPENDENCY_ACCEPTANCE.md#dependency-proposals-19-and-20--2026-11-13)
+- Enable GitHub private vulnerability reporting. [Reporting instructions](../../.github/SECURITY.md#report-a-vulnerability-privately)
+
 - Reduce the project root to launch entries and essential metadata; group dependency manifests, Docker recipes, GitHub policies, release notes and notices in their owning directories. Preserve runtime image filenames, Compose project/data/backup/secret locations and older-source Docker acceptance. Update installation, CI, Dependabot and source-package checks.
 
 - Organize documentation by audience, add a central index, merge Windows launch, deduplication and maintenance guidance, and separate test instructions from dated evidence. Preserve bilingual usage guides and one complete architecture tree. Ship the reviewed documentation categories and verify local links/heading anchors in source acceptance; keep local research outside the distribution.
 
 - Review the existing urllib3 SSL-options deprecation for gallery-dl 1.32.19 on Python 3.12 with urllib3 2.8.0; retain rejection of other warning sources and unreviewed versions.
 - Restore the pinned Windows zlib source download through the official GitHub release after the original URL returned HTTP 404.
-
-No GitHub release or tag has been created.
 
 ### Added
 
@@ -203,9 +208,9 @@ No GitHub release or tag has been created.
 - Consolidate completed review milestones here and pending work in [ROADMAP.md](../development/ROADMAP.md); retire the former review checklist and update documentation links, directory trees and the source-package allowlist.
 - Rename the planning file to uppercase ROADMAP.md and update all documentation and package references. N01–N05 are completed here; remaining review findings stay in the roadmap.
 
-## 0.1.0-preview.2 — 2026-10-11
+## 0.1.0-preview.2 development baseline — 2026-10-11
 
-**Unpublished preview.**
+This section records the development baseline from October 11.
 
 ### Added
 
@@ -230,7 +235,7 @@ No GitHub release or tag has been created.
 
 ## 0.1.0-preview.1 — 2026-10-11
 
-**Unpublished preview baseline.** No GitHub release or tag has been created. These entries summarize existing work; they do not mean all features were introduced or tested on this date.
+This section records the original unpublished development baseline.
 
 ### Included
 

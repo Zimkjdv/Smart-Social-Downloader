@@ -618,7 +618,7 @@ The HTTP fixture uses two slots and short deadlines to exercise production admis
 
 Additional checks: 50 Python sources parse, 15 JavaScript/CJS sources pass `node --check`, and both locales contain all 633 keys. Local links resolve in 21 Markdown documents. The allowlisted source archive contains 116 files, including the new HTTP server and regression module; bytes and ZIP CRC are checked, and runtime directories remain excluded.
 
-Tests use temporary storage and synthetic sessions, without reading real Cookie values or downloading external platform media. Local deployment checks are recorded separately in [CHANGELOG](CHANGELOG.md#unreleased): the idle service restarted healthy, retaining 25 completed jobs, hourly limit 80 and the connected X session. Remaining architecture, performance and environment acceptance stay in [ROADMAP](../development/ROADMAP.md).
+Tests use temporary storage and synthetic sessions, without reading real Cookie values or downloading external platform media. Local deployment checks are recorded separately in [CHANGELOG](CHANGELOG.md#010-preview2--2026-11-14): the idle service restarted healthy, retaining 25 completed jobs, hourly limit 80 and the connected X session. Remaining architecture, performance and environment acceptance stay in [ROADMAP](../development/ROADMAP.md).
 
 ## N01/N02 fixes — 2026-10-11
 
@@ -643,7 +643,7 @@ Separate temporary-fixture probes identified issues outside the existing regress
 - POSTing a string `"false"` to the isolated pause API returns 200 and enables pause.
 - A partial HTTP request reaches body reading with no socket timeout; the probe closes its single owned connection. Resource-exhaustion testing was not performed.
 
-These probes originally exposed missing regression coverage. N01–N05 are now fixed and covered above. Completed fixes are recorded in [CHANGELOG](CHANGELOG.md#unreleased); architecture suggestions and unmeasured performance risks remain pending in [ROADMAP](../development/ROADMAP.md#本輪整體審查).
+These probes originally exposed missing regression coverage. N01–N05 are now fixed and covered above. Completed fixes are recorded in [CHANGELOG](CHANGELOG.md#010-preview2--2026-11-14); architecture suggestions and unmeasured performance risks remain pending in [ROADMAP](../development/ROADMAP.md#本輪整體審查).
 
 ## Earlier audit record — 2026-10-11
 
@@ -1294,15 +1294,15 @@ The following completed plan is preserved for its design decisions and original 
 
 #### D01：共用契約與平台操作（已完成）
 
-2026-10-26 完成，實作／測試範圍見 [共用契約](../reference/API_CONTRACT.md) 及 [CHANGELOG](CHANGELOG.md#unreleased)。業務 API 保留；Browser Adapter 已承接開頁、配對分頁預留、診斷下載、剪貼簿與取消清理，Windows 開檔分派集中於平台 Module。未宣稱 pywebview／WebView2 已驗收。
+2026-10-26 完成，實作／測試範圍見 [共用契約](../reference/API_CONTRACT.md) 及 [CHANGELOG](CHANGELOG.md#010-preview2--2026-11-14)。業務 API 保留；Browser Adapter 已承接開頁、配對分頁預留、診斷下載、剪貼簿與取消清理，Windows 開檔分派集中於平台 Module。未宣稱 pywebview／WebView2 已驗收。
 
 #### D02：後端與視窗生命週期（已完成）
 
-2026-10-26 完成，見 [Supervisor 契約](../reference/DESKTOP_CONTROL.md) 及 [CHANGELOG](CHANGELOG.md#unreleased)。啟動／附接與開頁分離；核對 Windows 控制鎖、HTTP 身分、版本及執行個體，缺引擎仍可取得 UI／API 就緒。外殼停止使用執行個體專屬事件；單視窗與喚回事件已通過原生雙程序驗證，關閉視窗控制不停止後端。真正 GUI 與關窗提示由 D03 接上。
+2026-10-26 完成，見 [Supervisor 契約](../reference/DESKTOP_CONTROL.md) 及 [CHANGELOG](CHANGELOG.md#010-preview2--2026-11-14)。啟動／附接與開頁分離；核對 Windows 控制鎖、HTTP 身分、版本及執行個體，缺引擎仍可取得 UI／API 就緒。外殼停止使用執行個體專屬事件；單視窗與喚回事件已通過原生雙程序驗證，關閉視窗控制不停止後端。真正 GUI 與關窗提示由 D03 接上。
 
 #### D03：pywebview／WebView2 來源版本（已完成）
 
-2026-10-26 完成，使用方式見 [桌面指南](../guides/WINDOWS.md)，實作與證據見 [CHANGELOG](CHANGELOG.md#unreleased) 及 [測試紀錄](TEST_RESULTS.md)。`desktop.bat` 使用選配鎖定依賴載入相同 HTTP UI；原生視窗、資料夾選擇、診斷另存、專用 profile、關窗續抓與明確停止均已接上。原生 guard 限制導航／frame／彈窗與 bridge 訊息來源，X／Pixiv 授權沿用一般 Chrome。
+2026-10-26 完成，使用方式見 [桌面指南](../guides/WINDOWS.md)，實作與證據見 [CHANGELOG](CHANGELOG.md#010-preview2--2026-11-14) 及 [測試紀錄](TEST_RESULTS.md)。`desktop.bat` 使用選配鎖定依賴載入相同 HTTP UI；原生視窗、資料夾選擇、診斷另存、專用 profile、關窗續抓與明確停止均已接上。原生 guard 限制導航／frame／彈窗與 bridge 訊息來源，X／Pixiv 授權沿用一般 Chrome。
 
 兩次真實 WebView2 隔離啟動已驗證 UI／bridge、共用 HTTP 寫入、重複開啟喚回、語言／頁數保存、拒絕導航後 bridge 仍可使用、關窗續留後端與 owned stop；當前實際 devicePixelRatio 為 2。D03 是來源版本與基本 smoke；D04 擴充結果列於下方，也不是 D05 安裝包。
 

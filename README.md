@@ -4,7 +4,7 @@ English | [繁體中文](docs/README_CN.md)
 
 A local video and image download manager with a browser interface. Paste URLs, queue downloads, and organize media into platform folders. Powered by **yt-dlp**, **gallery-dl** and **FFmpeg**.
 
-**Windows · Python 3.12 · MIT · Preview 0.1.0-preview.2 (not yet published)**
+**Windows · Python 3.12 · MIT · [Preview 0.1.0-preview.2](https://github.com/Zimkjdv/Smart-Social-Downloader/releases/tag/v0.1.0-preview.2)**
 
 ![Smart Social Downloader dashboard illustration](docs/images/dashboard-preview.svg)
 
@@ -24,7 +24,7 @@ A local video and image download manager with a browser interface. Paste URLs, q
 
 ## Quick start
 
-1. Install **Python 3.12** on Windows, then download and extract the project source.
+1. Install **Python 3.12** on Windows, then download and extract the versioned source ZIP from the [preview release](https://github.com/Zimkjdv/Smart-Social-Downloader/releases/tag/v0.1.0-preview.2).
 2. Run **`setup.bat`** to create `.venv` and install the pinned dependency baseline.
 3. Run **`start.bat`**. It starts the service in the background and opens the web interface when ready.
 4. Open [http://127.0.0.1:8765](http://127.0.0.1:8765), paste media URLs and click **Add to Download Queue**.
@@ -133,7 +133,7 @@ The same tab offers SQLite capacity checks, consistent local backups and manual 
 
 After the GitHub repository is published, use the Issue forms for bugs, installation or feature requests. Read [CONTRIBUTING](.github/CONTRIBUTING.md) first and review diagnostics/screenshots before sharing them. Vulnerabilities use the private process in [SECURITY](.github/SECURITY.md).
 
-Source archives include code, docs, public artwork and licenses. They exclude downloaded media, history, cookies and your Python environment. The versioned archive is source code, not an executable installer. The source repository is [Zimkjdv/Smart-Social-Downloader](https://github.com/Zimkjdv/Smart-Social-Downloader). GitHub private reporting activation and a tagged preview Release are still pending.
+The versioned source ZIP includes code, docs, public artwork and licenses. Downloaded media, history, cookies and virtual environments stay local. For setup, follow the quick start above. [Preview downloads and SHA-256 checksum](https://github.com/Zimkjdv/Smart-Social-Downloader/releases/tag/v0.1.0-preview.2)
 
 Maintainers can run `python tools/check_source_archive.py` to build, verify and test the extracted source ZIP using the current installed dependencies. See [test fixtures and source acceptance](docs/development/TESTING.md) for package boundaries and commands.
 

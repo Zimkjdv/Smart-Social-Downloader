@@ -1,6 +1,6 @@
 # Releases and maintenance
 
-This guide prepares a source release. Creating these files does not create a repository, tag or GitHub release. Current acceptance work remains listed in [ROADMAP.md](ROADMAP.md).
+This guide covers preparing a source release. See [GitHub Releases](https://github.com/Zimkjdv/Smart-Social-Downloader/releases) for downloads and [Roadmap](ROADMAP.md) for remaining acceptance work.
 
 ## Four independent versions
 
@@ -11,7 +11,7 @@ This guide prepares a source release. Creating these files does not create a rep
 | Chrome connector | `chrome-extension/manifest.json` | Extension permissions, pairing and browser behavior. |
 | Saved-state schema | `ssdl/persistence.py` | History format and migration; currently schema 2. |
 
-The current application is **0.1.0-preview.2**, an unpublished prerelease; the original baseline was `0.1.0-preview.1`. Preview APIs may change; document migrations explicitly. Use the single application constant for runtime identity instead of hardcoding copies in HTML/JavaScript. Git tags use `v` plus the same version (for example `v0.1.0-preview.2`). Markdown and changelog references must be updated during release preparation.
+The application version is **0.1.0-preview.2**. Preview APIs may change. Document migrations explicitly and use the application constant as the runtime identity. Git tags use `v` followed by the application version. Update Markdown and changelog references during release preparation. [v0.1.0-preview.2](https://github.com/Zimkjdv/Smart-Social-Downloader/releases/tag/v0.1.0-preview.2)
 
 The header and Settings → Diagnostics show the application version. Environment diagnostics lists engine versions separately; exported diagnostics includes `app_version`. Status/summary API responses also include `app_version`; the older `version` field retains its historical yt-dlp meaning for compatibility. Changing application identity does not require a state-schema or connector bump.
 
@@ -39,7 +39,7 @@ python tools/manage.py --version
 - [ ] Require the fresh source/venv installation job, including real isolated-console Ctrl+C shutdown/recovery, as well as regression checks; record remaining desktop/account acceptance from [Installation acceptance](../testing/INSTALLATION_ACCEPTANCE.md) and [Console acceptance](../testing/CONSOLE_ACCEPTANCE.md).
 - [ ] Create a tag matching the application version and publish a **prerelease** for a preview. Summarize known limitations and pending checks in its notes.
 
-These are maintainer actions, not steps every user must perform. The application works locally before repository publication.
+These are maintainer actions. For a local installation, use the quick start in the [README](../../README.md#quick-start).
 
 ## Source archive
 

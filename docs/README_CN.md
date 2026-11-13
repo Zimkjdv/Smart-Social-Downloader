@@ -4,7 +4,7 @@
 
 在自己電腦執行的影片與圖片下載管理工具。貼上網址即可排隊下載，媒體依平台分類保存。使用 **yt-dlp**、**gallery-dl** 與 **FFmpeg**。
 
-**Windows · Python 3.12 · MIT · 預覽版 0.1.0-preview.2（尚未發布）**
+**Windows · Python 3.12 · MIT · [預覽版 0.1.0-preview.2](https://github.com/Zimkjdv/Smart-Social-Downloader/releases/tag/v0.1.0-preview.2)**
 
 ![Smart Social Downloader 介面示意](images/dashboard-preview.svg)
 
@@ -24,7 +24,7 @@
 
 ## 快速開始
 
-1. 在 Windows 安裝 **Python 3.12**，下載並解壓專案原始碼。
+1. 在 Windows 安裝 **Python 3.12**，從[預覽版頁面](https://github.com/Zimkjdv/Smart-Social-Downloader/releases/tag/v0.1.0-preview.2)下載有版本標記的原始碼 ZIP 並解壓。
 2. 執行 **`setup.bat`**，建立 `.venv` 並安裝鎖定版本的基準套件。
 3. 執行 **`start.bat`**，服務會在背景運行，就緒後自動開啟網頁。
 4. 在瀏覽器開啟 [http://127.0.0.1:8765](http://127.0.0.1:8765)，貼上媒體網址並按 **加入下載佇列**。
@@ -133,7 +133,7 @@ Windows CI 另以全新來源與 venv 驗證安裝、離線啟動／重啟、原
 
 GitHub repo 發布後，可使用 Issue 表單回報錯誤、安裝問題或功能建議。分享前先檢視診斷與截圖，避免個人資料外洩；流程見 [CONTRIBUTING](../.github/CONTRIBUTING.md)。漏洞請依 [SECURITY](../.github/SECURITY.md) 使用私人回報方式。
 
-原始碼 ZIP 包含程式、文件、公開展示圖及授權，排除下載檔案、歷史、Cookie 與 Python 環境。檔名包含應用程式版本；它不是可執行安裝程式。原始碼 repo 為 [Zimkjdv/Smart-Social-Downloader](https://github.com/Zimkjdv/Smart-Social-Downloader)。啟用 GitHub 私人漏洞回報及發布有 tag 的預覽 Release 仍待進行。
+原始碼 ZIP 包含程式、文件、公開展示圖及授權。下載檔案、歷史、Cookie 與虛擬環境保留在本機。安裝請依上方快速開始步驟。[預覽版下載與 SHA-256 校驗檔](https://github.com/Zimkjdv/Smart-Social-Downloader/releases/tag/v0.1.0-preview.2)
 
 ## 未來規劃
 
