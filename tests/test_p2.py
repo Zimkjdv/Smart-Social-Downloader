@@ -1,4 +1,6 @@
 """P2 contracts and fault simulations against an isolated app context."""
+from collections import Counter
+from concurrent.futures import ThreadPoolExecutor
 import http.client
 from http.server import ThreadingHTTPServer
 import json
@@ -102,6 +104,55 @@ class P2AppTests(unittest.TestCase):
             {"input_index": 2, "url": invalid[:120], "error": "請輸入 Pixiv 作者首頁、作品頁網址或數字作者 ID。"},
             {"input_index": 3, "url": "", "error": "網址格式不正確"},
         ])
+
+    def test_batch_reuses_source_keys_for_inputs_and_retained_jobs(self):
+        self.prepare()
+        seed_jobs(self.app, self.app.MAX_JOBS - 1)
+        jobs = self.app.state.jobs
+        jobs["0"].update(status="completed", output_dir=str(self.root))
+        self.app.state.queue.remove("0")
+        queued = list(self.app.state.queue)
+        history_urls = [job["url"] for job in jobs.values()]
+        new_url = "https://example.org/new"
+        with patch.object(self.app.media, "source_key", wraps=self.app.media.source_key) as source_key:
+            code, result = self.request("/api/jobs", {"urls": [*history_urls[:29], new_url]})
+        self.assertEqual(code, 201)
+        self.assertEqual(result["reused"], ["0"])
+        self.assertEqual(result["already_pending"], [str(index) for index in range(1, 29)])
+        self.assertEqual(len(result["added"]), 1)
+        self.assertEqual(list(self.app.state.queue), [*queued, "0", *result["added"]])
+        self.assertEqual(source_key.call_count, len(history_urls) + 1)
+        self.assertEqual(Counter(call.args[0] for call in source_key.call_args_list),
+                         Counter([*history_urls, new_url]))
+
+    def test_concurrent_batch_add_preserves_deduplication_and_capacity_is_atomic(self):
+        self.prepare()
+        seed_jobs(self.app, self.app.MAX_JOBS - 2)
+        queued = list(self.app.state.queue)
+        payload = {"urls": ["https://example.org/new"]}
+        ready = threading.Barrier(2)
+
+        def submit():
+            ready.wait(timeout=5)
+            return self.request("/api/jobs", payload)
+
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            responses = [executor.submit(submit), executor.submit(submit)]
+            results = [response.result(timeout=8) for response in responses]
+        self.assertEqual([status for status, _ in results], [201, 201])
+        added = [key for _, result in results for key in result["added"]]
+        pending = [key for _, result in results for key in result["already_pending"]]
+        self.assertEqual(len(added), 1)
+        self.assertEqual(pending, added)
+        persisted = self.app.STATE_STORE.filename.read_bytes()
+        self.assertEqual(json.loads(persisted)["queue"], [*queued, *added])
+        with patch.object(self.app, "_save_locked", wraps=self.app._save_locked) as save:
+            self.assertEqual(self.request("/api/jobs", {"urls": [
+                "https://example.org/overflow-a", "https://example.org/overflow-b",
+            ]})[0], 429)
+        save.assert_not_called()
+        self.assertEqual(list(self.app.state.queue), [*queued, *added])
+        self.assertEqual(self.app.STATE_STORE.filename.read_bytes(), persisted)
 
     def test_pause_requires_explicit_boolean_without_saving_invalid_input(self):
         self.prepare()

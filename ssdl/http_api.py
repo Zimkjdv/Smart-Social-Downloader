@@ -13,6 +13,7 @@ import time
 import uuid
 import zipfile
 from contextlib import contextmanager
+from functools import cache
 from http.server import BaseHTTPRequestHandler
 from pathlib import Path
 from urllib.parse import parse_qs, quote, unquote, urlparse
@@ -492,6 +493,8 @@ class ApiHandler(BaseHTTPRequestHandler):
                 return self._json(400, {"error": "請先貼上至少一個網址"})
             if len(raw_urls) > self.app.MAX_URLS_PER_REQUEST:
                 return self._json(400, {"error": f"一次最多加入 {self.app.MAX_URLS_PER_REQUEST} 個網址"})
+            # Reuse URL identities throughout this batch, including the retained job scan.
+            source_key = cache(self.app.media.source_key)
             accepted, rejected = [], []
             seen = set()
             for input_index, raw in enumerate(raw_urls):
@@ -517,7 +520,7 @@ class ApiHandler(BaseHTTPRequestHandler):
                 if account and requested_quality != "best":
                     rejected.append({"input_index": input_index, "url": result, "error": "作者媒體模式使用原圖／最高畫質。"})
                     continue
-                identity = self.app.media.source_key(result)
+                identity = source_key(result)
                 if identity in seen:
                     continue
                 seen.add(identity)
@@ -531,10 +534,10 @@ class ApiHandler(BaseHTTPRequestHandler):
                     if account and (self.app.profile_mode(url), account) in pending_accounts:
                         rejected.append({"input_index": input_index, "url": url, "error": "此作者已有等待中或下載中的工作。"})
                         continue
-                    identity = self.app.media.source_key(url)
+                    identity = source_key(url)
                     preference = "best" if account or self.app.media.original_image_url(url) else requested_quality
                     matches = sorted((job for job in self.app.state.jobs.values()
-                        if self.app.media.source_key(job["url"]) == identity and job.get("video_quality", "best") == preference),
+                        if source_key(job["url"]) == identity and job.get("video_quality", "best") == preference),
                         key=lambda item: item["created_at"], reverse=True)
                     pending = next((job for job in matches if job["status"] in {"queued", "selecting"}
                         or (job["status"] == "active" and self.app.media._same_output_directory(job, self.app.state.download_dir))), None)

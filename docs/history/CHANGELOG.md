@@ -4,6 +4,8 @@ Application changes are recorded here. Download engine and Chrome connector vers
 
 ## Unreleased
 
+- Reuse each distinct source URL's identity within a single batch submission. In an isolated Windows HTTP benchmark on 2026-11-21 (35 measured runs per scenario), median lock time for 30 inputs with 170–200 retained jobs fell from 86.02 to 5.17 ms for new jobs, 102.15 to 4.76 ms for queued duplicates, 119.77 to 19.06 ms for reused jobs, and 100.75 to 4.77 ms for a batch rejected at capacity. The test used synthetic histories without large file lists. Timing excludes URL network validation, time spent waiting for the queue lock and the durable write wait. A single input against 20 retained jobs measured 0.43 and 0.45 ms before and after. Regression tests cover mixed outcomes, concurrent duplicates, and atomic capacity rejection with persisted state.
+
 - Show each rejected batch entry with its original input and reason. The jobs API includes the submitted position so the dashboard can restore only the rejected entries, in order, for another attempt. Drafts edited during submission are preserved. [Usage](../guides/USAGE.md) · [API contract](../reference/API_CONTRACT.md)
 
 - Use the temporary app scope for the writer lock in the port-conflict test. Verify that the bind fails before startup, history reads or writes, and login restoration. The test passes while a separate Windows data scope holds its writer lock.
