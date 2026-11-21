@@ -122,7 +122,8 @@
     }
     if (path === '/api/jobs' && method.toUpperCase() !== 'GET') return (value) => object(value) && state(value.state) &&
       strings(value.added) && strings(value.reused) && strings(value.already_pending) &&
-      Array.isArray(value.rejected) && value.rejected.every((item) => object(item) && typeof item.error === 'string');
+      Array.isArray(value.rejected) && value.rejected.every((item) => object(item) && typeof item.error === 'string' &&
+        optional(item, 'url', value => typeof value === 'string') && optional(item, 'input_index', count));
     if (['/api/rate/reset', '/api/jobs/clear-done', '/api/jobs/clear-all', '/api/jobs/retry-failed'].includes(path)) {
       return (value) => object(value) && state(value.state) &&
         (path === '/api/rate/reset' || path === '/api/jobs/retry-failed' ? true : count(value.removed)) &&

@@ -4,9 +4,32 @@ Application changes are recorded here. Download engine and Chrome connector vers
 
 ## Unreleased
 
+- Show each rejected batch entry with its original input and reason. The jobs API includes the submitted position so the dashboard can restore only the rejected entries, in order, for another attempt. Drafts edited during submission are preserved. [Usage](../guides/USAGE.md) · [API contract](../reference/API_CONTRACT.md)
+
+- Use the temporary app scope for the writer lock in the port-conflict test. Verify that the bind fails before startup, history reads or writes, and login restoration. The test passes while a separate Windows data scope holds its writer lock.
+
+- Keep language and page-size saving active when the dashboard returns from the browser back/forward cache. Cancel in-flight preference requests when the dashboard unloads. Real Chrome regression coverage uses an isolated HTTP fixture to verify repeated history restoration, saved preferences in a fresh context and cancellation on reload.
+
+- The Chrome connector popup now directs users to Settings → X sign-in for the active storage mode. The dashboard and pairing page explain the restart conditions for Windows DPAPI, memory-only storage and separate-key encryption, and show neutral text while the mode is unavailable. [Connector guide](../../chrome-extension/README.md) · [Storage and restart conditions](../deployment/DOCKER_LOGIN.md)
+
+- Reconciled the roadmap with the implementation and dated acceptance records on 2026-11-21. The [roadmap](../development/ROADMAP.md) now tracks open improvements, outstanding environment checks and deferred features. Its completed milestones are indexed below under the source preview that included them.
+
 ## 0.1.0-preview.2 — 2026-11-14
 
 First public source preview for Windows with Python 3.12. The release includes the versioned source ZIP, SHA-256 checksum and installation instructions. [GitHub prerelease](https://github.com/Zimkjdv/Smart-Social-Downloader/releases/tag/v0.1.0-preview.2)
+
+### Completed roadmap milestones
+
+| Scope | Recorded result |
+| --- | --- |
+| Core application | N01–N08 covered state recovery, HTTP reliability, download handling, AppContext and controller boundaries, persistence and capacity, SQLite maintenance, isolated fixtures and extracted-source verification. [N01/N02](TEST_RESULTS.md#n01n02-fixes--2026-10-11) · [N03–N05](TEST_RESULTS.md#n03n05-fixes--2026-10-11) · [N06](TEST_RESULTS.md#n06-state-ownership-and-lifecycle--2026-10-11) · [N07](TEST_RESULTS.md#n07-sqlite-diagnostics-backup-and-compaction--2026-10-15) · [N08](TEST_RESULTS.md#n08-shared-fixtures-and-source-distribution--2026-10-16) |
+| Windows desktop | D01–D03 delivered the shared HTTP/desktop contract, backend supervisor and WebView2 source shell. D04 passed the automated and current-host manual GUI baseline. D05 passed current-host bundle, installer, import, update and rollback checks. [GUI results](TEST_RESULTS.md#d04-shared-contracts-and-native-gui-matrix--2026-10-26) · [Distribution results](TEST_RESULTS.md#d05-windows-distribution--2026-10-26) |
+| Installation and CI | Isolated fresh-source installation, offline restart, dependency repair, console shutdown and seven native background lifecycle cases passed. The Windows, fresh-install and Docker hosted jobs passed for `d22c9a8`. [Installation](TEST_RESULTS.md#windows-installation-acceptance-and-transport-follow-up--2026-10-17) · [Console](TEST_RESULTS.md#windows-console-shutdown-and-recovery--2026-10-21) · [Background service](TEST_RESULTS.md#windows-background-lifecycle--2026-10-24) · [CI run](TEST_RESULTS.md#hosted-ci-confirmation--2026-10-25) |
+| Chrome and Pixiv | The ordinary Chrome pairing flow covered cancellation, actual expiry, reconnect and restart. Windows author sync verified 22 works and 24 files, including missing-file recovery. Separate synthetic cases covered OAuth, interrupted transfers and directory compatibility. [Chrome results](TEST_RESULTS.md#completed-native-chrome-main-flow--2026-10-25) · [Author sync](../testing/PIXIV_ACCEPTANCE.md) · [OAuth](../testing/PIXIV_AUTH_ACCEPTANCE.md) · [Recovery](../testing/PIXIV_RECOVERY_ACCEPTANCE.md) · [Paths](../testing/PIXIV_PATH_ACCEPTANCE.md) |
+| Docker | The local matrix passed 53 runtime, service, interaction, host-storage and Chrome playback stages. Eight additional upgrade/rollback stages used distinct source builds of the same preview, including a timestamp-preservation backport for the older source. [Playback and matrix](../testing/DOCKER_BROWSER_ACCEPTANCE.md) · [Upgrade evidence](TEST_RESULTS.md#docker-source-upgrade-and-timestamp-recovery--2026-10-29) |
+| Deduplication and storage | Recognized Pixiv artwork links share a stable identity, with compatibility checks for older records. The cross-source hash assessment measured synthetic inputs. The November media-index review recorded the conditions for revisiting indexed storage. [Pixiv identity](TEST_RESULTS.md#pixiv-artwork-identity-and-legacy-compatibility--2026-10-25) · [Hash assessment](../research/CONTENT_HASH_ASSESSMENT.md) · [Index decision](../reference/DATABASE_MAINTENANCE.md#indexed-file-detail-assessment) |
+
+### Release and maintenance
 
 - Update the reviewed Python baseline to `imageio-ffmpeg` 0.8.1 and `pycryptodomex` 3.24.2. [Dependency acceptance](DEPENDENCY_ACCEPTANCE.md#dependency-proposals-19-and-20--2026-11-13)
 - Enable GitHub private vulnerability reporting. [Reporting instructions](../../.github/SECURITY.md#report-a-vulnerability-privately)

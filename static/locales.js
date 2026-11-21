@@ -113,7 +113,7 @@ window.SSDLMessages = {
   "ui.x_open_pairing": {"zh-Hant":"開啟 Chrome 配對頁", "en":"Open Chrome pairing page"},
   "ui.x_pairing_ready": {"zh-Hant":"Chrome 配對已就緒，請在主機 Chrome 完成連接。", "en":"Pairing is ready. Complete the connection in host Chrome."},
   "ui.x_memory_storage": {"zh-Hant":"本次 X 登入僅保留於記憶體，服務重啟後需重新連接。不讀取 Google 或 Apple 的登入資料。", "en":"This X session stays in memory only. Reconnect after a service restart. Google and Apple sessions are not read."},
-  "ui.x_key_storage": {"zh-Hant":"X 登入使用獨立金鑰加密保存，重啟時需提供相同金鑰。不讀取 Google 或 Apple 的登入資料。", "en":"The X session is encrypted with a separate key. Provide the same key after restart. Google and Apple sessions are not read."},
+  "ui.x_key_storage": {"zh-Hant":"X 登入使用獨立金鑰加密保存，重啟時需使用相同金鑰與資料目錄。不讀取 Google 或 Apple 的登入資料。", "en":"The X session is encrypted with a separate key. Use the same key and data directory after restart. Google and Apple sessions are not read."},
   "ui.x_host_pairing": {"zh-Hant":"請在已登入 X 的主機 Chrome 開啟這個工具，再按連接。首次可在配對頁下載並載入 Chrome 連接器。", "en":"Open this tool in host Chrome where X is signed in, then connect. Download and load the connector from the pairing page on first use."},
   "ui.x_host_extension_folder": {"zh-Hant":"下載並解壓連接器，在主機 Chrome 載入 chrome-extension 資料夾；容器內的路徑不能用於主機 Chrome。", "en":"Download and extract the connector, then load its chrome-extension folder in host Chrome. Container paths cannot be used by host Chrome."},
   "ui.x_invalid_pairing": {"zh-Hant":"配對網址不正確，請重新連接。", "en":"Invalid pairing address. Reconnect to try again."},
@@ -672,6 +672,9 @@ window.SSDLMessages = {
     "zh-Hant": "{count} 個項目已在佇列中，未重複加入。",
     "en": "{count} items are already queued; no duplicates were added."
   },
+  "ui.batch_rejections": {"zh-Hant": "未加入的項目", "en": "Items not added"},
+  "ui.edit_rejected_inputs": {"zh-Hant": "只編輯未加入的項目", "en": "Edit only the items not added"},
+  "ui.rejected_draft_changed": {"zh-Hant": "草稿已變更。可從清單複製需要修正的項目。", "en": "Your draft has changed. Copy the items you want to fix from the list."},
   "ui.new_added_reused_reused_already_queued_pending": {
     "zh-Hant": "新增 {added} 個 · 沿用 {reused} 個 · 已在佇列 {pending} 個。",
     "en": "New: {added} · Reused: {reused} · Already queued: {pending}."
@@ -1133,8 +1136,8 @@ window.SSDLMessages = {
     "en": "Chrome connector setup"
   },
   "ui.only_x_session_cookies_are_saved_encrypted": {
-    "zh-Hant": "只保留 X 登入 Cookie，在這台電腦以 Windows 加密保存。不需要匯出檔案，也不讀取 Google 或 Apple 的登入資料。",
-    "en": "Only X session cookies are saved, encrypted by Windows on this computer. No cookie export is needed; Google and Apple sign-in data is not read."
+    "zh-Hant": "X 登入以 Windows DPAPI 加密保存，由同一 Windows 使用者重啟服務時可恢復登入。不讀取 Google 或 Apple 的登入資料。",
+    "en": "Windows DPAPI encrypts the X session. Restart the service as the same Windows user to restore it. Google and Apple sign-in data is not read."
   },
   "ui.if_x_temporarily_restricts_sign_in_stop": {
     "zh-Hant": "X 顯示暫時限制登入時，請停止反覆嘗試，待限制解除後在一般 Chrome 登入。連接器不能解除帳號限制。",
@@ -2021,8 +2024,8 @@ window.SSDLMessages = {
     "en": "Open X in regular Chrome ↗"
   },
   "ui.session_data_is_sent_only_to_the": {
-    "zh-Hant": "登入狀態僅傳送至這台電腦的下載工具並以 Windows 加密保存；不讀取帳號密碼，也不讀取 Google 或 Apple 的 Cookie。",
-    "en": "Session data is sent only to the downloader on this computer and saved using Windows encryption. Passwords and Google or Apple cookies are not read."
+    "zh-Hant": "X 登入以 Windows DPAPI 加密保存，由同一 Windows 使用者重啟服務時可恢復登入。不讀取帳號密碼，也不讀取 Google 或 Apple 的 Cookie。",
+    "en": "Windows DPAPI encrypts the X session. Restart the service as the same Windows user to restore it. Passwords and Google or Apple cookies are not read."
   },
   "ui.first_time_setup_only_once": {
     "zh-Hant": "首次設定 · 只需一次",

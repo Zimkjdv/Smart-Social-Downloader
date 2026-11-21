@@ -67,7 +67,8 @@ SSDLApi.request('/api/auth/x/setup').then((result) => {
     $('#extension-path').closest('.path-row').hidden = true;
     uiText($('#setup-message'), 'ui.x_host_extension_folder');
   }
-  uiText($('#session-storage-copy'), result.storage_mode === 'memory' ? 'ui.x_memory_storage' : result.storage_mode === 'aes-gcm' ? 'ui.x_key_storage' : 'ui.session_data_is_sent_only_to_the');
+  uiText($('#session-storage-copy'), result.storage_mode === 'memory' ? 'ui.x_memory_storage' : result.storage_mode === 'aes-gcm' ? 'ui.x_key_storage' :
+    result.storage_mode === 'dpapi' ? 'ui.session_data_is_sent_only_to_the' : 'ui.x_storage_pending');
 }).catch((error) => { uiText($('#setup-message'), error.message); });
 setTimeout(() => {
   if (document.documentElement.dataset.ssdlExtension === 'ready') showExtension();

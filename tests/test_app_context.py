@@ -89,11 +89,22 @@ with patch('ssdl.x_auth.XAuthManager._restore', side_effect=AssertionError('auth
 
     def test_binding_failure_does_not_restore_or_migrate_history(self):
         context = self.context()
-        with patch.object(entry, "create_app", return_value=context), \
-             patch.object(entry, "Server", side_effect=OSError("owned fixture port busy")), \
-             patch.object(context, "start") as started, patch("builtins.print"):
+        with (
+            patch.object(entry, "ROOT", context.ROOT),
+            patch.object(entry, "create_app", return_value=context),
+            patch.object(entry, "Server", side_effect=OSError("owned fixture port busy")) as bind,
+            patch.object(context, "start") as started,
+            patch.object(context.STATE_STORE, "load") as loaded,
+            patch.object(context.STATE_STORE, "save") as saved,
+            patch.object(context.X_AUTH, "restore") as restored,
+            patch("builtins.print"),
+        ):
             self.assertEqual(entry.main(), 1)
+        bind.assert_called_once_with(("127.0.0.1", context.PORT), context.Handler)
         started.assert_not_called()
+        loaded.assert_not_called()
+        saved.assert_not_called()
+        restored.assert_not_called()
         self.assertFalse((context.ROOT / "data").exists())
 
     def test_start_close_and_new_instance_preserve_queue_quota_and_settings(self):

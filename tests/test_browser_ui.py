@@ -51,7 +51,7 @@ class BrowserUITests(unittest.TestCase):
                                ["queued", "active", "completed", "failed", "selecting"]},
                     "paused": cls.paused, "ready": True, "download_dir": "fixture-downloads", "x_cookie_file": "",
                     "databases": cls.database_report,
-                    "x_auth": {"connected": False, "busy": False, "phase": "idle"},
+                    "x_auth": {"connected": False, "busy": False, "phase": "idle", **cls.x_storage},
                     "safe_queue": {"enabled": True, "phase": "idle", "cooldown_mode": "platform"},
                     "rate_limit": {"used": cls.rate_used, "limit": 40}, "storage": {"ready": True},
                     "environment": environment(), "persistence": {"healthy": True, "error": "", "blocked": False},
@@ -64,6 +64,7 @@ class BrowserUITests(unittest.TestCase):
                     time.sleep(.25)
                     return self.send_json({"error": "synthetic missing file"}, 404)
                 if path == "/api/environment": return self.send_json(environment())
+                if path == "/api/ui-preferences": return self.send_json({"preferences": cls.preferences})
                 if path == "/api/databases": return self.send_json(cls.database_report)
                 if path.startswith("/api/jobs/") and path.endswith("/files"):
                     params = parse_qs(urlparse(self.path).query)
@@ -75,7 +76,9 @@ class BrowserUITests(unittest.TestCase):
                         "limit": limit, "next_offset": end if end < len(files) else None,
                         "files": [{"index": index, "filename": files[index]} for index in range(offset, end)]})
                 if path.startswith("/api/"): return self.send_json(self.state())
-                if path == "/": return self.send_bytes((ROOT / "static/index.html").read_bytes(), "text/html")
+                if path in {"/", "/chrome-connect"}:
+                    filename = "index.html" if path == "/" else "chrome-connect.html"
+                    return self.send_bytes((ROOT / "static" / filename).read_bytes(), "text/html")
                 candidate = ROOT / path.lstrip("/")
                 if path.startswith("/static/") and candidate.resolve().parent == ROOT / "static" and candidate.is_file():
                     return self.send_bytes(candidate.read_bytes(), "text/css" if candidate.suffix == ".css" else "application/javascript")
@@ -83,6 +86,9 @@ class BrowserUITests(unittest.TestCase):
             def do_POST(self):
                 payload = json.loads(self.rfile.read(int(self.headers.get("Content-Length", 0))))
                 path = urlparse(self.path).path; cls.writes.append((path, payload))
+                if path == "/api/ui-preferences":
+                    cls.preferences = payload
+                    return self.send_json({"preferences": cls.preferences})
                 if path == "/api/databases":
                     cls.database_report.update(revision=cls.database_report["revision"] + 1, ready=True,
                         phase="complete", operation=payload["action"], backup_name="backup-20261015-000000-aaaaaaaaaaaa", backup_bytes=4096)
@@ -115,6 +121,8 @@ class BrowserUITests(unittest.TestCase):
 
     def setUp(self):
         self.jobs.clear(); self.writes.clear(); self.settings.clear()
+        type(self).preferences = None
+        type(self).x_storage = {}
         type(self).rate_used = 3
         type(self).paused = False
         type(self).database_report = {"instance": "a" * 32, "revision": 0, "ready": False, "busy": False,
@@ -192,6 +200,85 @@ class BrowserUITests(unittest.TestCase):
         self.assertEqual(page.locator("#video-quality").input_value(), "720")
         self.assert_no_errors()
 
+    def test_batch_rejections_show_original_inputs_and_retry_only_those_items(self):
+        self.load()
+        page = self.page
+        snapshot = page.evaluate("lastResponse")
+        accepted = "https://example.org/accepted"
+        shared_prefix = "https://example.org/" + "a" * 140
+        rejected = [shared_prefix + "-first", shared_prefix + "-last"]
+        items = [
+            {"input_index": 0, "url": shared_prefix[:120], "error": "網址過長"},
+            {"input_index": 2, "url": shared_prefix[:120], "error": "不接受本機網址"},
+        ]
+        route_pattern = "**/api/jobs*"
+        page.route(route_pattern, lambda route: route.fulfill(status=201, json={
+            "added": ["accepted"], "reused": [], "already_pending": [], "rejected": items, "state": snapshot,
+        }))
+        draft = page.locator("#url-input")
+        draft.fill("\n".join([rejected[0], accepted, rejected[1]]))
+        page.locator("#add-jobs").click()
+        details = page.locator("#batch-rejections")
+        details.locator("summary").wait_for(state="visible")
+        self.assertEqual(details.locator("li code").all_text_contents(), rejected)
+        self.assertEqual(details.locator("li p").all_text_contents(), ["網址過長", "不接受本機網址"])
+        page.set_viewport_size({"width": 390, "height": 844})
+        self.assertLessEqual(page.evaluate("document.documentElement.scrollWidth"), 390)
+        summary = details.locator("summary")
+        summary.focus()
+        page.keyboard.press("Enter")
+        self.assertFalse(details.locator("li").first.is_visible())
+        page.keyboard.press("Enter")
+        page.locator("#language-toggle").click()
+        self.assertEqual(summary.inner_text(), "Items not added")
+        self.assertEqual(details.locator("li p").all_text_contents(), ["The URL is too long", "Local URLs are not accepted"])
+
+        summary.focus()
+        page.keyboard.press("Tab")
+        self.assertEqual(page.evaluate("document.activeElement.id"), "edit-rejected-inputs")
+        page.keyboard.press("Enter")
+        self.assertEqual(page.evaluate("document.activeElement.id"), "url-input")
+        self.assertEqual(draft.input_value(), "\n".join(rejected))
+        corrected = ["https://example.org/corrected-first", "https://example.org/corrected-last"]
+        draft.fill("\n".join(corrected))
+        page.unroute(route_pattern)
+        with page.expect_response(lambda response: response.request.method == "POST" and
+                                  urlparse(response.url).path == "/api/jobs") as reply:
+            page.locator("#add-jobs").click()
+        self.assertEqual(reply.value.request.post_data_json["urls"], corrected)
+        page.wait_for_function("!document.querySelector('#add-jobs').disabled")
+        self.assertEqual(draft.input_value(), "")
+        self.assertFalse(details.is_visible())
+        self.assert_no_errors()
+
+    def test_entire_batch_rejection_preserves_new_draft_when_switching_modes(self):
+        self.load()
+        page = self.page
+        snapshot = page.evaluate("lastResponse")
+        held = []
+        page.route("**/api/jobs*", lambda route: held.append(route))
+        draft = page.locator("#url-input")
+        submitted = "missing-scheme"
+        draft.fill(submitted)
+        with page.expect_request(lambda request: request.method == "POST" and urlparse(request.url).path == "/api/jobs"):
+            page.locator("#add-jobs").click()
+        draft.fill("new draft")
+        page.locator('[data-download-mode="pixiv_profile"]').click()
+        draft.fill("4321")
+        held[0].fulfill(status=201, json={
+            "added": [], "reused": [], "already_pending": [], "state": snapshot,
+            "rejected": [{"input_index": 0, "url": submitted, "error": "網址格式不正確"}],
+        })
+        page.wait_for_function("!document.querySelector('#add-jobs').disabled")
+        self.assertEqual(draft.input_value(), "4321")
+        self.assertFalse(page.locator("#batch-rejections").is_visible())
+        page.locator('[data-download-mode="urls"]').click()
+        self.assertEqual(draft.input_value(), "new draft")
+        self.assertEqual(page.locator("#batch-rejection-list li code").inner_text(), submitted)
+        self.assertTrue(page.locator("#rejected-draft-changed").is_visible())
+        self.assertFalse(page.locator("#edit-rejected-inputs").is_visible())
+        self.assert_no_errors()
+
     def test_settings_draft_language_tabs_keyboard_and_focus_return(self):
         self.load(); page = self.page
         page.locator("#settings-open").click()
@@ -251,6 +338,88 @@ class BrowserUITests(unittest.TestCase):
         self.assertEqual(page.locator("#jobs-page-size").input_value(), "10")
         self.assertEqual(job["status"], "queued")
         self.assert_no_errors()
+
+    def test_preferences_save_after_back_forward_cache_restore(self):
+        type(self).preferences = {"schema": 1, "language": "zh-Hant", "page_size": 20}
+        # Playwright disables the back/forward cache by default.
+        browser = self.driver.runtime.chromium.launch(
+            headless=True, channel="chrome", ignore_default_args=["--disable-back-forward-cache"])
+        self.addCleanup(browser.close)
+        page = browser.new_page()
+        page.add_init_script("addEventListener('pageshow', event => { window.fromHistoryCache = event.persisted; });")
+        origin = f"http://127.0.0.1:{self.server.server_port}"
+        with page.expect_response("**/api/ui-preferences"):
+            page.goto(origin)
+        page.wait_for_function("lastResponse !== null")
+        page.goto(origin + "/chrome-connect")
+        page.go_back(wait_until="commit")
+        self.assertTrue(page.evaluate("window.fromHistoryCache"), "Dashboard was not restored from Chrome's cache")
+        page.go_forward(wait_until="commit")
+        page.go_back(wait_until="commit")
+        self.assertTrue(page.evaluate("window.fromHistoryCache"), "Dashboard was not restored a second time")
+
+        def preference_saved(response):
+            return urlparse(response.url).path == "/api/ui-preferences" and response.request.method == "POST"
+
+        with page.expect_response(preference_saved, timeout=3000) as language:
+            page.locator("#language-toggle").click()
+        self.assertEqual(language.value.request.post_data_json["language"], "en")
+        with page.expect_response(preference_saved, timeout=3000) as page_size:
+            page.locator("#jobs-page-size").select_option("50")
+        self.assertEqual(page_size.value.request.post_data_json["page_size"], 50)
+
+        fresh = browser.new_page()
+        fresh.goto(origin)
+        fresh.wait_for_function("document.documentElement.lang === 'en' && state.pageSize === 50")
+        self.assertEqual(fresh.locator("#jobs-page-size").input_value(), "50")
+
+        # Hold a write open so reload can exercise cancellation without waiting
+        # for the real HTTP deadline or changing the preferences in the fixture.
+        page.evaluate("""() => {
+            const fetchFromServer = window.fetch;
+            window.fetch = (path, options) => {
+                if (path.split('?')[0] !== '/api/ui-preferences' || options.method !== 'POST') {
+                    return fetchFromServer(path, options);
+                }
+                window.preferenceWritePending = true;
+                return new Promise((resolve, reject) => {
+                    options.signal.addEventListener('abort', () => {
+                        sessionStorage.setItem('preference-write-aborted', 'true');
+                        reject(options.signal.reason);
+                    }, {once: true});
+                });
+            };
+        }""")
+        page.locator("#jobs-page-size").select_option("10")
+        page.wait_for_function("window.preferenceWritePending")
+        page.reload()
+        self.assertEqual(page.evaluate("sessionStorage.getItem('preference-write-aborted')"), "true")
+
+    def test_x_login_storage_copy_reflects_reported_mode(self):
+        page = self.page
+
+        def setup_response(route):
+            route.fulfill(json={"extension_dir": "", "extension_id": "fixture", **self.x_storage})
+
+        page.route("**/api/auth/x/setup", setup_response)
+        for mode, chinese, english in (
+            (None, "保存方式會依目前設定顯示", "The storage method is shown for your configuration"),
+            ("dpapi", "同一 Windows 使用者", "same Windows user"),
+            ("memory", "服務重啟後需重新連接", "Reconnect after a service restart"),
+            ("aes-gcm", "相同金鑰與資料目錄", "the same key and data directory"),
+        ):
+            with self.subTest(mode=mode):
+                type(self).x_storage = {} if mode is None else {"storage_mode": mode}
+                for path, selector in (("/", "#x-storage-copy"), ("/chrome-connect", "#session-storage-copy")):
+                    page.goto(f"http://127.0.0.1:{self.server.server_port}{path}")
+                    if path == "/":
+                        self.wait_for_snapshot()
+                        page.locator("#settings-open").click()
+                        page.locator("#settings-tab-x").click()
+                    for language, copy in (("zh-Hant", chinese), ("en", english)):
+                        page.evaluate("(language) => I18n.change(language, false)", language)
+                        page.locator(selector).filter(has_text=copy).wait_for(state="visible")
+                self.assert_no_errors()
 
     def test_advanced_cookie_field_is_reachable_from_summary_with_keyboard(self):
         self.load(); page = self.page

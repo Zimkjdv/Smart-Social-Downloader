@@ -1,127 +1,46 @@
 # Roadmap
 
-更新：2026-11-13。此檔是**未完成工作與最新審查發現的唯一總清單**；完成紀錄移至 [CHANGELOG](../history/CHANGELOG.md)。目前基準為 Windows／Python 3.12，沒有 Python 3.10 驗收工作。未勾選項目尚未完成；已勾選階段仍以所列驗收範圍為準，不代表已發布。N01～N08 已完成並移到 [CHANGELOG](../history/CHANGELOG.md#010-preview2--2026-11-14)，回歸結果見 [TESTING](../history/TEST_RESULTS.md)。
+更新於 2026-11-21，以本機 `main` 的 `727a9d4` 為審查基準。下列核取方塊只列未完成工作。已交付功能、已發布版本及各環境曾通過的範圍可查 [CHANGELOG](../history/CHANGELOG.md)。
 
-## 本輪整體審查
+<a id="本輪整體審查"></a>
 
-重新檢查 API／本機來源政策、Chrome 登入、下載與串流、排程／子程序、保存／去重、前端／設定、檔案架構、安裝與發布。既有 P0／P1／P2 的主要功能與本輪 N01～N08 已實作，仍有下列環境驗收與選配工作；功能完成不等於沒有 bug。前輪六個已修正問題保留於 [歷史審查](../history/PROJECT_AUDIT.md)，不與本輪待辦項目混用。
+## 下一輪改善
 
-審查與回歸使用暫存目錄、隔離 HTTP 服務及合成資料重現。本機套用狀態另記於 CHANGELOG；測試沒有讀取真實 Cookie 或下載外部平台媒體。這是程式審查與有限的故障重現，不是完整滲透測試或所有依賴的漏洞掃描。
+優先處理會誤導使用者或妨礙重現的問題，再改善操作流程及維護成本。Browser 與 pywebview 共用 Web UI 和 HTTP API，以下介面修正可沿用同一套前端。後端已有獨立的排程、保存與下載引擎，架構調整可限於佇列新增流程。[架構與模組責任](../reference/ARCHITECTURE.md)
 
-N01～N08 已移至 [CHANGELOG](../history/CHANGELOG.md#010-preview2--2026-11-14)。本輪列出的修正與維護改善已完成，仍需以下環境／發布驗收及選配功能；不代表沒有其他潛在缺陷。[N08 共用 fixture 與來源包驗收](TESTING.md) 已實作，HTTP 讀取期限、併發限制與輸入契約見 [可靠性文件](../reference/RELIABILITY.md)。
+### 優先處理
 
-## 架構與檔案結構
 
-目前根目錄入口＋`ssdl/`／`static/`／`chrome-extension/`／`tools/`／`docs/`／`tests/` 的分層保留。AppContext 與共用測試 fixture 已實作，runtime 位置保持相容；完整樹見 [ARCHITECTURE](../reference/ARCHITECTURE.md)。
+### 操作流程與文件
 
-每次只改一個責任邊界，維持入口、API、資料路徑及 Chrome extension ID 相容；共用鎖與關閉順序已列於架構文件。
+- [ ] **讓使用者在送出前看到 30 筆上限。** 一般網址、X 帳號與 Pixiv 作者共用計數器，目前只顯示筆數，超過限制要送出才收到後端錯誤。計數旁顯示上限及超額筆數，讓使用者能原地修改。驗收三種輸入模式的 30／31 筆邊界、貼上後刪減、鍵盤送出，以及伺服器對超額請求的獨立驗證。[表單](../../static/app.js) · [API 契約](../reference/API_CONTRACT.md)
+- [ ] **釐清 Windows 下載頁的交付狀態。** README 連到已發布的 Preview 來源 ZIP，Windows 發行指南仍寫著尚未建立 GitHub Release/tag，接著直接指示執行安裝程式。將來源 ZIP 的下載／啟動步驟、本機可建置的 EXE／安裝程式、乾淨機器待驗條件分別標明。驗收時從中英文 README 各走一次，確認讀者能找到實際可下載的檔案，也能判斷哪個流程需要自行建置。[英文入口](../../README.md) · [中文入口](../README_CN.md) · [Windows 發行指南](../deployment/WINDOWS_DISTRIBUTION.md)
 
-## Windows 桌面版：先 pywebview，保留 Electron 遷移路線
+### 程式與架構
 
-Browser 與 Pywebview 共用同一份 Web UI、標準 HTTP API、Python backend 與資料。現行責任邊界見[架構](../reference/ARCHITECTURE.md)、[API](../reference/API_CONTRACT.md)及 [Supervisor](../reference/DESKTOP_CONTROL.md)；原始 D01～D05 規劃與實作觀察保留於[歷史紀錄](../history/TEST_RESULTS.md#desktop-planning-context--2026-10-26)。
+- [ ] **先減少批次新增時重複計算的來源識別，暫緩抽出佇列操作。** 2026-11-21 在本機 Windows 以隔離 HTTP 服務測試，每種情境取 35 次。20 筆歷史／新增 1 筆的鎖內中位數為 0.43 ms。30 筆批次的「現行 → 單次請求內重用來源識別原型」鎖內中位數如下：170 筆歷史新增 86.02 → 5.21 ms，200 筆歷史且已排隊 102.15 → 4.99 ms，沿用已完成工作 119.77 → 19.86 ms，容量不足整批拒絕 100.75 → 4.72 ms。合成工作沒有大型檔案清單，量測未納入網路驗證、鎖等待或寫入落盤等待。
+  - 優化驗收涵蓋混合新增／沿用／已排隊、並行重複加入、超過容量整批拒絕及保存確認。維持既有 HTTP 回應、輸入順序、來源／畫質／位置判定與舊資料相容，重測鎖內耗時。
+  - 若新增另一個入列入口，或下一次需要跨模式修改入列規則，再把去重、容量檢查、建立或沿用工作及保存交給單一佇列操作。現有 Browser／pywebview 走同一條 HTTP 路由。路由負責請求與回應，共用操作負責同一個鎖內的決策與提交，鎖外等待保存確認。[現行路由](../../ssdl/http_api.py) · [佇列與去重規則](../reference/DOWNLOAD_DEDUP.md)
 
-### D01：共用契約與平台操作（已完成）
+## 既有環境與發布驗收
 
-已完成；現行說明見[共用 API 與桌面契約](../reference/API_CONTRACT.md)，有日期的結果見[歷史紀錄](../history/TEST_RESULTS.md)。
+| 待驗項目 | 前置條件與完成標準 |
+| --- | --- |
+| D04 桌面顯示與權限 | 在每種縮放比例重新啟動、跨不同 DPI 的螢幕移動視窗，驗證真實剪貼簿拒絕及乾淨機器缺少 WebView2 的處置。分別記錄 OS 與 renderer 的縮放。[GUI 驗收](../testing/DESKTOP_GUI_ACCEPTANCE.md) |
+| D05 安裝版 | 取得未預裝 Python／Node 的乾淨 Windows 10／11。驗收安裝、缺 Runtime 的線上安裝／離線處置、雙擊／捷徑／原生提示、安裝版 Chrome 授權、更新保留資料、回退及解除安裝。[Windows 發行指南](../deployment/WINDOWS_DISTRIBUTION.md) |
+| Windows 來源版 | 在全新一般桌面完成 Python 3.12／Node／Chrome 安裝，人工雙擊 start.bat／stop.bat，核對預設瀏覽器關聯、鍵盤與終端提示、實際 X 授權。[安裝驗收](../testing/INSTALLATION_ACCEPTANCE.md) · [控制台驗收](../testing/CONSOLE_ACCEPTANCE.md) |
+| 線上下載 | 取得適用素材，逐平台抽驗 Best／指定畫質、登入失效、限流恢復、帳號媒體掃描及缺檔補抓。記錄素材類型、引擎版本與可重現結果。[畫質契約](../guides/VIDEO_QUALITY.md) |
+| Pixiv 授權 | 驗收全新連接器安裝／權限提示、OAuth 進行中的 worker 休眠／Chrome 重啟／分頁關閉、外部 code 過期或取消、Docker 自動回接、金鑰登入恢復及儲存權限故障的人工處置。[授權驗收](../testing/PIXIV_AUTH_ACCEPTANCE.md) · [Chrome 配對](../testing/CHROME_PAIRING_ACCEPTANCE.md) |
+| Pixiv 內容與資料搬遷 | 抽驗真實作者新增、刪除／私密／不可存取作品、限流與傳輸中斷、Ugoira 原始影格數與解碼。取得作者更名及舊資料庫樣本後，再驗 Windows 絕對路徑／根目錄移至 Linux，以及 Linux／Docker 的登入、作者標題與媒體恢復。[故障恢復](../testing/PIXIV_RECOVERY_ACCEPTANCE.md) · [作者目錄](../testing/PIXIV_PATH_ACCEPTANCE.md) |
+| <a id="docker-化部署"></a>Docker 真人操作 | 主機 Chrome 首次安裝、預設／自訂 port、取消／十分鐘過期後重配、登入失效；人工驗證播放控制、聲音、其他編碼、Windows 預設播放器與檔案總管。[互動驗收](../testing/DOCKER_INTERACTION_ACCEPTANCE.md) · [播放驗收](../testing/DOCKER_BROWSER_ACCEPTANCE.md) |
+| Docker 跨主機與版本 | 跨實體主機依先前決定暫緩；恢復時核對另一台主機的目錄分享、權限及備份搬遷。有不同發布版本後，驗證資料遷移與匹配舊版回復。完成安裝、重啟、媒體與登入驗收後，再將實驗部署指引升格。[跨主機驗收](../testing/DOCKER_HOST_ACCEPTANCE.md) · [升級驗收](../testing/DOCKER_UPGRADE_ACCEPTANCE.md) |
+| 後續依賴與二進位散布 | 每次新提案核對固定版本與相容範圍，執行受影響的引擎／Chrome／Playwright 故障回歸、原生 GUI 驗收與 CI。散布二進位檔前逐版核對第三方授權。[依賴審查](../history/DEPENDENCY_ACCEPTANCE.md) · [故障追蹤](DEPENDENCY_FAULTS.md) · [第三方元件](../reference/THIRD_PARTY_NOTICES.md) |
 
-### D02：後端與視窗生命週期（已完成）
+## 有條件啟動的功能與設計
 
-已完成；現行說明見[Supervisor 契約](../reference/DESKTOP_CONTROL.md)，有日期的結果見[歷史紀錄](../history/TEST_RESULTS.md)。
-
-### D03：pywebview／WebView2 來源版本（已完成）
-
-已完成；現行說明見[Windows 操作指南](../guides/WINDOWS.md)，有日期的結果見[歷史紀錄](../history/TEST_RESULTS.md)。
-
-### D04：共用介面與實際 Windows GUI 驗收（目前主機基線完成）
-
-自動化與目前 Windows 主機的人工基線已完成，範圍見 [D04 驗收](../testing/DESKTOP_GUI_ACCEPTANCE.md)。
-
-- [ ] 補驗每個比例重新啟動、多螢幕 DPI、真實剪貼簿權限拒絕與未安裝 Runtime 的乾淨機器；既有 CDP renderer scale 與人工 Windows 縮放觀察分開保存。
-
-### D05：Windows 發行包與安裝版（實作／目前主機通過；乾淨機器待驗收）
-
-資料夾型發行包、安裝程式、資料匯入／回復及目前主機驗收已實作，詳見[Windows 發行指南](../deployment/WINDOWS_DISTRIBUTION.md)。
-
-- [ ] 在沒有預裝 Python／Node 的乾淨 Windows 10／11 驗收安裝、缺少 Runtime 的線上安裝／離線失敗處置、真人雙擊／捷徑／原生提示及安裝版 Chrome 授權，並在該環境核對更新保留資料、回退與解除安裝。目前無 Windows Sandbox，使用者確認沒有其他乾淨測試機；不把 PATH 隔離或目前主機當作乾淨 OS 通過。自動更新、簽章、托盤與開機啟動不在本階段。
-
-### D06：Electron 遷移保留與成本控制
-
-- [ ] 在 Browser／Pywebview 兩個 Adapter 通過後記錄 Electron 對應表：同一份 `static/` 與標準 HTTP API、同一個 Python backend／資料格式／授權流程，替換的部分是主程序、視窗生命週期、桌面 Adapter、後端啟動入口與打包。先保留設計與契約，待使用者決定再實作 Electron。
-- [ ] 未來 Electron 以 preload／`contextBridge` 暴露相同 `DesktopInterface`；renderer 不直接拿 Node、檔案系統或任意 IPC。逐方法驗證參數、來源／frame 與能力，維持 `contextIsolation`／sandbox，透過同一個 Supervisor 控制協定管理 Python 子程序。重跑 Adapter 契約及真實外殼驗收；不承諾只改啟動檔即可零成本遷移。
-
-## 安裝、真實使用與 GitHub 發布驗收
-
-Windows 背景啟停的 7 項原生隔離驗收已於 2026-10-24 通過並移至 [CHANGELOG](../history/CHANGELOG.md#010-preview2--2026-11-14)：自訂／重複／同時啟動、瀏覽器網址分派、不同專案隔離、下載中停止與待辦／Rate 恢復、日誌輪替及前景服務佔用拒絕。範圍與指令見 [背景驗收](../testing/DESKTOP_ACCEPTANCE.md)；瀏覽器視窗及人手操作保留如下。
-
-- [ ] **一般桌面 Windows／互動驗收**：全新一般 Windows 的 Python／Node／Chrome 安裝、實際雙擊 start.bat／stop.bat、預設瀏覽器視窗／作業系統關聯、鍵盤／終端批次提示及授權 X 登入仍待驗收。新來源／新 venv 安裝、離線重啟、自動修復、更新／基準恢復，以及獨立控制台真正 Ctrl+C 的閒置／下載中關閉、程序清理及待辦恢復已自動化並移至 [CHANGELOG](../history/CHANGELOG.md#010-preview2--2026-11-14)，見 [安裝驗收](../testing/INSTALLATION_ACCEPTANCE.md) 與 [控制台驗收](../testing/CONSOLE_ACCEPTANCE.md)。這些隔離副本／程式產生的事件不等於出廠桌面或人手按鍵；沒有 Python 3.10 工作。
-
-依使用者要求先處理 CI；路徑別名修正已在 GitHub 通過。後續介面測試補強連線容量與必要腳本失敗診斷，紀錄見 [TESTING](../history/TEST_RESULTS.md#browser-ui-ci-fixture-capacity-and-diagnostics--2026-10-25)。2026-10-25 的 `d22c9a8` GitHub Actions 三個工作（Windows、全新安裝、Docker）已全部通過，見 [CI 確認](../history/TEST_RESULTS.md#hosted-ci-confirmation--2026-10-25)。Chrome 真實配對的獨立實測結果如下。
-
-一般 Chrome 原生配對主流程已於 2026-10-25 完成實機驗收：取消後重配、真實 600 秒票證逾時後重配、離線失敗／上線重試、Pixiv 真實 claim／callback 自動回接、原生 DPAPI 保存及自訂 port 的後端重啟恢復、真正 Chrome 重啟後重配，以及使用者觀察 worker 無法使用後的真實重連。驗收紀錄區分人工操作、實際 HTTP 與內部狀態；專門的 OAuth 進行中 worker 休眠不在這個主流程結論內，仍列於下方授權剩餘環境。完成紀錄見 [CHANGELOG](../history/CHANGELOG.md#010-preview2--2026-11-14) 及 [Chrome 驗收](../testing/CHROME_PAIRING_ACCEPTANCE.md#follow-up-evidence--2026-10-25)。
-
-- [ ] **線上平台抽樣**：實際 Best／指定畫質、登入失效、限流與恢復、帳號媒體掃描、缺檔補抓；先取得適合的測試素材。104＋10 合成測試不代表所有平台即時相容。
-- [x] **首次 GitHub Preview**：私人漏洞回報已啟用。`v0.1.0-preview.2` 提供經驗證的來源 ZIP、SHA-256 與發行說明。[GitHub Preview](https://github.com/Zimkjdv/Smart-Social-Downloader/releases/tag/v0.1.0-preview.2)
-- [ ] **後續依賴更新提案驗收**：目前基準以 `requirements/` 下的固定版本為準。已處理的提案見[依賴審查紀錄](../history/DEPENDENCY_ACCEPTANCE.md#dependency-proposals-19-and-20--2026-11-13)。每次新提案都要核對相容範圍、相關原生 GUI 驗收和必要 CI。
-
-依賴故障追蹤工具、CI／來源包檢查及本輪 HTTP 錯誤回應資源修正已完成，移至 [CHANGELOG](../history/CHANGELOG.md#010-preview2--2026-11-14)。後續每次引擎／Chrome／Playwright 升級仍須重跑；已知 SSL 棄用、10053 的驗證範圍與故障處置維護在[追蹤文件](DEPENDENCY_FAULTS.md)，不代表所有上游問題已消失。未來二進位散布仍須逐版核對第三方授權。
-
-## Pixiv 作者作品驗收
-
-Windows／一般 Chrome 授權主流程，以及 Hoshirapu（82728784）的 22 作品／24 檔案實際同步、原圖解碼、暫停／停止續傳、重複同步不重抓、單頁缺檔／修改時間補抓、正常 Windows 使用者環境重啟登入恢復與中英文作者標題已於 2026-10-24 驗收；完成紀錄移至 [CHANGELOG](../history/CHANGELOG.md#010-preview2--2026-11-14)，詳細證據與範圍見 [Pixiv 驗收](../testing/PIXIV_ACCEPTANCE.md)。
-
-Pixiv 授權生命週期的自動化部分已於 2026-10-25 完成並移至 [CHANGELOG](../history/CHANGELOG.md#010-preview2--2026-11-14)：16 個 manager／實際 loopback API 案例與四個 connector 腳本案例，驗證 PKCE、取消／過期、來源與錯誤 port 拒絕、模擬 worker 重載、加密／記憶體保存與失效登入恢復，並修正失效憑證重啟再現與 :0 回呼判定。範圍見 [授權驗收](../testing/PIXIV_AUTH_ACCEPTANCE.md)。
-
-- [ ] **其他授權的剩餘真實環境**：Docker 真實 OAuth 自動回接、全新連接器安裝／權限提示、OAuth 進行中的 worker 休眠或 Chrome 重啟與授權分頁關閉、外部 code 過期／取消、Docker secret 登入恢復，以及儲存權限故障的真人處置。一般 Chrome 的正常 OAuth 回接、原生 DPAPI／後端恢復與重啟後新配對已完成主流程驗收；未對 OAuth 進行中休眠／跨重啟延續作出完成聲明。模擬 Chrome API、固定時鐘及自建 AES 金鑰不代表這些剩餘環境已完成。
-Pixiv 新增內容與故障恢復的自動化部分已於 2026-10-25 完成並移至 [CHANGELOG](../history/CHANGELOG.md#010-preview2--2026-11-14)。[16 項合成故障驗收](../testing/PIXIV_RECOVERY_ACCEPTANCE.md)涵蓋新增／不可存取作品、掃描不完整、頁碼缺口與重複、限流、停止／傳輸中斷、已完成頁面保留、只補缺頁及登入敏感資料遮蔽，並修正完整性與錯誤恢復問題。
-
-- [ ] **內容與故障的剩餘真實驗收**：作者在平台新增作品後同步、Pixiv 實際不可存取／刪除／私密回應、真實平台限流與傳輸故障恢復，以及 Ugoira 原始影格完整數量／解碼。合成 API／傳輸案例與此次 22 作品／24 檔案不代表以上真人平台情境已完成。
-Windows／Linux 的合成作者目錄驗收已於 2026-10-25 通過並移至 [CHANGELOG](../history/CHANGELOG.md#010-preview2--2026-11-14)：中文／特殊／長名稱、同名不同 ID、模擬作者更名、數字 ID／舊作者名完整與部分紀錄重用、換根目錄、整個資料夾搬移，以及等待期間缺頁補抓。原生檔案與實際 SQLite 驗證詳見 [目錄驗收](../testing/PIXIV_PATH_ACCEPTANCE.md)。
-
-- [ ] **作者目錄剩餘真實／跨環境驗收**：作者在 Pixiv 實際更名、未知舊版資料庫結構、Windows 路徑字串／絕對根目錄 scope 搬遷到 Linux，以及 Linux／Docker 真實登入、作者標題與原始媒體恢復。合成目錄與保存紀錄測試不代表以上情境已完成。
-
-## 後續功能
-
-### 大型媒體清單索引（暫緩）
-
-2026-11-13 複評後暫緩實作。現有按需分頁可支援清單瀏覽。大型合成歷史仍有整份保存的延遲，超過 64 MiB 也會觸發容量保護，但現有紀錄尚無代表性工作因此無法完成的案例。清除工作清單與保留有效去重紀錄已是現行行為。重啟評估的條件為代表性工作反覆觸發容量限制、必要歷史長期接近容量警示且無法清理，或可重現的保存延遲影響操作。[量測、決策與後續設計](../reference/DATABASE_MAINTENANCE.md#indexed-file-detail-assessment)
-
-### Docker 化部署
-
-第 1～4 項的來源實作、第 5 項的隔離 runtime 驗收及第 2／3 項的本機 Compose 驗收已完成並移至 [CHANGELOG](../history/CHANGELOG.md#010-preview2--2026-11-14)。2026-10-21 已實際通過 9 項 FFmpeg／Node／來源排除及 14 項服務／儲存驗收，含 UID 權限、資料保留、故障健康狀態、備份校驗、真正還原中斷、跨專案搬遷及保留映像回復。範圍見 [Docker 文件](../deployment/DOCKER.md)、[服務驗收](../testing/DOCKER_SERVICE_ACCEPTANCE.md)及[實測紀錄](../history/TEST_RESULTS.md)。動態 Chrome 仍為選配，沒有發布預建映像；同機隔離驗收不代表以下跨主機／登入工作完成。
-
-2026-10-22 已完成第 4 項可自動化的 [15 項登入／媒體容器驗收](../testing/DOCKER_INTERACTION_ACCEPTANCE.md)：記憶體登入、獨立金鑰生成／權限／唯讀掛載、AES-GCM 保存與重啟、錯誤／遺失金鑰保留原資料、金鑰恢復與斷開連接；合成 connector 取消／重配及網頁分頁、原始 PNG／MP4 位元組、HEAD／Range、路徑拒絕、改名及併發讀取恢復。Windows 原生檔案／資料夾分派與失效選取新增隔離回歸，沒有啟動真實播放器。
-
-同日完成 [8 項真實主機掛載驗收](../testing/DOCKER_HOST_ACCEPTANCE.md)：私有 Windows ACL、原始 Compose bind／檔案型 secret、唯讀金鑰、加密登入重啟、主機備份校驗／排除金鑰，以及新專案還原登入。9＋14＋15＋8 項已在本機 Docker Desktop 實測通過；Linux CI 也納入該工具。記錄 Desktop 自動建立缺少來源目錄的實際差異與 OWNER RIGHTS 別名，補上操作前確認路徑的說明。完成紀錄移至 CHANGELOG；仍需下列真人與另一台主機驗收。
-
-同日完成 [7 項主機 Chrome 實際 UI／播放驗收](../testing/DOCKER_BROWSER_ACCEPTANCE.md)，完整工具共 53 項在本機通過；圖片解碼、鍵盤選檔、H.264 播放／跳轉、重整不改變工作、改名拒絕與後續讀取恢復均有實測。修正影片原生頁面 sandbox 產生 null Origin 而被拒絕的問題，保留腳本與不可信來源限制。真人登入與其他編碼仍保留如下。
-
-2026-10-29 新增並通過 [8 項不同來源映像升級／回復驗收](../testing/DOCKER_UPGRADE_ACCEPTANCE.md)，以兩份真正不同的來源建置映像，驗證升級／重啟、設定寫入、三份 SQLite 完成紀錄、合成加密登入及原映像備份回復到新 volumes。原始舊來源因還原未保留檔案修改時間而無法通過；已修正新備份的奈秒時間保存與還原，並明確區分回補此修正的舊來源。兩份來源仍為同一 preview 版本，不能視為跨發布版本遷移；實測與限制見 [TESTING](../history/TEST_RESULTS.md#docker-source-upgrade-and-timestamp-recovery--2026-10-29)。
-
-- [ ] **跨實體主機與實際版本升級（跨主機部分依使用者要求先跳過，2026-10-22）**：在另一台主機驗收備份搬遷及該主機的目錄分享／權限；有真實新版本時驗收資料遷移與匹配舊版本回復。既有驗收涵蓋同一引擎上的獨立 volumes／專案、真實主機備份／金鑰掛載及僅加標籤的不同映像；本輪另通過回補時間修正的同 preview 版本來源升級／回復，仍不能據此宣稱跨硬體或跨發布版本遷移已完成。
-- [ ] **第 4 項真人操作驗收**：主機 Chrome 首次安裝、預設／自訂 port、取消／十分鐘過期／重配、真實登入失效；人手確認播放控制、聲音／其他編碼及 Windows 預設播放器／檔案總管。新增的 [7 項主機 Chrome 自動化驗收](../testing/DOCKER_BROWSER_ACCEPTANCE.md)涵蓋真實 UI／鍵盤選檔、PNG 解碼與 H.264 播放／跳轉，完成紀錄見 CHANGELOG；自動化解碼與合成 API 配對不等於真人登入或全部編碼已驗收。
-- [ ] 完成安裝、重啟恢復、媒體持久化與登入驗收，再將文件中的實驗操作程序升格為正式部署指引。Docker 不算目前已驗收的 P0／P1／P2。
-
-### 去重與匯入選配
-
-Pixiv 單篇作品穩定 ID 已於 2026-10-25 完成並移至 [CHANGELOG](../history/CHANGELOG.md#010-preview2--2026-11-14)：已確認的標準／英文語系／短網址／舊網址共用佇列與完成識別，保留畫質、媒體選取、未知 query 與原位置規則；相同舊網址的可信紀錄可安全轉存。14 項檔案／SQLite 合成驗收及一項 HTTP 佇列驗收，範圍與相容限制見 [來源識別](../reference/DOWNLOAD_DEDUP.md#pixiv-artwork-identity-and-legacy-completion-records)。
-
-- [ ] 擴充**其他平台**可靠的穩定 ID，保留畫質／媒體差異；簽章更新是否能合併須逐平台確認。無法回推來源的舊 hash 不自動合併。
-
-跨 URL／平台內容雜湊評估已於 2026-10-25 完成並移至 [CHANGELOG](../history/CHANGELOG.md#010-preview2--2026-11-14)。[評估與量測](../research/CONTENT_HASH_ASSESSMENT.md)建議保留原路徑規則，以選配 SHA-256 索引顯示相同內容候選；量測工具只讀取自建合成資料，未接入下載流程。
-
-- [ ] 若採用內容雜湊比對索引，另行實作排程／取消、完整檔案核對、私有索引保存／恢復、候選 UI 及驗收。原位置缺檔、搬移、改名或換下載根目錄仍重新下載；不以跨來源雜湊自動略過或刪除檔案。
-- [ ] 為已清除清單、沒有可信成功紀錄的舊檔提供可確認完整性的匯入流程，不因同名就直接認定完成。背景見 [DOWNLOAD_DEDUP](../reference/DOWNLOAD_DEDUP.md)。
-
-## 名稱與發布資料建議
-
-建議保留 **Smart Social Downloader**，repo 為 **`smart-social-downloader`**。目前沒有改名。備選 Local Media Queue（`local-media-queue`）較偏通用網頁媒體；MediaQueue（`mediaqueue`）較短但用途不夠直觀。這些名稱尚未查核衝突、帳號可用性或商標。
-
-推薦 GitHub description：
-
-> Local-first video and image downloader with a web UI, queued downloads, X account media sync, and HLS/DASH support. Powered by yt-dlp and gallery-dl.
-
-中文：在本機執行的多平台影片與圖片下載工具，提供網頁介面、下載佇列、X 帳號媒體同步與 HLS／DASH 支援。
-
-建議 topics：`python`、`yt-dlp`、`gallery-dl`、`video-downloader`、`image-downloader`、`download-manager`、`hls`、`local-first`。
-
-若日後改名，須同步 README、頁面標題、語系、Chrome 顯示名稱與發布檔；不要順便更動 extension 公開金鑰／ID、runtime 路徑或配對協定。
+- [ ] <a id="大型媒體清單索引暫緩"></a>**大型媒體清單索引（暫緩）。** 當代表性工作反覆觸及 64 MiB 保存上限、必要歷史長期接近警示且無法清理，或可重現的整份保存延遲已影響操作，再用該案例評估索引成本與效益。[既有量測與重啟條件](../reference/DATABASE_MAINTENANCE.md#indexed-file-detail-assessment)
+- [ ] **其他平台的穩定來源 ID。** 逐平台驗證網址變體、簽章更新、畫質與媒體選取，再擴充可合併的識別。無法回推來源的舊紀錄維持獨立。[來源識別](../reference/DOWNLOAD_DEDUP.md)
+- [ ] **跨來源相同內容候選。** 若採用選配 SHA-256 索引，再實作可取消排程、完整檔核對、私有索引保存與恢復、候選清單。驗收原位置缺檔、改名、搬移或換根目錄時仍會補抓，且比對本身不會刪檔。[雜湊評估](../research/CONTENT_HASH_ASSESSMENT.md)
+- [ ] **匯入缺少可信紀錄的舊檔。** 為已清除工作清單的使用者提供可核對完整性與來源的匯入流程，以同名不同內容與不完整檔案驗收。[去重規則](../reference/DOWNLOAD_DEDUP.md)
+- [ ] **D06 Electron。** Browser／pywebview Adapter 通過後，先記錄桌面方法、視窗生命週期、Supervisor 和打包對應。待使用者決定採用再實作。沿用 Web UI、HTTP、Python 後端、資料與授權流程；逐方法驗證 preload／contextBridge 的來源、frame、參數及權限，維持隔離與 sandbox，重跑契約與真實外殼驗收。[桌面契約](../reference/API_CONTRACT.md) · [Supervisor](../reference/DESKTOP_CONTROL.md)
+- [ ] **發布名稱與資料（如需調整）。** 首選 Smart Social Downloader，儲存庫建議名為 `smart-social-downloader`。備選 Local Media Queue、MediaQueue 的名稱、帳號及商標仍待查核。若改名，核對 README、頁面標題、語系、Chrome 顯示名稱與發布檔，保留 extension ID、資料路徑與配對協定。建議介紹涵蓋本機影音／圖片下載、佇列、X 帳號同步及 HLS／DASH；topics 可用 `python`、`yt-dlp`、`gallery-dl`、`video-downloader`、`image-downloader`、`download-manager`、`hls`、`local-first`。

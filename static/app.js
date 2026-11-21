@@ -37,6 +37,7 @@ function disposeDashboard() {
   if (dashboardDisposed) return;
   dashboardDisposed = true;
   clearTimeout(refreshTimer);
+  uiPreferences?.dispose();
   pixivLogin.dispose(); settingsController.dispose(); jobsController.dispose(); diagnosticsController.dispose();
   shellScope.dispose();
   desktop.dispose();
@@ -150,7 +151,8 @@ function render(data) {
     t('ui.x_cookie_session_ready') : uiMessage(state.xAuth.message || '尚未連接 X 登入');
   $('#x-auth-message').classList.toggle('connected', authConnected);
   $('#x-auth-message').classList.toggle('error', authFailed);
-  uiText($('#x-storage-copy'), state.xAuth.storage_mode === 'memory' ? 'ui.x_memory_storage' : state.xAuth.storage_mode === 'aes-gcm' ? 'ui.x_key_storage' : 'ui.only_x_session_cookies_are_saved_encrypted');
+  uiText($('#x-storage-copy'), state.xAuth.storage_mode === 'memory' ? 'ui.x_memory_storage' : state.xAuth.storage_mode === 'aes-gcm' ? 'ui.x_key_storage' :
+    state.xAuth.storage_mode === 'dpapi' ? 'ui.only_x_session_cookies_are_saved_encrypted' : 'ui.x_storage_pending');
   uiText($('#x-auth-description'), state.xAuth.host_browser ? 'ui.x_host_pairing' : 'ui.use_your_existing_x_session_in_chrome');
   if (state.xAuth.phase !== 'waiting') { $('#x-pairing-link').hidden = true; $('#x-pairing-link').removeAttribute('href'); }
   if (oldAuthPhase && oldAuthPhase !== state.xAuth.phase) {
@@ -332,6 +334,47 @@ function renderProfileLogin() {
 }
 
 const inputDrafts = { urls: '', x_profile: '', pixiv_profile: '' };
+const batchRejections = new Map();
+
+function updateRejectedDraftAction() {
+  const batch = batchRejections.get(state.inputMode);
+  const canRefill = Boolean(batch && batch.retryText !== null);
+  const draft = $('#url-input').value;
+  const draftChanged = canRefill && draft !== batch.submittedText && draft !== batch.retryText;
+  $('#edit-rejected-inputs').hidden = !canRefill || draftChanged || draft === batch.retryText;
+  $('#rejected-draft-changed').hidden = !draftChanged;
+}
+
+function renderBatchRejections() {
+  const details = $('#batch-rejections');
+  const list = $('#batch-rejection-list');
+  const batch = batchRejections.get(state.inputMode);
+  details.hidden = !batch;
+  details.open = Boolean(batch);
+  list.replaceChildren();
+  for (const item of batch?.items || []) {
+    const row = document.createElement('li');
+    const input = document.createElement('code');
+    const reason = document.createElement('p');
+    if (item.inputIndex !== undefined) row.value = item.inputIndex + 1;
+    input.textContent = item.input;
+    uiText(reason, item.error);
+    row.append(input, reason);
+    list.append(row);
+  }
+  updateRejectedDraftAction();
+}
+
+$('#edit-rejected-inputs').addEventListener('click', () => {
+  const batch = batchRejections.get(state.inputMode);
+  const input = $('#url-input');
+  if (!batch || batch.retryText === null || input.value !== batch.submittedText) return;
+  input.value = batch.retryText;
+  updateUrlCount();
+  updateRejectedDraftAction();
+  input.focus();
+});
+
 function renderVideoQuality() {
   const profile = ['x_profile', 'pixiv_profile'].includes(state.inputMode);
   $('#video-quality-controls').classList.toggle('hidden', profile);
@@ -367,12 +410,16 @@ document.querySelectorAll('[data-download-mode]').forEach((button) => button.add
   state.inputMode = button.dataset.downloadMode;
   $('#url-input').value = inputDrafts[state.inputMode];
   uiText($('#form-message'), '');
+  renderBatchRejections();
   renderInputMode();
   $('#url-input').focus();
 }));
 $('#profile-connect-x').addEventListener('click', () => state.inputMode === 'pixiv_profile' ? openSettings('pixiv') : connectX());
 
-$('#url-input').addEventListener('input', updateUrlCount);
+$('#url-input').addEventListener('input', () => {
+  updateUrlCount();
+  updateRejectedDraftAction();
+});
 $('#url-input').addEventListener('keydown', (event) => {
   if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') $('#add-jobs').click();
 });
@@ -386,6 +433,8 @@ $('#add-jobs').addEventListener('click', async () => {
   const message = $('#form-message');
   message.classList.remove('error');
   if (!urls.length) { uiText(message, submittedMode === 'pixiv_profile' ? 'ui.pixiv_paste_author' : submittedMode === 'x_profile' ? 'ui.paste_an_x_profile_url_or_username_2' : 'ui.paste_one_or_more_media_urls_first'); message.classList.add('error'); $('#url-input').focus(); return; }
+  batchRejections.delete(submittedMode);
+  renderBatchRejections();
   const button = $('#add-jobs');
   button.disabled = true;
   button.querySelector('span').textContent = t('ui.adding');
@@ -396,22 +445,39 @@ $('#add-jobs').addEventListener('click', async () => {
     const reused = result.reused || [];
     const pending = result.already_pending || [];
     const acceptedCount = added.length + reused.length + pending.length;
+    const isCurrentMode = state.inputMode === submittedMode;
     if (acceptedCount && !rejected.length) {
-      inputDrafts[submittedMode] = '';
-      if (state.inputMode === submittedMode && $('#url-input').value === submittedText) $('#url-input').value = '';
+      if (isCurrentMode && $('#url-input').value === submittedText) $('#url-input').value = '';
+      if (!isCurrentMode && inputDrafts[submittedMode] === submittedText) inputDrafts[submittedMode] = '';
     }
-    updateUrlCount();
+    if (rejected.length) {
+      const items = rejected.map(({ input_index, url, error }) => {
+        const inputIndex = input_index < urls.length ? input_index : undefined;
+        return { inputIndex, input: urls[inputIndex] ?? url ?? '', error };
+      });
+      const indexes = new Set(items.map(item => item.inputIndex));
+      // Older responses may omit positions or truncate the echoed input.
+      const retryText = !indexes.has(undefined) && indexes.size === items.length
+        ? items.map(item => item.input).join('\n') : null;
+      batchRejections.set(submittedMode, { items, retryText, submittedText });
+    }
     const summary = rejected.length ? `新增 ${added.length} 個 · 沿用 ${reused.length} 個 · 已在佇列 ${pending.length} 個；${rejected.length} 個網址未加入。` :
       !reused.length && !pending.length ? `已加入 ${added.length} 個下載項目。` :
       !added.length && !pending.length ? `已沿用 ${reused.length} 個項目，檢查原位置檔案。` :
       !added.length && !reused.length ? `${pending.length} 個項目已在佇列中，未重複加入。` :
       `新增 ${added.length} 個 · 沿用 ${reused.length} 個 · 已在佇列 ${pending.length} 個。`;
-    uiText(message, summary);
-    if (rejected.length && !acceptedCount) message.classList.add('error');
+    if (isCurrentMode) {
+      updateUrlCount();
+      uiText(message, summary);
+      message.classList.toggle('error', Boolean(rejected.length && !acceptedCount));
+      renderBatchRejections();
+    }
     render(result.state);
-    if (rejected.length) toast(rejected[0].error, true);
-    else toast(summary);
-  } catch (error) { uiText(message, error.message); message.classList.add('error'); }
+    if (!rejected.length) toast(summary);
+  } catch (error) {
+    if (state.inputMode === submittedMode) { uiText(message, error.message); message.classList.add('error'); }
+    else toast(error.message, true);
+  }
   finally { button.disabled = false; button.querySelector('span').textContent = t('ui.add_to_download_queue'); }
 });
 
@@ -451,5 +517,4 @@ const uiPreferences = window.SSDLPreferences?.create({ api,
 });
 document.addEventListener('ssdl-language-changed', () => uiPreferences?.changed());
 $('#jobs-page-size').addEventListener('change', () => uiPreferences?.changed());
-window.addEventListener('pagehide', () => uiPreferences?.dispose(), { once: true });
 uiPreferences?.start();

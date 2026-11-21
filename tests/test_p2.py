@@ -88,6 +88,21 @@ class P2AppTests(unittest.TestCase):
         self.assertEqual(len(quality["added"]), 1)
         self.assertNotEqual(quality["added"][0], key)
 
+    def test_batch_rejections_keep_original_positions_across_validation_and_queue_checks(self):
+        self.prepare()
+        self.assertEqual(self.request("/api/jobs", {"mode": "pixiv_profile", "urls": ["321"]})[0], 201)
+        invalid = "https://example.org/" + "a" * 160
+        code, result = self.request("/api/jobs", {
+            "mode": "pixiv_profile", "urls": ["123", "321", invalid, None],
+        })
+        self.assertEqual(code, 201)
+        self.assertEqual(len(result["added"]), 1)
+        self.assertEqual(result["rejected"], [
+            {"input_index": 1, "url": "https://www.pixiv.net/users/321", "error": "此作者已有等待中或下載中的工作。"},
+            {"input_index": 2, "url": invalid[:120], "error": "請輸入 Pixiv 作者首頁、作品頁網址或數字作者 ID。"},
+            {"input_index": 3, "url": "", "error": "網址格式不正確"},
+        ])
+
     def test_pause_requires_explicit_boolean_without_saving_invalid_input(self):
         self.prepare()
         with patch.object(self.app, "_save_locked", return_value=0) as save:

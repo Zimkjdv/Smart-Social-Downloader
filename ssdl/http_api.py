@@ -494,42 +494,42 @@ class ApiHandler(BaseHTTPRequestHandler):
                 return self._json(400, {"error": f"一次最多加入 {self.app.MAX_URLS_PER_REQUEST} 個網址"})
             accepted, rejected = [], []
             seen = set()
-            for raw in raw_urls:
+            for input_index, raw in enumerate(raw_urls):
                 if not isinstance(raw, str):
-                    rejected.append({"url": "", "error": "網址格式不正確"})
+                    rejected.append({"input_index": input_index, "url": "", "error": "網址格式不正確"})
                     continue
                 if mode in self.app.PROFILE_MODES:
                     try:
                         normalizer = self.app.normalize_pixiv_account if mode == "pixiv_profile" else self.app.normalize_account
                         result, account = normalizer(raw)
                     except ValueError as exc:
-                        rejected.append({"url": raw[:120], "error": str(exc)})
+                        rejected.append({"input_index": input_index, "url": raw[:120], "error": str(exc)})
                         continue
                 else:
                     okay, result = self.app._valid_url(raw)
                     if not okay:
-                        rejected.append({"url": raw[:120], "error": result})
+                        rejected.append({"input_index": input_index, "url": raw[:120], "error": result})
                         continue
                     profile = self.app.account_from_url(result)
                     account = profile[1] if profile else ""
                     if profile:
                         result = profile[0]
                 if account and requested_quality != "best":
-                    rejected.append({"url": result, "error": "作者媒體模式使用原圖／最高畫質。"})
+                    rejected.append({"input_index": input_index, "url": result, "error": "作者媒體模式使用原圖／最高畫質。"})
                     continue
                 identity = self.app.media.source_key(result)
                 if identity in seen:
                     continue
                 seen.add(identity)
-                accepted.append((result, account))
+                accepted.append((result, account, input_index))
             with self._mutation():
                 pending_accounts = {(job.get("mode"), job.get("account")) for job in self.app.state.jobs.values()
                     if job.get("mode") in self.app.PROFILE_MODES and job["status"] in {"queued", "active"}}
                 ready = []
                 already_pending = []
-                for url, account in accepted:
+                for url, account, input_index in accepted:
                     if account and (self.app.profile_mode(url), account) in pending_accounts:
-                        rejected.append({"url": url, "error": "此作者已有等待中或下載中的工作。"})
+                        rejected.append({"input_index": input_index, "url": url, "error": "此作者已有等待中或下載中的工作。"})
                         continue
                     identity = self.app.media.source_key(url)
                     preference = "best" if account or self.app.media.original_image_url(url) else requested_quality
@@ -597,6 +597,7 @@ class ApiHandler(BaseHTTPRequestHandler):
                 generation = self.app._save_locked()
                 self.app.condition.notify_all()
             self.app._wait_saved(generation)
+            rejected.sort(key=lambda item: item["input_index"])
             return self._json(201, {"added": created, "reused": reused,
                 "already_pending": already_pending, "rejected": rejected, "state": self._state()})
 

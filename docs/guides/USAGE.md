@@ -94,6 +94,8 @@ Open `http://127.0.0.1:8877`. For X login, open the Chrome connector popup, expa
 
 Select **Media URLs**, paste links, and click **Add to Download Queue**. Jobs run in the backend; the browser shows their status.
 
+If any entries are rejected, **Items not added** lists each original input and its reason. Select **Edit only the items not added** to bring those entries back into the input box. If you changed the draft after submitting, you can copy the entries you want to fix from the list.
+
 The refresh button reads local status without submitting downloads or requesting platform content. Status updates every **30 seconds while idle** and **2 seconds while queued or active**. Refreshing the whole page leaves backend work running, but may discard unsent form input.
 
 Interface API requests have a **15-second deadline**, including reading the response body. Invalid JSON or unexpected response fields leave the last valid data visible and show an error; controls become usable again, and polling continues. When a write request times out, the backend may already have performed it: the interface reads status again instead of automatically resubmitting that action. Check the updated status before retrying.

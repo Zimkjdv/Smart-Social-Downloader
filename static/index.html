@@ -87,6 +87,12 @@
           <div class="textarea-wrap"><span class="textarea-link-icon">↗</span><textarea id="url-input" rows="4" placeholder="貼上媒體網址，每行一個&#10;&#10;https://x.com/使用者/status/貼文編號&#10;https://www.instagram.com/p/..." spellcheck="false" data-i18n-placeholder="ui.paste_media_urls_one_per_line_https"></textarea><span id="url-count" class="url-count" data-i18n-key="ui.0_urls">0 個網址</span></div>
           <div class="form-bottom"><div class="privacy-note" data-i18n-key="ui.random_3_8_second_delay_between_jobs"><span>◈</span> 每項工作間隨機延時 3～8 秒</div><button class="primary-button" id="add-jobs"><span data-i18n-key="ui.add_to_download_queue">加入下載佇列</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button></div>
           <div class="form-message" id="form-message" role="status"></div>
+          <details id="batch-rejections" class="batch-rejections" hidden>
+            <summary data-i18n-key="ui.batch_rejections">未加入的項目</summary>
+            <ol id="batch-rejection-list"></ol>
+            <button type="button" class="subtle-button" id="edit-rejected-inputs" data-i18n-key="ui.edit_rejected_inputs">只編輯未加入的項目</button>
+            <p id="rejected-draft-changed" data-i18n-key="ui.rejected_draft_changed" hidden>草稿已變更。可從清單複製需要修正的項目。</p>
+          </details>
         </article>
 
         <article class="panel monitor-panel">
